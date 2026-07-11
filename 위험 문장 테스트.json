@@ -1,0 +1,159 @@
+{
+  "_meta": {
+    "version": "v1",
+    "based_on": "keywords_v1.json",
+    "scoring_rule_note": "콤보 보너스는 세션 종료 시점 기준 1회만 계산 (매 턴 재적용 아님)",
+    "band_definitions": [
+      { "level": "낮음", "min": 0, "max": 30 },
+      { "level": "중간", "min": 31, "max": 65 },
+      { "level": "높음", "min": 66, "max": 100 }
+    ]
+  },
+
+  "positive_cases": [
+    { "id": "TC-VP-POS-01", "category": "보이스피싱", "subcategory_id": "1-1", "turns": ["택배기사인데요, 지금 잠깐 통화 가능하실까요?"], "expected_matched_ids": ["VP-1-1-001"], "expected_score": 15, "expected_level": "낮음" },
+    { "id": "TC-VP-POS-02", "category": "보이스피싱", "subcategory_id": "1-2", "turns": ["고객님 명의로 신청하신 적 없는 카드가 발급된 정황이 확인됩니다."], "expected_matched_ids": ["VP-1-2-003"], "expected_score": 15, "expected_level": "낮음" },
+    { "id": "TC-VP-POS-03", "category": "보이스피싱", "subcategory_id": "1-3", "turns": ["이 번호로 전화해보세요, 확인 가능하실 거예요."], "expected_matched_ids": ["VP-1-3-002"], "expected_score": 10, "expected_level": "낮음" },
+    { "id": "TC-VP-POS-04", "category": "보이스피싱", "subcategory_id": "1-4", "turns": ["지금 당장 확인해주셔야 합니다."], "expected_matched_ids": ["VP-1-4-001"], "expected_score": 20, "expected_level": "낮음" },
+    { "id": "TC-VP-POS-05", "category": "보이스피싱", "subcategory_id": "1-5", "turns": ["계좌번호를 알려주셔야 확인이 가능합니다."], "expected_matched_ids": ["VP-1-5-003"], "expected_score": 30, "expected_level": "낮음" },
+    { "id": "TC-VP-POS-06", "category": "보이스피싱", "subcategory_id": "1-6", "turns": ["택배 조회 부탁드립니다, 확인 부탁드려요."], "expected_matched_ids": ["VP-1-6-003"], "expected_score": 25, "expected_level": "낮음" },
+    { "id": "TC-RS-POS-01", "category": "로맨스스캠", "subcategory_id": "2-1", "turns": ["저는 지방 파견 나와 있어요."], "expected_matched_ids": ["RS-2-1-001"], "expected_score": 5, "expected_level": "낮음" },
+    { "id": "TC-RS-POS-02", "category": "로맨스스캠", "subcategory_id": "2-2", "turns": ["진심으로 마음이 가요, 당신 생각을 안 할 수가 없어요."], "expected_matched_ids": ["RS-2-2-002"], "expected_score": 10, "expected_level": "낮음" },
+    { "id": "TC-RS-POS-03", "category": "로맨스스캠", "subcategory_id": "2-3", "turns": ["이건 아무한테도 말하지 말아주세요."], "expected_matched_ids": ["RS-2-3-002"], "expected_score": 15, "expected_level": "낮음" },
+    { "id": "TC-RS-POS-04", "category": "로맨스스캠", "subcategory_id": "2-4", "turns": ["지금 사업 자금이 급하게 필요해서 그래요."], "expected_matched_ids": ["RS-2-4-001"], "expected_score": 30, "expected_level": "낮음" },
+    { "id": "TC-RS-POS-05", "category": "로맨스스캠", "subcategory_id": "2-5", "turns": ["오늘 안에 처리 안되면 큰일 나요."], "expected_matched_ids": ["RS-2-5-001"], "expected_score": 20, "expected_level": "낮음" },
+    { "id": "TC-GL-POS-01", "category": "가스라이팅", "subcategory_id": "3-1", "turns": ["너 오늘 좀 예민한 거 같아."], "expected_matched_ids": ["GL-3-1-001"], "expected_score": 8, "expected_level": "낮음" },
+    { "id": "TC-GL-POS-02", "category": "가스라이팅", "subcategory_id": "3-2", "turns": ["내가 언제 그렇게 말했어? 기억이나 하고 말하는 거야?"], "expected_matched_ids": ["GL-3-2-001"], "expected_score": 12, "expected_level": "낮음" },
+    { "id": "TC-GL-POS-03", "category": "가스라이팅", "subcategory_id": "3-3", "turns": ["걔랑 만나지 마, 부탁이야."], "expected_matched_ids": ["GL-3-3-002"], "expected_score": 15, "expected_level": "낮음" },
+    { "id": "TC-GL-POS-04", "category": "가스라이팅", "subcategory_id": "3-4", "turns": ["다 너를 위해서 하는 말이야."], "expected_matched_ids": ["GL-3-4-001"], "expected_score": 12, "expected_level": "낮음" },
+    { "id": "TC-GL-POS-05", "category": "가스라이팅", "subcategory_id": "3-5", "turns": ["내가 없으면 넌 아무것도 못해."], "expected_matched_ids": ["GL-3-5-001"], "expected_score": 18, "expected_level": "낮음" },
+    { "id": "TC-GL-POS-06", "category": "가스라이팅", "subcategory_id": "3-6", "turns": ["헤어지자는 거야? 그렇게는 안 될 걸."], "expected_matched_ids": ["GL-3-6-002"], "expected_score": 20, "expected_level": "낮음" }
+  ],
+
+  "negative_cases": [
+    { "id": "TC-VP-NEG-01", "category": "보이스피싱", "turns": ["택배기사님이 지금 배송 중이라고 문자 오셨더라, 진짜 친절하시다."], "expected_matched_ids": ["VP-1-1-001", "VP-1-1-002"], "expected_score": 22.5, "expected_level": "낮음", "verdict": "허용", "note": "실제 택배 관련 일상 대화" },
+    { "id": "TC-VP-NEG-02", "category": "보이스피싱", "turns": ["친구야, 계좌번호 좀 보내줘 정산할게."], "expected_matched_ids": ["VP-1-5-003"], "expected_score": 30, "expected_level": "낮음", "verdict": "요주의", "note": "평범한 정산 요청인데 낮음 구간 최상단에 닿음 - 튜닝 후보" },
+    { "id": "TC-VP-NEG-03", "category": "보이스피싱", "turns": ["지금 당장 회의 참석 부탁드립니다, 늦지 않게 와주세요."], "expected_matched_ids": ["VP-1-4-001"], "expected_score": 20, "expected_level": "낮음", "verdict": "허용", "note": "업무상 흔한 긴급 표현" },
+    { "id": "TC-VP-NEG-04", "category": "보이스피싱", "turns": ["이번 주말에 결혼식 청첩장 드리려고 하는데 시간 되실 때 뵈러 갈게요."], "expected_matched_ids": ["VP-1-6-002"], "expected_score": 25, "expected_level": "낮음", "verdict": "허용", "note": "실제 청첩장 대화, 링크 없음" },
+    { "id": "TC-RS-NEG-01", "category": "로맨스스캠", "turns": ["저희 팀장님이 이번에 지방 파견 발령 나셨대요."], "expected_matched_ids": ["RS-2-1-001"], "expected_score": 5, "expected_level": "낮음", "verdict": "허용", "note": "제3자 이야기, 낮은 가중치라 안전" },
+    { "id": "TC-RS-NEG-02", "category": "로맨스스캠", "turns": ["자기야 진심으로 마음이 가요, 우리 결혼할까?"], "expected_matched_ids": ["RS-2-2-002", "RS-2-2-003"], "expected_score": 15, "expected_level": "낮음", "verdict": "허용", "note": "실제 커플의 다정한 대화" },
+    { "id": "TC-RS-NEG-03", "category": "로맨스스캠", "turns": ["친구가 큰돈이 필요하다고 해서 사업 자금 빌려줬어, 다음 달에 갚는대."], "expected_matched_ids": ["RS-2-4-001"], "expected_score": 30, "expected_level": "낮음", "verdict": "요주의", "note": "회고형 대화인데 실시간 피해 상황과 동일 점수 - 시제 구분 불가 한계" },
+    { "id": "TC-RS-NEG-04", "category": "로맨스스캠", "turns": ["오늘 안에 처리 안되면 늦게 도착할 것 같아서 미리 말씀드려요."], "expected_matched_ids": ["RS-2-5-001"], "expected_score": 20, "expected_level": "낮음", "verdict": "허용", "note": "업무 마감 관련 흔한 표현" },
+    { "id": "TC-GL-NEG-01", "category": "가스라이팅", "turns": ["오늘 많이 예민한 거 같아 보이는데 무슨 일 있어? 나한테 얘기해도 괜찮아."], "expected_matched_ids": ["GL-3-1-001"], "expected_score": 8, "expected_level": "낮음", "verdict": "허용", "note": "다정한 걱정, 톤 구분 불가 한계" },
+    { "id": "TC-GL-NEG-02", "category": "가스라이팅", "turns": ["엄마가 그러셨어, 다 너를 위해서 하는 말이야 라고."], "expected_matched_ids": ["GL-3-4-001"], "expected_score": 12, "expected_level": "낮음", "verdict": "허용", "note": "인용문 형태, 화자 판단 불가 한계" },
+    { "id": "TC-GL-NEG-03", "category": "가스라이팅", "turns": ["헤어지자는 거야? 아니 그냥 오늘 좀 힘들어서 그래, 미안."], "expected_matched_ids": ["GL-3-6-002"], "expected_score": 20, "expected_level": "낮음", "verdict": "허용", "note": "감정적 발언 후 사과, 화해 맥락" },
+    { "id": "TC-GL-NEG-04", "category": "가스라이팅", "turns": ["너 키우느라 내가 얼마나 고생했는데, 그래도 넌 항상 착했어."], "expected_matched_ids": ["GL-3-4-003"], "expected_score": 12, "expected_level": "낮음", "verdict": "허용", "note": "긍정적 회고, 죄책감 유도 의도 없음" }
+  ],
+
+  "edge_cases": [
+    {
+      "id": "TC-VP-EDGE-01", "category": "보이스피싱", "description": "낮음→중간 전환",
+      "turns": [
+        { "turn": 1, "text": "택배기사인데요, 배송 중 확인 차 연락드렸습니다.", "matched_ids": ["VP-1-1-001", "VP-1-1-002"] },
+        { "turn": 2, "text": "그럼 명의 도용 우려가 있어서 확인이 필요합니다.", "matched_ids": ["VP-1-2-002"] }
+      ],
+      "expected_base": 37.5, "expected_combo": 0, "expected_total": 37.5, "expected_level": "중간"
+    },
+    {
+      "id": "TC-VP-EDGE-02", "category": "보이스피싱", "description": "중간→높음 전환 (EDGE-01 이어서)",
+      "turns": [
+        { "turn": 1, "text": "택배기사인데요, 배송 중 확인 차 연락드렸습니다.", "matched_ids": ["VP-1-1-001", "VP-1-1-002"] },
+        { "turn": 2, "text": "그럼 명의 도용 우려가 있어서 확인이 필요합니다.", "matched_ids": ["VP-1-2-002"] },
+        { "turn": 3, "text": "지금 당장 확인 안 하시면 계좌가 압류될 수 있습니다.", "matched_ids": ["VP-1-4-001", "VP-1-4-004"] }
+      ],
+      "expected_base": 67.5, "expected_combo": 15, "expected_combo_rules": ["COMBO-GENERAL-3CAT"], "expected_total": 82.5, "expected_level": "높음"
+    },
+    {
+      "id": "TC-RS-EDGE-01", "category": "로맨스스캠", "description": "낮음→중간 전환",
+      "turns": [
+        { "turn": 1, "text": "지방 파견 나와 있어요, 무역회사 대표입니다.", "matched_ids": ["RS-2-1-001", "RS-2-1-002"] },
+        { "turn": 2, "text": "진심으로 마음이 가요, 당신 생각을 안 할 수가 없어요.", "matched_ids": ["RS-2-2-002"] },
+        { "turn": 3, "text": "이건 아무한테도 말하지 말아주세요, 우리 둘만 아는 걸로 해요.", "matched_ids": ["RS-2-3-002"] }
+      ],
+      "expected_base": 32.5, "expected_combo": 15, "expected_combo_rules": ["COMBO-GENERAL-3CAT"], "expected_total": 47.5, "expected_level": "중간"
+    },
+    {
+      "id": "TC-RS-EDGE-02", "category": "로맨스스캠", "description": "중간→높음 전환 (EDGE-01 이어서)",
+      "turns": [
+        { "turn": 1, "text": "지방 파견 나와 있어요, 무역회사 대표입니다.", "matched_ids": ["RS-2-1-001", "RS-2-1-002"] },
+        { "turn": 2, "text": "진심으로 마음이 가요, 당신 생각을 안 할 수가 없어요.", "matched_ids": ["RS-2-2-002"] },
+        { "turn": 3, "text": "이건 아무한테도 말하지 말아주세요, 우리 둘만 아는 걸로 해요.", "matched_ids": ["RS-2-3-002"] },
+        { "turn": 4, "text": "사업 자금이 필요해요, 도와주실 수 있나요?", "matched_ids": ["RS-2-4-001"] }
+      ],
+      "expected_base": 62.5, "expected_combo": 40, "expected_combo_rules": ["COMBO-GENERAL-4CAT", "COMBO-RS-SECRET-MONEY"], "expected_total": 100, "expected_level": "높음", "note": "캡(100) 도달" 
+    },
+    {
+      "id": "TC-GL-EDGE-01", "category": "가스라이팅", "description": "낮음→중간 전환",
+      "turns": [
+        { "turn": 1, "text": "너 오늘 좀 예민한 거 같아, 별일도 아닌데 왜 그래?", "matched_ids": ["GL-3-1-001", "GL-3-1-003"] },
+        { "turn": 2, "text": "내가 언제 그렇게 말했어? 너 또 왜곡해서 기억하는 거야.", "matched_ids": ["GL-3-2-001", "GL-3-2-003"] },
+        { "turn": 3, "text": "걔랑 만나지 마, 부탁이야.", "matched_ids": ["GL-3-3-002"] }
+      ],
+      "expected_base": 45.0, "expected_combo": 15, "expected_combo_rules": ["COMBO-GENERAL-3CAT"], "expected_total": 60.0, "expected_level": "중간"
+    },
+    {
+      "id": "TC-GL-EDGE-02", "category": "가스라이팅", "description": "중간→높음 전환 (EDGE-01 이어서)",
+      "turns": [
+        { "turn": 1, "text": "너 오늘 좀 예민한 거 같아, 별일도 아닌데 왜 그래?", "matched_ids": ["GL-3-1-001", "GL-3-1-003"] },
+        { "turn": 2, "text": "내가 언제 그렇게 말했어? 너 또 왜곡해서 기억하는 거야.", "matched_ids": ["GL-3-2-001", "GL-3-2-003"] },
+        { "turn": 3, "text": "걔랑 만나지 마, 부탁이야.", "matched_ids": ["GL-3-3-002"] },
+        { "turn": 4, "text": "다 너를 위해서 하는 말이야. 내가 없으면 넌 아무것도 못해.", "matched_ids": ["GL-3-4-001", "GL-3-5-001"] }
+      ],
+      "expected_base": 75.0, "expected_combo": 40, "expected_combo_rules": ["COMBO-GENERAL-4CAT", "COMBO-GL-ISOLATION-GUILT"], "expected_total": 100, "expected_level": "높음", "note": "캡(100) 도달"
+    }
+  ],
+
+  "combo_verification_cases": [
+    {
+      "id": "TC-COMBO-01", "combo_id": "COMBO-VP-PHONE-VERIFY",
+      "turns": [{ "turn": 1, "text": "이 번호로 전화해보세요: 010-1234-5678", "matched_ids": ["VP-1-3-002", "VP-1-3-003"] }],
+      "expected_base": 10, "expected_combo": 15, "expected_total": 25, "expected_level": "낮음"
+    },
+    {
+      "id": "TC-COMBO-02", "combo_id": "COMBO-VP-SMISHING",
+      "turns": [{ "turn": 1, "text": "부고장 안내드립니다. 아래 링크에서 확인해주세요: http://bit.ly/xyz123", "matched_ids": ["VP-1-6-001", "VP-1-6-004"] }],
+      "expected_base": 25, "expected_combo": 20, "expected_total": 45, "expected_level": "중간"
+    },
+    {
+      "id": "TC-COMBO-03", "combo_id": "COMBO-RS-SECRET-MONEY",
+      "turns": [
+        { "turn": 1, "text": "이건 아무한테도 말하지 말아주세요.", "matched_ids": ["RS-2-3-002"] },
+        { "turn": 2, "text": "사업 자금이 급해서 그런데 도와줄 수 있어요?", "matched_ids": ["RS-2-4-001"] }
+      ],
+      "expected_base": 45, "expected_combo": 15, "expected_total": 60, "expected_level": "중간"
+    },
+    {
+      "id": "TC-COMBO-04", "combo_id": "COMBO-GL-ISOLATION-GUILT",
+      "turns": [
+        { "turn": 1, "text": "걔랑 만나지 마, 부탁이야.", "matched_ids": ["GL-3-3-002"] },
+        { "turn": 2, "text": "다 너를 위해서 하는 말이야.", "matched_ids": ["GL-3-4-001"] }
+      ],
+      "expected_base": 27, "expected_combo": 15, "expected_total": 42, "expected_level": "중간"
+    },
+    {
+      "id": "TC-COMBO-05", "combo_id": "COMBO-GENERAL-3CAT",
+      "turns": [
+        { "turn": 1, "text": "택배기사인데요.", "matched_ids": ["VP-1-1-001"] },
+        { "turn": 2, "text": "명의 도용 우려가 있어서요.", "matched_ids": ["VP-1-2-002"] },
+        { "turn": 3, "text": "지금 당장 확인이 필요합니다.", "matched_ids": ["VP-1-4-001"] }
+      ],
+      "expected_base": 50, "expected_combo": 15, "expected_total": 65, "expected_level": "중간", "note": "중간 구간 상한선에 정확히 도달"
+    },
+    {
+      "id": "TC-COMBO-06", "combo_id": "COMBO-GENERAL-4CAT",
+      "turns": [
+        { "turn": 1, "text": "택배기사인데요.", "matched_ids": ["VP-1-1-001"] },
+        { "turn": 2, "text": "명의 도용 우려가 있어서요.", "matched_ids": ["VP-1-2-002"] },
+        { "turn": 3, "text": "지금 당장 확인이 필요합니다.", "matched_ids": ["VP-1-4-001"] },
+        { "turn": 4, "text": "이 번호로 전화해보세요.", "matched_ids": ["VP-1-3-002"] }
+      ],
+      "expected_base": 60, "expected_combo": 25, "expected_total": 85, "expected_level": "높음", "note": "3CAT(+15)과 중복 적용 안 하고 4CAT(+25)만 적용"
+    }
+  ],
+
+  "known_limitations_found": [
+    "키워드 매칭만으로는 톤/의도(걱정 vs 무효화, 진심 vs 협박) 구분 불가",
+    "시제/화자 구분 불가 - 실시간 피해 상황과 회고형 서술을 동일하게 처리",
+    "가중치 30인 단일 키워드(계좌번호, 사업 자금 등)는 완전히 무해한 문맥에서도 낮음 구간 최상단까지 도달"
+  ]
+}
