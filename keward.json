@@ -1,0 +1,153 @@
+{
+  "_meta": {
+    "version": "v1",
+    "last_updated": "2026-07-06",
+    "source_documents": [
+      "safelink_scenarios_v1.md",
+      "safelink_keyword_categories_v1.md",
+      "safelink_risk_scoring_v1.md"
+    ],
+    "note": "1차 초안입니다. weight는 임시값이며 실사용 데이터로 튜닝이 필요합니다.",
+    "field_guide": {
+      "id": "카테고리약어-중분류번호-일련번호 형식 (예: VP-1-1-001)",
+      "category": "대분류 (보이스피싱 | 로맨스스캠 | 가스라이팅)",
+      "subcategory_id": "2단계 문서의 중분류 번호 (예: 1-1)",
+      "subcategory": "중분류명",
+      "match_type": "keyword | regex-simple (regex-complex는 combo_bonus_rules에서 별도 처리)",
+      "keyword": "match_type이 keyword일 때 사용하는 표현",
+      "pattern": "match_type이 regex-simple일 때 사용하는 정규식 문자열",
+      "weight": "기본 가중치 점수 (3단계 문서 기준)",
+      "repeat_decay": "true면 같은 항목 반복 시 2회차부터 50%만 가산 (3단계 반복처리규칙 적용)",
+      "structural_only": "true면 단독 점수 없이 combo_bonus_rules 트리거용으로만 사용 (예: 전화번호, URL)",
+      "description": "이 표현이 어떤 위험을 나타내는지 간단 설명 (UI 근거 설명에 재사용 가능)",
+      "source": "시나리오/자료 출처 (역추적용)"
+    }
+  },
+
+  "keywords": [
+    { "id": "VP-1-1-001", "category": "보이스피싱", "subcategory_id": "1-1", "subcategory": "기관사칭", "match_type": "keyword", "keyword": "택배기사", "weight": 15, "repeat_decay": true, "description": "택배기사 사칭 접근", "source": "시나리오1 T1" },
+    { "id": "VP-1-1-002", "category": "보이스피싱", "subcategory_id": "1-1", "subcategory": "기관사칭", "match_type": "keyword", "keyword": "배송 중", "weight": 15, "repeat_decay": true, "description": "택배기사 사칭 접근", "source": "시나리오1 T1" },
+    { "id": "VP-1-1-003", "category": "보이스피싱", "subcategory_id": "1-1", "subcategory": "기관사칭", "match_type": "keyword", "keyword": "카드사 담당자", "weight": 15, "repeat_decay": true, "description": "카드사 직원 사칭", "source": "시나리오1 T3" },
+    { "id": "VP-1-1-004", "category": "보이스피싱", "subcategory_id": "1-1", "subcategory": "기관사칭", "match_type": "keyword", "keyword": "카드사 직원", "weight": 15, "repeat_decay": true, "description": "카드사 직원 사칭", "source": "시나리오1 T3" },
+    { "id": "VP-1-1-005", "category": "보이스피싱", "subcategory_id": "1-1", "subcategory": "기관사칭", "match_type": "keyword", "keyword": "금융감독원", "weight": 15, "repeat_decay": true, "description": "금융감독원 사칭", "source": "시나리오1 T4" },
+    { "id": "VP-1-1-006", "category": "보이스피싱", "subcategory_id": "1-1", "subcategory": "기관사칭", "match_type": "keyword", "keyword": "금감원 직원", "weight": 15, "repeat_decay": true, "description": "금융감독원 사칭", "source": "시나리오1 T4" },
+    { "id": "VP-1-1-007", "category": "보이스피싱", "subcategory_id": "1-1", "subcategory": "기관사칭", "match_type": "keyword", "keyword": "검찰청", "weight": 15, "repeat_decay": true, "description": "검찰 사칭", "source": "시나리오1 T6" },
+    { "id": "VP-1-1-008", "category": "보이스피싱", "subcategory_id": "1-1", "subcategory": "기관사칭", "match_type": "keyword", "keyword": "검사", "weight": 15, "repeat_decay": true, "description": "검찰 사칭", "source": "시나리오1 T6" },
+    { "id": "VP-1-1-009", "category": "보이스피싱", "subcategory_id": "1-1", "subcategory": "기관사칭", "match_type": "keyword", "keyword": "수사관", "weight": 15, "repeat_decay": true, "description": "경찰/검찰 사칭", "source": "공통" },
+    { "id": "VP-1-1-010", "category": "보이스피싱", "subcategory_id": "1-1", "subcategory": "기관사칭", "match_type": "regex-simple", "pattern": "(경찰서|지검|지방검찰청|금융감독원)\\s?(직원|수사관|검사)?", "weight": 15, "repeat_decay": true, "description": "기관명+직위 조합 패턴", "source": "공통" },
+
+    { "id": "VP-1-2-001", "category": "보이스피싱", "subcategory_id": "1-2", "subcategory": "명의도용/사건연루 경고", "match_type": "keyword", "keyword": "명의도용", "weight": 15, "repeat_decay": true, "description": "명의도용 우려 고지", "source": "시나리오1 T3" },
+    { "id": "VP-1-2-002", "category": "보이스피싱", "subcategory_id": "1-2", "subcategory": "명의도용/사건연루 경고", "match_type": "keyword", "keyword": "명의 도용 우려", "weight": 15, "repeat_decay": true, "description": "명의도용 우려 고지", "source": "시나리오1 T3" },
+    { "id": "VP-1-2-003", "category": "보이스피싱", "subcategory_id": "1-2", "subcategory": "명의도용/사건연루 경고", "match_type": "keyword", "keyword": "신청하신 적 없는 카드", "weight": 15, "repeat_decay": true, "description": "허위 신청 정황 고지", "source": "시나리오1 T2" },
+    { "id": "VP-1-2-004", "category": "보이스피싱", "subcategory_id": "1-2", "subcategory": "명의도용/사건연루 경고", "match_type": "keyword", "keyword": "범죄에 연루", "weight": 15, "repeat_decay": true, "description": "사건 연루 협박", "source": "시나리오1 T5" },
+    { "id": "VP-1-2-005", "category": "보이스피싱", "subcategory_id": "1-2", "subcategory": "명의도용/사건연루 경고", "match_type": "keyword", "keyword": "계좌가 범죄이용계좌로 의심", "weight": 15, "repeat_decay": true, "description": "계좌 관련 사건 연루 고지", "source": "시나리오1 T5" },
+
+    { "id": "VP-1-3-001", "category": "보이스피싱", "subcategory_id": "1-3", "subcategory": "제3자 연결 유도", "match_type": "keyword", "keyword": "담당자 번호 알려드릴게요", "weight": 10, "repeat_decay": true, "description": "제3자(공범) 연결 유도", "source": "시나리오1 T3" },
+    { "id": "VP-1-3-002", "category": "보이스피싱", "subcategory_id": "1-3", "subcategory": "제3자 연결 유도", "match_type": "keyword", "keyword": "이 번호로 전화해보세요", "weight": 10, "repeat_decay": true, "description": "제3자(공범) 연결 유도", "source": "시나리오1 T3" },
+    { "id": "VP-1-3-003", "category": "보이스피싱", "subcategory_id": "1-3", "subcategory": "제3자 연결 유도", "match_type": "regex-simple", "pattern": "\\d{2,3}-\\d{3,4}-\\d{4}", "weight": 0, "structural_only": true, "repeat_decay": false, "description": "전화번호 형식 - 단독 점수 없음, combo 트리거용", "source": "공통" },
+
+    { "id": "VP-1-4-001", "category": "보이스피싱", "subcategory_id": "1-4", "subcategory": "긴급성 압박/법적 위협", "match_type": "keyword", "keyword": "지금 당장", "weight": 20, "repeat_decay": true, "description": "긴급성 압박", "source": "시나리오1 T6" },
+    { "id": "VP-1-4-002", "category": "보이스피싱", "subcategory_id": "1-4", "subcategory": "긴급성 압박/법적 위협", "match_type": "keyword", "keyword": "즉시", "weight": 20, "repeat_decay": true, "description": "긴급성 압박", "source": "시나리오1 T6" },
+    { "id": "VP-1-4-003", "category": "보이스피싱", "subcategory_id": "1-4", "subcategory": "긴급성 압박/법적 위협", "match_type": "keyword", "keyword": "오늘 안에", "weight": 20, "repeat_decay": true, "description": "긴급성 압박", "source": "시나리오1 T6" },
+    { "id": "VP-1-4-004", "category": "보이스피싱", "subcategory_id": "1-4", "subcategory": "긴급성 압박/법적 위협", "match_type": "keyword", "keyword": "압류", "weight": 20, "repeat_decay": true, "description": "법적 위협", "source": "시나리오1 T6" },
+    { "id": "VP-1-4-005", "category": "보이스피싱", "subcategory_id": "1-4", "subcategory": "긴급성 압박/법적 위협", "match_type": "keyword", "keyword": "구속", "weight": 20, "repeat_decay": true, "description": "법적 위협", "source": "시나리오1 T6" },
+    { "id": "VP-1-4-006", "category": "보이스피싱", "subcategory_id": "1-4", "subcategory": "긴급성 압박/법적 위협", "match_type": "keyword", "keyword": "수사 협조", "weight": 20, "repeat_decay": true, "description": "법적 위협", "source": "시나리오1 T6" },
+    { "id": "VP-1-4-007", "category": "보이스피싱", "subcategory_id": "1-4", "subcategory": "긴급성 압박/법적 위협", "match_type": "keyword", "keyword": "통화 내용은 녹취됩니다", "weight": 20, "repeat_decay": true, "description": "심리적 압박", "source": "시나리오1 T6" },
+    { "id": "VP-1-4-008", "category": "보이스피싱", "subcategory_id": "1-4", "subcategory": "긴급성 압박/법적 위협", "match_type": "keyword", "keyword": "조용한 곳에서 통화", "weight": 20, "repeat_decay": true, "description": "고립 유도(통화 중)", "source": "참고자료(공식사례)" },
+    { "id": "VP-1-4-009", "category": "보이스피싱", "subcategory_id": "1-4", "subcategory": "긴급성 압박/법적 위협", "match_type": "keyword", "keyword": "주변에 알리지 말 것", "weight": 20, "repeat_decay": true, "description": "고립 유도", "source": "참고자료(공식사례)" },
+
+    { "id": "VP-1-5-001", "category": "보이스피싱", "subcategory_id": "1-5", "subcategory": "금전이체/개인정보 요구", "match_type": "keyword", "keyword": "안전계좌", "weight": 30, "repeat_decay": true, "description": "이체 유도 - 실질적 피해 직전 단계", "source": "시나리오1 T6" },
+    { "id": "VP-1-5-002", "category": "보이스피싱", "subcategory_id": "1-5", "subcategory": "금전이체/개인정보 요구", "match_type": "keyword", "keyword": "안전계좌로 이체", "weight": 30, "repeat_decay": true, "description": "이체 유도", "source": "시나리오1 T6" },
+    { "id": "VP-1-5-003", "category": "보이스피싱", "subcategory_id": "1-5", "subcategory": "금전이체/개인정보 요구", "match_type": "keyword", "keyword": "계좌번호", "weight": 30, "repeat_decay": true, "description": "개인정보 탈취 시도", "source": "업로드 사례(이미지2)" },
+    { "id": "VP-1-5-004", "category": "보이스피싱", "subcategory_id": "1-5", "subcategory": "금전이체/개인정보 요구", "match_type": "keyword", "keyword": "계좌 비밀번호", "weight": 30, "repeat_decay": true, "description": "개인정보 탈취 시도", "source": "업로드 사례(이미지2)" },
+    { "id": "VP-1-5-005", "category": "보이스피싱", "subcategory_id": "1-5", "subcategory": "금전이체/개인정보 요구", "match_type": "keyword", "keyword": "OTP", "weight": 30, "repeat_decay": true, "description": "개인정보 탈취 시도", "source": "업로드 사례(이미지2)" },
+    { "id": "VP-1-5-006", "category": "보이스피싱", "subcategory_id": "1-5", "subcategory": "금전이체/개인정보 요구", "match_type": "keyword", "keyword": "인증번호", "weight": 30, "repeat_decay": true, "description": "개인정보 탈취 시도", "source": "공통" },
+    { "id": "VP-1-5-007", "category": "보이스피싱", "subcategory_id": "1-5", "subcategory": "금전이체/개인정보 요구", "match_type": "keyword", "keyword": "보안카드 번호", "weight": 30, "repeat_decay": true, "description": "개인정보 탈취 시도", "source": "공통" },
+
+    { "id": "VP-1-6-001", "category": "보이스피싱", "subcategory_id": "1-6", "subcategory": "악성링크/스미싱", "match_type": "keyword", "keyword": "부고장", "weight": 25, "repeat_decay": true, "description": "스미싱 명목 문구", "source": "업로드 사례(이미지2)" },
+    { "id": "VP-1-6-002", "category": "보이스피싱", "subcategory_id": "1-6", "subcategory": "악성링크/스미싱", "match_type": "keyword", "keyword": "청첩장", "weight": 25, "repeat_decay": true, "description": "스미싱 명목 문구", "source": "업로드 사례(이미지2)" },
+    { "id": "VP-1-6-003", "category": "보이스피싱", "subcategory_id": "1-6", "subcategory": "악성링크/스미싱", "match_type": "keyword", "keyword": "택배 조회", "weight": 25, "repeat_decay": true, "description": "스미싱 명목 문구", "source": "업로드 사례(이미지2)" },
+    { "id": "VP-1-6-004", "category": "보이스피싱", "subcategory_id": "1-6", "subcategory": "악성링크/스미싱", "match_type": "regex-simple", "pattern": "https?://\\S+", "weight": 0, "structural_only": true, "repeat_decay": false, "description": "URL/단축링크 - 단독 점수 없음, combo 트리거용", "source": "업로드 사례(이미지2)" },
+    { "id": "VP-1-6-005", "category": "보이스피싱", "subcategory_id": "1-6", "subcategory": "악성링크/스미싱", "match_type": "keyword", "keyword": "앱 설치", "weight": 25, "repeat_decay": true, "description": "악성 앱 설치 유도", "source": "공통" },
+    { "id": "VP-1-6-006", "category": "보이스피싱", "subcategory_id": "1-6", "subcategory": "악성링크/스미싱", "match_type": "keyword", "keyword": "원격제어 앱", "weight": 25, "repeat_decay": true, "description": "악성 앱 설치 유도", "source": "공통" },
+
+    { "id": "RS-2-1-001", "category": "로맨스스캠", "subcategory_id": "2-1", "subcategory": "신원 설정", "match_type": "keyword", "keyword": "지방 파견", "weight": 5, "repeat_decay": true, "description": "그럴듯한 국내형 직업 설정", "source": "시나리오2 T1" },
+    { "id": "RS-2-1-002", "category": "로맨스스캠", "subcategory_id": "2-1", "subcategory": "신원 설정", "match_type": "keyword", "keyword": "무역회사 대표", "weight": 5, "repeat_decay": true, "description": "직업 설정", "source": "시나리오2 T1" },
+    { "id": "RS-2-1-003", "category": "로맨스스캠", "subcategory_id": "2-1", "subcategory": "신원 설정", "match_type": "keyword", "keyword": "선박 관련 일", "weight": 5, "repeat_decay": true, "description": "직업 설정", "source": "확장" },
+    { "id": "RS-2-1-004", "category": "로맨스스캠", "subcategory_id": "2-1", "subcategory": "신원 설정", "match_type": "keyword", "keyword": "프로필 보고 연락드려요", "weight": 5, "repeat_decay": true, "description": "초기 접근 정형 문구", "source": "시나리오2 T1" },
+
+    { "id": "RS-2-2-001", "category": "로맨스스캠", "subcategory_id": "2-2", "subcategory": "급속 친밀감 형성", "match_type": "keyword", "keyword": "대화가 잘 통하는 사람", "weight": 10, "repeat_decay": true, "description": "급속 친밀감", "source": "시나리오2 T2" },
+    { "id": "RS-2-2-002", "category": "로맨스스캠", "subcategory_id": "2-2", "subcategory": "급속 친밀감 형성", "match_type": "keyword", "keyword": "진심으로 마음이 가요", "weight": 10, "repeat_decay": true, "description": "급속 애정 표현", "source": "시나리오2 T2" },
+    { "id": "RS-2-2-003", "category": "로맨스스캠", "subcategory_id": "2-2", "subcategory": "급속 친밀감 형성", "match_type": "keyword", "keyword": "결혼하고 싶어요", "weight": 10, "repeat_decay": true, "description": "급속 애정 표현", "source": "참고자료(공식)" },
+
+    { "id": "RS-2-3-001", "category": "로맨스스캠", "subcategory_id": "2-3", "subcategory": "비밀유지요구/고립유도", "match_type": "keyword", "keyword": "회사 사람들이 알면 곤란해서", "weight": 15, "repeat_decay": true, "description": "비밀 유지 요구", "source": "시나리오2 T3" },
+    { "id": "RS-2-3-002", "category": "로맨스스캠", "subcategory_id": "2-3", "subcategory": "비밀유지요구/고립유도", "match_type": "keyword", "keyword": "아무한테도 말하지 말아주세요", "weight": 15, "repeat_decay": true, "description": "비밀 유지 요구", "source": "시나리오2 T3" },
+
+    { "id": "RS-2-4-001", "category": "로맨스스캠", "subcategory_id": "2-4", "subcategory": "금전요구명목", "match_type": "keyword", "keyword": "사업 자금", "weight": 30, "repeat_decay": true, "description": "실질적 피해 단계", "source": "시나리오2 T4" },
+    { "id": "RS-2-4-002", "category": "로맨스스캠", "subcategory_id": "2-4", "subcategory": "금전요구명목", "match_type": "keyword", "keyword": "계약금", "weight": 30, "repeat_decay": true, "description": "금전 요구 명목", "source": "시나리오2 T4" },
+    { "id": "RS-2-4-003", "category": "로맨스스캠", "subcategory_id": "2-4", "subcategory": "금전요구명목", "match_type": "keyword", "keyword": "지인 병원비", "weight": 30, "repeat_decay": true, "description": "금전 요구 명목", "source": "공통(설계 메모)" },
+    { "id": "RS-2-4-004", "category": "로맨스스캠", "subcategory_id": "2-4", "subcategory": "금전요구명목", "match_type": "regex-simple", "pattern": "\\d+\\s?(만|천만)\\s?원.{0,10}(빌려|융통|보내)", "weight": 30, "repeat_decay": true, "description": "금액+요청 조합 패턴", "source": "시나리오2 T4" },
+    { "id": "RS-2-4-005", "category": "로맨스스캠", "subcategory_id": "2-4", "subcategory": "금전요구명목", "match_type": "keyword", "keyword": "고수익 보장", "weight": 30, "repeat_decay": true, "description": "투자사기형 금전요구", "source": "신규 추가(투자사기형)" },
+    { "id": "RS-2-4-006", "category": "로맨스스캠", "subcategory_id": "2-4", "subcategory": "금전요구명목", "match_type": "keyword", "keyword": "리딩방", "weight": 30, "repeat_decay": true, "description": "투자사기형 금전요구", "source": "신규 추가(투자사기형)" },
+    { "id": "RS-2-4-007", "category": "로맨스스캠", "subcategory_id": "2-4", "subcategory": "금전요구명목", "match_type": "keyword", "keyword": "자리 얼마 안 남았어요", "weight": 30, "repeat_decay": true, "description": "투자사기형 긴급성 압박", "source": "신규 추가(투자사기형)" },
+
+    { "id": "RS-2-5-001", "category": "로맨스스캠", "subcategory_id": "2-5", "subcategory": "긴급성압박+보상약속", "match_type": "keyword", "keyword": "오늘 안에 처리 안되면", "weight": 20, "repeat_decay": true, "description": "긴급성 압박", "source": "시나리오2 T5" },
+    { "id": "RS-2-5-002", "category": "로맨스스캠", "subcategory_id": "2-5", "subcategory": "긴급성압박+보상약속", "match_type": "keyword", "keyword": "당신밖에 없어요", "weight": 20, "repeat_decay": true, "description": "긴급성 압박", "source": "시나리오2 T5" },
+    { "id": "RS-2-5-003", "category": "로맨스스캠", "subcategory_id": "2-5", "subcategory": "긴급성압박+보상약속", "match_type": "keyword", "keyword": "다음 주에 갚을게요", "weight": 20, "repeat_decay": true, "description": "과도한 보상 약속", "source": "시나리오2 T5" },
+
+    { "id": "GL-3-1-001", "category": "가스라이팅", "subcategory_id": "3-1", "subcategory": "감정 무효화", "match_type": "keyword", "keyword": "예민한 거 같아", "weight": 8, "repeat_decay": true, "description": "감정 무시", "source": "시나리오3 T1" },
+    { "id": "GL-3-1-002", "category": "가스라이팅", "subcategory_id": "3-1", "subcategory": "감정 무효화", "match_type": "keyword", "keyword": "네가 예민한 거야", "weight": 8, "repeat_decay": true, "description": "감정 무시 (직장형 포함)", "source": "시나리오3 T1 / 직장형" },
+    { "id": "GL-3-1-003", "category": "가스라이팅", "subcategory_id": "3-1", "subcategory": "감정 무효화", "match_type": "keyword", "keyword": "별일도 아닌데 왜 그래", "weight": 8, "repeat_decay": true, "description": "감정 무시", "source": "시나리오3 T1" },
+
+    { "id": "GL-3-2-001", "category": "가스라이팅", "subcategory_id": "3-2", "subcategory": "현실 왜곡", "match_type": "keyword", "keyword": "내가 언제 그렇게 말했어", "weight": 12, "repeat_decay": true, "description": "기억 부정", "source": "시나리오3 T3" },
+    { "id": "GL-3-2-002", "category": "가스라이팅", "subcategory_id": "3-2", "subcategory": "현실 왜곡", "match_type": "keyword", "keyword": "그런 적 없어", "weight": 12, "repeat_decay": true, "description": "기억 부정", "source": "시나리오3 T3" },
+    { "id": "GL-3-2-003", "category": "가스라이팅", "subcategory_id": "3-2", "subcategory": "현실 왜곡", "match_type": "keyword", "keyword": "너 또 왜곡해서 기억하는 거야", "weight": 12, "repeat_decay": true, "description": "현실 왜곡", "source": "시나리오3 T3" },
+    { "id": "GL-3-2-004", "category": "가스라이팅", "subcategory_id": "3-2", "subcategory": "현실 왜곡", "match_type": "keyword", "keyword": "네가 잘못 이해한 거지", "weight": 12, "repeat_decay": true, "description": "현실 왜곡 (직장형)", "source": "직장형 미니예시" },
+
+    { "id": "GL-3-3-001", "category": "가스라이팅", "subcategory_id": "3-3", "subcategory": "관계 고립 유도", "match_type": "keyword", "keyword": "걔네랑 안 만났으면 좋겠어", "weight": 15, "repeat_decay": true, "description": "관계 고립 유도", "source": "시나리오3 T4" },
+    { "id": "GL-3-3-002", "category": "가스라이팅", "subcategory_id": "3-3", "subcategory": "관계 고립 유도", "match_type": "keyword", "keyword": "걔랑 만나지 마", "weight": 15, "repeat_decay": true, "description": "관계 고립 유도", "source": "시나리오3 T4" },
+    { "id": "GL-3-3-003", "category": "가스라이팅", "subcategory_id": "3-3", "subcategory": "관계 고립 유도", "match_type": "keyword", "keyword": "가족이랑 좀 거리 둬", "weight": 15, "repeat_decay": true, "description": "관계 고립 유도 (가족형)", "source": "확장(가족형)" },
+    { "id": "GL-3-3-004", "category": "가스라이팅", "subcategory_id": "3-3", "subcategory": "관계 고립 유도", "match_type": "keyword", "keyword": "이런 얘기 다른 팀원들한테 하지 마", "weight": 15, "repeat_decay": true, "description": "관계 고립 유도 (직장형)", "source": "직장형 미니예시" },
+
+    { "id": "GL-3-4-001", "category": "가스라이팅", "subcategory_id": "3-4", "subcategory": "죄책감 유도", "match_type": "keyword", "keyword": "다 너를 위해서 하는 말이야", "weight": 12, "repeat_decay": true, "description": "죄책감 유도", "source": "시나리오3 T5" },
+    { "id": "GL-3-4-002", "category": "가스라이팅", "subcategory_id": "3-4", "subcategory": "죄책감 유도", "match_type": "keyword", "keyword": "자식이 돼서 어떻게 그런 말을 하니", "weight": 12, "repeat_decay": true, "description": "죄책감 유도 (가족형)", "source": "확장(가족형)" },
+    { "id": "GL-3-4-003", "category": "가스라이팅", "subcategory_id": "3-4", "subcategory": "죄책감 유도", "match_type": "keyword", "keyword": "너 키우느라 내가 얼마나 고생했는데", "weight": 12, "repeat_decay": true, "description": "죄책감 유도 (가족형)", "source": "가족형 미니예시" },
+
+    { "id": "GL-3-5-001", "category": "가스라이팅", "subcategory_id": "3-5", "subcategory": "자존감 저하/의존성 강화", "match_type": "keyword", "keyword": "내가 없으면 넌 아무것도 못해", "weight": 18, "repeat_decay": true, "description": "자존감 저하, 의존성 강화", "source": "시나리오3 T5" },
+    { "id": "GL-3-5-002", "category": "가스라이팅", "subcategory_id": "3-5", "subcategory": "자존감 저하/의존성 강화", "match_type": "keyword", "keyword": "네가 알아서 하는 게 뭐가 있다고", "weight": 18, "repeat_decay": true, "description": "자존감 저하 (가족형)", "source": "가족형 미니예시" },
+
+    { "id": "GL-3-6-001", "category": "가스라이팅", "subcategory_id": "3-6", "subcategory": "통제 및 관계 협박", "match_type": "keyword", "keyword": "이런 식으로 나오면 나도 못 참아", "weight": 20, "repeat_decay": true, "description": "통제/협박", "source": "시나리오3 T6" },
+    { "id": "GL-3-6-002", "category": "가스라이팅", "subcategory_id": "3-6", "subcategory": "통제 및 관계 협박", "match_type": "keyword", "keyword": "헤어지자는 거야", "weight": 20, "repeat_decay": true, "description": "관계 종료 협박", "source": "시나리오3 T6" },
+    { "id": "GL-3-6-003", "category": "가스라이팅", "subcategory_id": "3-6", "subcategory": "통제 및 관계 협박", "match_type": "keyword", "keyword": "가만 안 둘 거야", "weight": 20, "repeat_decay": true, "description": "일반 협박 (연인관계 한정 아님)", "source": "신규 추가(일반 협박)" },
+    { "id": "GL-3-6-004", "category": "가스라이팅", "subcategory_id": "3-6", "subcategory": "통제 및 관계 협박", "match_type": "keyword", "keyword": "찾아갈 거야", "weight": 20, "repeat_decay": true, "description": "스토킹형 협박", "source": "신규 추가(스토킹)" },
+    { "id": "GL-3-6-005", "category": "가스라이팅", "subcategory_id": "3-6", "subcategory": "통제 및 관계 협박", "match_type": "keyword", "keyword": "가족들한테 다 알릴 거야", "weight": 20, "repeat_decay": true, "description": "협박(정보 유포 위협)", "source": "신규 추가(협박)" }
+  ],
+
+  "combo_bonus_rules": [
+    { "id": "COMBO-GENERAL-3CAT", "type": "general", "category": "any", "condition": "같은 대분류 내 서로 다른 중분류 3개 이상이 최근 10턴 이내 동시 감지", "min_distinct_subcategories": 3, "window_turns": 10, "bonus": 15 },
+    { "id": "COMBO-GENERAL-4CAT", "type": "general", "category": "any", "condition": "같은 대분류 내 서로 다른 중분류 4개 이상이 최근 10턴 이내 동시 감지 (3개 조건과 중복 적용 안 함)", "min_distinct_subcategories": 4, "window_turns": 10, "bonus": 25 },
+    { "id": "COMBO-VP-PHONE-VERIFY", "type": "specific", "category": "보이스피싱", "condition": "전화번호(VP-1-3-003) 안내 + 확인/전화 유도 표현(VP-1-3-001, VP-1-3-002)이 1~2턴 이내 함께 등장", "related_keyword_ids": ["VP-1-3-001", "VP-1-3-002", "VP-1-3-003"], "window_turns": 2, "bonus": 15 },
+    { "id": "COMBO-VP-SMISHING", "type": "specific", "category": "보이스피싱", "condition": "스미싱 명목 문구(VP-1-6-001~003)와 URL(VP-1-6-004)이 같은 메시지 내 동시 등장", "related_keyword_ids": ["VP-1-6-001", "VP-1-6-002", "VP-1-6-003", "VP-1-6-004"], "window_turns": 0, "bonus": 20 },
+    { "id": "COMBO-RS-SECRET-MONEY", "type": "specific", "category": "로맨스스캠", "condition": "비밀유지요구(2-3)와 금전요구(2-4)가 같은 세션에서 함께 감지", "related_subcategory_ids": ["2-3", "2-4"], "window_turns": null, "bonus": 15 },
+    { "id": "COMBO-GL-ISOLATION-GUILT", "type": "specific", "category": "가스라이팅", "condition": "관계고립유도(3-3)와 죄책감유도(3-4)가 같은 세션에서 함께 감지", "related_subcategory_ids": ["3-3", "3-4"], "window_turns": null, "bonus": 15 }
+  ],
+
+  "repeat_decay_policy": {
+    "first_occurrence_multiplier": 1.0,
+    "subsequent_occurrence_multiplier": 0.5,
+    "applies_within": "동일 subcategory_id, 동일 세션(대화방) 기준"
+  },
+
+  "risk_level_bands": [
+    { "level": "낮음", "min": 0, "max": 30, "action": "주의 배지 표시만, 알림 없음" },
+    { "level": "중간", "min": 31, "max": 65, "action": "경고 배너 알림 + 대응 가이드 노출" },
+    { "level": "높음", "min": 66, "max": 100, "action": "긴급 팝업 알림 + 상담기관/신고 절차 자동 연결" }
+  ],
+
+  "session_scoring": {
+    "scope": "대화방(1:1 또는 단톡) 단위 누적",
+    "cap": 100,
+    "reset_policy_v1": "사용자가 수동으로 '위험 아님' 처리했을 때만 리셋",
+    "future_work": "정상 대화 지속 시 시간 경과에 따른 자동 decay (예: 7일간 위험신호 없으면 매일 10%씩 감소) - 1차 구현 범위 밖"
+  }
+}
