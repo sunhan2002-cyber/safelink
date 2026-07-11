@@ -1,0 +1,71 @@
+{
+  "_meta": {
+    "version": "v1",
+    "note": "recommended_institutions 필드가 institutions_v1.json과 연동됨 (subcategory_to_risk_type -> risk_type_priority 순으로 resolve). guide_reference_id는 하위호환용으로 항상 null",
+    "call_trigger_condition": {
+      "gray_zone_score_ranges": [[20, 40], [55, 70]],
+      "category_exception": "가스라이팅 3-1 또는 3-2가 같은 세션에서 2회 이상 감지되면 점수 무관 호출",
+      "excluded": "20점 미만 또는 70점 이상은 서버 호출 안 함",
+      "rate_limit": "TBD - 서버 부하 테스트 후 확정"
+    }
+  },
+
+  "request_schema": {
+    "session_id": "string (required)",
+    "masked_text": "string (required) - 전화번호/URL은 [전화번호]/[링크]로 사전 마스킹",
+    "recent_turns": "array[string] (required) - 최근 10턴 이내",
+    "device_base_score": "number (required)",
+    "device_matched_ids": "array[string] (required)",
+    "device_applied_combo_ids": "array[string] (optional)",
+    "category_hint": "string (optional) - 보이스피싱 | 로맨스스캠 | 가스라이팅"
+  },
+
+  "request_example": {
+    "session_id": "room-abc123",
+    "masked_text": "이 번호로 전화해보세요: [전화번호]",
+    "recent_turns": [
+      "택배기사인데요, 배송 중 확인 차 연락드렸습니다.",
+      "그럼 명의 도용 우려가 있어서 확인이 필요합니다.",
+      "이 번호로 전화해보세요: [전화번호]"
+    ],
+    "device_base_score": 37.5,
+    "device_matched_ids": ["VP-1-1-001", "VP-1-1-002", "VP-1-2-002", "VP-1-3-002", "VP-1-3-003"],
+    "device_applied_combo_ids": [],
+    "category_hint": "보이스피싱"
+  },
+
+  "response_schema": {
+    "context_score_adjustment": "number - 양수/음수 모두 가능",
+    "context_analysis_summary": "string",
+    "context_detected_pattern": "string | null",
+    "recommended_level_override": "string | null",
+    "guide_reference_id": "string | null - 하위호환용, 항상 null (실제로는 recommended_institutions 사용)",
+    "recommended_institutions": "array[object] - institutions_v1.json 연동, 우선순위 순 정렬",
+    "recommended_institutions[].institution_id": "string - institutions_v1.json의 기관 id",
+    "recommended_institutions[].rank": "number - 1이 최우선",
+    "recommended_institutions[].reason": "string - 추천 이유, UI에 노출 가능",
+    "recommended_institutions[].matched_risk_type": "string - 어느 위험유형에서 도출됐는지",
+    "analysis_timestamp": "string (ISO8601)"
+  },
+
+  "response_example": {
+    "context_score_adjustment": 15,
+    "context_analysis_summary": "기관 사칭 후 제3자 번호로 유도하는 전형적 다단계 사칭 패턴으로 판단됨",
+    "context_detected_pattern": "다단계 기관사칭 흐름",
+    "recommended_level_override": null,
+    "guide_reference_id": null,
+    "recommended_institutions": [
+      { "institution_id": "GOV-FSS", "rank": 1, "reason": "금융사기 피해 상담 및 지급정지 가능", "matched_risk_type": "금융사기" },
+      { "institution_id": "GOV-POLICE", "rank": 2, "reason": "범죄 신고 및 수사 요청 가능", "matched_risk_type": "금융사기" },
+      { "institution_id": "GOV-PIPC", "rank": 1, "reason": "개인정보 유출·탈취 신고 및 제도적 보호 조치", "matched_risk_type": "개인정보탈취" }
+    ],
+    "analysis_timestamp": "2026-07-10T09:15:00+09:00"
+  },
+
+  "error_responses": [
+    { "http_status": 400, "case": "입력값 없음", "message": "분석할 텍스트가 없습니다." },
+    { "http_status": 422, "case": "분석 불가 텍스트", "message": "분석 가능한 텍스트가 없습니다." },
+    { "http_status": 429, "case": "호출 한도 초과", "message": "잠시 후 다시 시도해주세요." },
+    { "http_status": 503, "case": "서버 연결 실패", "message": "서버에 연결할 수 없습니다. 온디바이스 판단 결과만 사용합니다." }
+  ]
+}
