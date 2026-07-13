@@ -244,6 +244,6 @@ fun SafeLinkApp() {
 
 | Open Question | 코드상 대응 |
 |---|---|
-| 탭 3개 vs 5개 | `tabScreens` 리스트 한 곳만 수정하면 됨. 알림 탭 채택 시 Screen.Notifications 추가 |
+| 탭 3개 vs 5개 | ✅ 4탭(홈/기록/지원/설정)으로 결정 (7/13). 알림 이력은 활동 기록으로 흡수 |
 | 텍스트 vs OCR | DetectionInputScreen 내부 세그먼트 탭으로 분리되어 있어 한쪽만 먼저 출시 가능. OCR 채택 시 이미지 업로드용 API·멀티파트 전송 추가 필요 |
 | 기록 상세 | DetectionResult를 recordId 인자 버전으로 재사용 (별도 화면 안 만듦) |

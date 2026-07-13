@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 앱 이름: 보안 요구사항상 중립적 이름 사용 여부는 팀 결정 예정 (Design.md 7장) -->
+    <string name="app_name">SafeLink</string>
+</resources>
