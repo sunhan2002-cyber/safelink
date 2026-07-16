@@ -1,0 +1,84 @@
+# Safe Link - 데이터 항목
+
+## URL 검사
+
+|항목|설명|
+|----|----|
+|url|사용자가 입력한 URL|
+|scanDate|검사 시간|
+|result|검사 결과|
+|riskLevel|위험도|
+|analysis|분석 결과|
+
+---
+
+## 위험 분석
+
+|항목|설명|
+|----|----|
+|https|HTTPS 사용 여부|
+|ssl|SSL 인증서|
+|domainAge|도메인 생성일|
+|redirect|리디렉션 여부|
+|shortUrl|단축 URL 여부|
+|blackList|악성 URL 포함 여부|
+|phishing|피싱 의심 여부|
+
+---
+
+## 사용자
+
+|항목|설명|
+|----|----|
+|userId|사용자 ID|
+|email|이메일|
+|nickname|닉네임|
+|joinDate|가입일|
+
+---
+
+## 검사 기록
+
+|항목|설명|
+|----|----|
+|historyId|기록 ID|
+|userId|사용자 ID|
+|url|검사 URL|
+|scanDate|검사 시간|
+|result|결과|
+
+---
+
+## 즐겨찾기
+
+|항목|설명|
+|----|----|
+|favoriteId|즐겨찾기 ID|
+|userId|사용자 ID|
+|url|URL|
+|memo|메모|
+|createdAt|등록일|
+
+---
+
+## 차단 목록
+
+|항목|설명|
+|----|----|
+|blockId|차단 ID|
+|userId|사용자 ID|
+|url|차단 URL|
+|reason|차단 이유|
+|createdAt|등록일|
+
+---
+
+## 설정
+
+|항목|설명|
+|----|----|
+|notification|알림 사용 여부|
+|autoScan|자동 검사|
+|saveHistory|기록 저장|
+|darkMode|다크모드|
+|language|언어|
