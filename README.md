@@ -28,9 +28,9 @@ Safelink는 위험한 관계의 신호를 빠르게 감지하고, 사용자가 �
 ## Tech Stack
 
 ### Frontend
-- Java
+- Kotlin
+- Jetpack Compose
 - Android Studio
-- XML Layout
 - Android Notification
 - Foreground Service
 
@@ -65,13 +65,28 @@ Safelink는 위험한 관계의 신호를 빠르게 감지하고, 사용자가 �
 - 2026.08.04 ~ 2026.08.27: 보고서, 팜플렛, 소개 영상, 최종 점검
 - 2026.08.28 16:00: 1차 심사 결과물 제출 마감
 
-## Repository Files
+## Repository Structure
 
-- `safelink_로드맵.txt`: 프로젝트 로드맵
-- `safelink_세부일정.txt`: 세부 일정
-- `공경진기술스택.txt`: 기술스택 정리
-- `safelink_소개및기능.txt`: 서비스 소개 및 기능 정리
-- `제 22회 한성공학경진대회 안내서 .txt`: 대회 안내 문서
+```
+safelink/
+├── android/          # Android 앱 (Kotlin + Jetpack Compose)
+│                     #   → Android Studio에서 이 폴더를 열어 실행
+├── docs/             # 개발 설계 문서
+│   ├── Requirements.md      # 요구사항 (F-01~F-09)
+│   ├── Design.md            # 기술 설계 (아키텍처·데이터 모델·로직)
+│   ├── Tasks.md             # 스프린트별 작업 목록
+│   ├── ScreenFlow.md        # 화면 흐름도
+│   ├── ScreenUI.md          # 화면별 UI 구성표
+│   ├── DevPriority.md       # 우선 개발 화면 목록
+│   └── AndroidStructure.md  # 앱 구조 설계
+├── data/             # 데이터·API 스펙 (institutions.json, keyword.json, API 입출력)
+├── 기획문서/          # 서비스 소개·로드맵·일정·기술스택·명세서·대회 안내
+├── 아이디어_초안/     # 시나리오·위험도 계산·카테고리 브레인스토밍
+├── 작업노트/          # 팀원 작업 메모 (.wy)
+└── 주차별_결과물/     # 주차별 산출물 정리
+```
+
+- 디자인(Figma): https://www.figma.com/design/pgz34E5ealhQwQICH9xSTy/safelink
 
 ## One-line Summary
 
