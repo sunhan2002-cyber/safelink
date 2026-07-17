@@ -1,8 +1,9 @@
 {
   "_meta": {
     "version": "v1",
+    "last_updated": "2026-07-16",
     "source": "김우영 작성 자료 기반",
-    "note": "위험유형 8분류(원본 자료)는 SafeLink의 3대분류/17중분류와 1:1 대응하지 않아, subcategory_to_risk_type 매핑 레이어를 추가함",
+    "note": "위험유형 7분류(원본 자료, 2026-07-13 개편)는 SafeLink의 3대분류/17중분류와 1:1 대응하지 않아, subcategory_to_risk_type 매핑 레이어를 추가함",
     "priority_principle": "국가기관 > 공공기관 > 공공 상담기관 > 민간기관 (민간은 후순위 고정)"
   },
 
@@ -35,39 +36,35 @@
   ],
 
   "risk_type_priority": {
-    "금융사기": [
-      { "institution_id": "GOV-FSS", "rank": 1, "reason": "금융사기 피해 상담 및 지급정지 가능" },
-      { "institution_id": "GOV-POLICE", "rank": 2, "reason": "범죄 신고 및 수사 요청 가능" },
-      { "institution_id": "PUB-LEGALAID", "rank": 3, "reason": "무료 법률 상담으로 후속 대응 지원" }
-    ],
     "기관사칭": [
       { "institution_id": "GOV-POLICE", "rank": 1, "reason": "사칭 범죄 수사 및 즉시 신고 접수" },
       { "institution_id": "GOV-FSS", "rank": 2, "reason": "금융기관 사칭인 경우 지급정지 병행 가능" },
       { "institution_id": "GOV-PROSECUTION", "rank": 3, "reason": "조직적 사칭 범죄는 기소 절차 필요할 수 있음" }
     ],
-    "가족·지인사칭": [
-      { "institution_id": "GOV-POLICE", "rank": 1, "reason": "사칭 범죄 수사 및 즉시 신고 접수" },
-      { "institution_id": "GOV-FSS", "rank": 2, "reason": "금전 피해 발생 시 지급정지 지원" }
+    "금융사기": [
+      { "institution_id": "GOV-FSS", "rank": 1, "reason": "금융사기 피해 상담 및 지급정지 가능" },
+      { "institution_id": "GOV-POLICE", "rank": 2, "reason": "범죄 신고 및 수사 요청 가능" },
+      { "institution_id": "PUB-LEGALAID", "rank": 3, "reason": "무료 법률 상담으로 후속 대응 지원" }
+    ],
+    "개인정보탈취": [
+      { "institution_id": "GOV-PIPC", "rank": 1, "reason": "개인정보 유출·탈취 신고 및 제도적 보호 조치" },
+      { "institution_id": "GOV-POLICE", "rank": 2, "reason": "탈취 이후 2차 피해(금전 등) 발생 시 수사 필요" },
+      { "institution_id": "GOV-FSS", "rank": 3, "reason": "계좌·금융정보 탈취 시 지급정지 병행" }
     ],
     "협박": [
       { "institution_id": "GOV-POLICE", "rank": 1, "reason": "협박·공갈 범죄 즉시 신고 및 수사" },
       { "institution_id": "PUB-LEGALAID", "rank": 2, "reason": "법률적 대응 절차 무료 상담" },
       { "institution_id": "GOV-PROSECUTION", "rank": 3, "reason": "중대 협박은 기소 절차로 연결" }
     ],
-    "심리적조작": [
+    "심리조작": [
       { "institution_id": "PUB-MENTALHEALTH", "rank": 1, "reason": "심리적 조작·가스라이팅 전문 상담 및 정신건강 지원" },
       { "institution_id": "PUB-WOMEN1366", "rank": 2, "reason": "관계 내 조작·통제 피해자 상담 및 보호" },
       { "institution_id": "PRIV-COUNSEL", "rank": 3, "reason": "정부기관 대기 없이 즉시 상담 가능 (민간, 후순위)" }
     ],
-    "스토킹": [
+    "스토킹위협": [
       { "institution_id": "GOV-POLICE", "rank": 1, "reason": "스토킹처벌법 기반 즉시 수사 및 접근금지 조치 가능" },
       { "institution_id": "PUB-WOMEN1366", "rank": 2, "reason": "피해자 보호 및 쉼터 연계" },
       { "institution_id": "PUB-MENTALHEALTH", "rank": 3, "reason": "장기 스토킹 피해에 따른 심리 지원" }
-    ],
-    "개인정보탈취": [
-      { "institution_id": "GOV-PIPC", "rank": 1, "reason": "개인정보 유출·탈취 신고 및 제도적 보호 조치" },
-      { "institution_id": "GOV-POLICE", "rank": 2, "reason": "탈취 이후 2차 피해(금전 등) 발생 시 수사 필요" },
-      { "institution_id": "GOV-FSS", "rank": 3, "reason": "계좌·금융정보 탈취 시 지급정지 병행" }
     ],
     "악성링크": [
       { "institution_id": "GOV-KISA", "rank": 1, "reason": "피싱 URL·스미싱·악성앱 전문 신고 및 상담" },
@@ -77,22 +74,28 @@
 
   "subcategory_to_risk_type": {
     "note": "SafeLink 중분류(keywords_v1.json 기준) 1개가 위험유형 여러 개에 매핑될 수 있음 (다대다). 키 형식은 keywords_v1.json의 subcategory_id 필드값과 동일 (접두어 없음 - VP/RS/GL은 category 필드로 구분)",
-    "1-1": ["기관사칭"],
-    "1-2": ["개인정보탈취", "협박"],
-    "1-3": ["기관사칭"],
-    "1-4": ["협박"],
-    "1-5": ["금융사기", "개인정보탈취"],
-    "1-6": ["악성링크"],
-    "2-1": ["금융사기"],
-    "2-2": ["심리적조작"],
-    "2-3": ["심리적조작"],
-    "2-4": ["금융사기"],
-    "2-5": ["금융사기"],
-    "3-1": ["심리적조작"],
-    "3-2": ["심리적조작"],
-    "3-3": ["심리적조작", "스토킹"],
-    "3-4": ["심리적조작"],
-    "3-5": ["심리적조작"],
-    "3-6": ["협박", "스토킹"]
+    "standalone_recommend_rule": "서브카테고리 자체 가중치가 15 미만이면 standalone_recommend=false. 이 경우 해당 서브카테고리 단독 감지만으로는 기관을 추천하지 않고, (a) combo_bonus_rules가 트리거되어 이 서브카테고리가 콤보의 일부가 되었거나, (b) 세션 누적 위험도가 '중간'(31점) 이상일 때만 risk_types를 기관 추천 해석(resolve)에 포함시킴",
+    "1-1": { "risk_types": ["기관사칭"], "weight": 15, "standalone_recommend": true },
+    "1-2": { "risk_types": ["개인정보탈취", "협박"], "weight": 15, "standalone_recommend": true },
+    "1-3": { "risk_types": ["기관사칭"], "weight": 10, "standalone_recommend": false },
+    "1-4": { "risk_types": ["협박"], "weight": 20, "standalone_recommend": true },
+    "1-5": { "risk_types": ["금융사기", "개인정보탈취"], "weight": 30, "standalone_recommend": true },
+    "1-6": { "risk_types": ["악성링크"], "weight": 25, "standalone_recommend": true },
+    "2-1": { "risk_types": ["금융사기"], "weight": 5, "standalone_recommend": false },
+    "2-2": { "risk_types": ["심리조작"], "weight": 10, "standalone_recommend": false },
+    "2-3": { "risk_types": ["심리조작"], "weight": 15, "standalone_recommend": true },
+    "2-4": { "risk_types": ["금융사기"], "weight": 30, "standalone_recommend": true },
+    "2-5": { "risk_types": ["금융사기"], "weight": 20, "standalone_recommend": true },
+    "3-1": { "risk_types": ["심리조작"], "weight": 8, "standalone_recommend": false },
+    "3-2": { "risk_types": ["심리조작"], "weight": 12, "standalone_recommend": false },
+    "3-3": { "risk_types": ["심리조작"], "weight": 15, "standalone_recommend": true },
+    "3-4": { "risk_types": ["심리조작"], "weight": 12, "standalone_recommend": false },
+    "3-5": { "risk_types": ["심리조작"], "weight": 18, "standalone_recommend": true },
+    "3-6": { "risk_types": ["협박"], "weight": 20, "standalone_recommend": true }
+  },
+
+  "keyword_risk_type_additions": {
+    "note": "서브카테고리 기본 risk_types에 더해, 특정 키워드가 실제로 매칭됐을 때만 추가로 붙는 위험유형. 스토킹위협은 '찾아가겠다/위치를 안다/계속 따라다니겠다/직접 해를 가하겠다' 표현이 포함될 때만 연결하며, 3-6 전체에 일괄 적용하지 않음.",
+    "GL-3-6-004": { "add_risk_types": ["스토킹위협"], "reason": "'찾아갈 거야' - 위치 추적/추적 의사 표현, 스토킹처벌법 대상 표현에 해당" }
   }
 }
