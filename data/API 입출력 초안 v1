@@ -14,7 +14,7 @@
 | 점수 구간(회색지대) | 온디바이스 누적점수가 20~40점 또는 55~70점 구간일 때 |
 | 카테고리 예외 | 가스라이팅 3-1(감정무효화) 또는 3-2(현실왜곡)류가 같은 세션에서 2회 이상 감지되면 점수와 무관하게 호출 |
 | 호출 제외 | 20점 미만(명백히 낮음) 또는 70점 이상(명백히 높음 — 서버 응답 기다리지 않고 즉시 경고) |
-| 호출 상한 | 세션당 시간당 N회 제한 (구체적 수치는 서버 부하 테스트 후 확정 — 현재 TBD) |
+| 호출 상한 | 세션당 **시간당 20회** (MVP 기본값 — 아래 근거 참고, 서버 부하 테스트 후 조정 가능) |
 
 ---
 
@@ -46,7 +46,7 @@
 | `context_score_adjustment` | number | 문맥 분석 결과에 따른 가감 점수 (양수/음수 모두 가능 — 예: 걱정하는 톤으로 판단되면 음수 보정) |
 | `context_analysis_summary` | string | 판단 근거 요약 (UI의 "왜 이렇게 판단했나요?" 설명용) |
 | `context_detected_pattern` | string \| null | 문맥에서 새로 발견된 패턴 (온디바이스 키워드 매칭으로는 못 잡은 것) |
-| `recommended_level_override` | string \| null | 서버가 특정 단계로 재조정을 강하게 권고하는 경우만 사용 (기본은 null, 클라이언트 판단 존중) |
+| `recommended_level_override` | "낮음" \| "중간" \| "높음" \| null | 서버가 특정 단계로 재조정을 강하게 권고하는 경우만 사용 (기본은 null, 클라이언트 판단 존중). **값은 반드시 백엔드 3단계(낮음/중간/높음)만 사용 — "긴급" 등 UI 4단계 라벨 사용 금지** (`terminology_v1.md` 3장 원칙과 동일) |
 | `guide_reference_id` | string \| null | **TBD** — `institutions.json` 완성 후 실제 참조 구조 연동 예정. 현재는 필드만 확보하고 값은 항상 null 반환 |
 | `analysis_timestamp` | string(ISO8601) | 분석 처리 시각 (텍스트 폐기 시점 근거로도 활용) |
 
@@ -55,18 +55,29 @@
 ## 3-1. `guide_reference_id` 연동 구조 (institutions.json 수신 후 업데이트)
 
 `institutions.json`이 도착해서 `guide_reference_id`를 실제 값으로 채울 수 있게 됐어요.
-다만 원본 자료의 위험유형 8분류(금융사기/기관사칭/가족지인사칭/협박/심리적조작/스토킹/
-개인정보탈취/악성링크)가 SafeLink의 17개 중분류와 1:1로 대응하지 않아서, 중간에 매핑
+다만 원본 자료의 위험유형 7분류(기관사칭/금융사기/개인정보탈취/협박/심리조작/스토킹위협/
+악성링크)가 SafeLink의 17개 중분류와 1:1로 대응하지 않아서, 중간에 매핑
 레이어(`subcategory_to_risk_type`)를 하나 거쳐야 해요.
 
 **해석(resolve) 흐름**:
 ```
 매칭된 keywords.json 항목의 subcategory_id (예: "1-5")
-  ↓ institutions.json의 subcategory_to_risk_type 조회
+  ↓ standalone_recommend 게이팅 확인
+     - true (가중치 15 이상): 단독 감지만으로도 다음 단계 진행
+     - false (가중치 15 미만): 콤보에 포함되었거나 세션 누적 위험도가
+       "중간"(31점) 이상일 때만 다음 단계 진행, 그 외에는 추천 없음
+  ↓ institutions.json의 subcategory_to_risk_type 조회 (risk_types)
 위험유형 (예: "금융사기", "개인정보탈취" — 다대다 가능)
   ↓ institutions.json의 risk_type_priority 조회
 우선순위가 매겨진 기관 목록 (예: [금융감독원(1순위), 경찰청(2순위), 대한법률구조공단(3순위)])
 ```
+
+**게이팅을 추가한 이유**: 로맨스스캠 "신원설정"(2-1, 가중치 5)처럼 대화 극초반의 약한 신호가
+단독으로 감지됐다고 곧바로 "금융감독원에 연락하세요"까지 이어지면 과잉경보예요. 대화 시작
+단계에서 상대 직업을 소개받은 것뿐인데 기관 신고 안내가 뜨면 사용자가 앱을 신뢰하지 않게
+됩니다. 그래서 가중치 15 미만(위험도 구간표의 "낮음" 절반 지점) 서브카테고리는 단독으로는
+추천을 보류하고, 실제로 다른 신호와 조합되거나 누적 점수가 충분히 올라간 뒤에만 기관을
+추천하도록 했어요. 적용 대상: `1-3`, `2-1`, `2-2`, `3-1`, `3-2`, `3-4` (총 6개).
 
 **스키마 변경**: 단일 id 하나가 아니라 **우선순위가 있는 배열**을 반환해야 실제 정보와
 맞아요. 그래서 `guide_reference_id`(단수)를 `recommended_institutions`(배열)로 변경합니다.
@@ -74,10 +85,41 @@
 | 필드(변경 후) | 타입 | 설명 |
 |---|---|---|
 | `recommended_institutions` | array[object] | 우선순위 순으로 정렬된 추천 기관 목록 |
-| `recommended_institutions[].institution_id` | string | institutions.json의 기관 id |
+| `recommended_institutions[].institution_id` | string | `institutions_v1.json`의 기관 id |
 | `recommended_institutions[].rank` | number | 우선순위(1이 최우선) |
 | `recommended_institutions[].reason` | string | 추천 이유 (UI에 그대로 노출 가능) |
-| `recommended_institutions[].matched_risk_type` | string | 이 추천이 어느 위험유형에서 나왔는지 (다대다 매핑 역추적용) |
+| `recommended_institutions[].matched_risk_type` | string | **`institutions_v1.json`의 `risk_type_priority` 키값 7종 중 하나** (기관사칭/금융사기/개인정보탈취/협박/심리조작/스토킹위협/악성링크). `keywords_v1.json`의 `category`(3종)나 `subcategory`(17종)와는 **다른 별개의 택소노미**이므로 혼동 금지. 단, 스토킹위협은 3-6 전체에 일괄 적용되지 않고 `keyword_risk_type_additions`에 등록된 특정 키워드(예: "찾아갈 거야")가 실제로 매칭됐을 때만 추가됨 |
+| `recommended_institutions[].matched_subcategory_id` | string | **신규** — 이 추천을 유발한 `keywords_v1.json`의 `subcategory_id`(예: "1-5"). `matched_risk_type`은 institutions.json 쪽 언어, 이 필드는 keywords.json 쪽 언어로 직접 역추적 가능하게 함 |
+| `matched_keyword_ids` | array[string] | **신규**(응답 최상위 필드) — 이번 분석에서 실제로 매칭된 `keywords_v1.json`의 `id` 전체 목록 (온디바이스가 보낸 `device_matched_ids` + 서버가 문맥분석으로 추가 발견한 것 포함). 이 필드 하나로 최종 판정 전체를 `keywords_v1.json`까지 역추적 가능 |
+
+**세 값의 관계 정리(중요)**:
+```
+matched_keyword_ids (keywords.json의 id, 예: "VP-1-5-003")
+   ↓ 이 키워드의 subcategory_id
+matched_subcategory_id (keywords.json 기준, 예: "1-5")
+   ↓ institutions_v1.json의 subcategory_to_risk_type으로 변환
+matched_risk_type (institutions.json 기준 7분류, 예: "금융사기")
+   ↓ institutions_v1.json의 risk_type_priority로 변환
+recommended_institutions (실제 추천 기관 목록)
+```
+세 필드 다 함께 내려줘야 "이 기관이 왜 추천됐는지" 처음부터 끝까지 재구성 가능함.
+
+**rank 재계산 규칙(신규, 버그 수정 과정에서 확정)**: `institutions_v1.json`의
+`risk_type_priority`는 위험유형 하나당 자체적인 1~3순위를 갖고 있어요. 근데 한 세션에서
+위험유형이 2개 이상 감지되면(예: "기관사칭" + "개인정보탈취") 각 위험유형별 목록을 하나의
+`recommended_institutions` 배열로 합쳐야 하는데, 이때 **각 위험유형 내부의 순위를 그대로
+복사하면 안 됩니다** — 서로 다른 목록에서 온 rank 값이 우연히 겹칠 수 있어요 (예: "기관사칭"의
+2순위와 "개인정보탈취"의 1순위가 최종 배열에서 나란히 rank=1, rank=1로 중복되는 사고 발생).
+**최종 배열을 만들 때는 항상 배열 순서대로 rank를 1부터 다시 순차 매깁니다**: 위험유형 간
+우선순위는 관련성 높은 위험유형(예: 최고점수를 유발한 subcategory의 risk_type)을 먼저 배치
+→ 그 안에서 각 위험유형의 원래 순위를 유지 → 최종적으로 배열 인덱스 순서대로 1,2,3...
+재부여. 동일 기관이 여러 위험유형에 중복 등장하면 첫 등장만 남기고 제거(dedup)하는 것도
+구현 시 함께 처리해야 함(현재 예시엔 중복 사례가 없어 아직 실증 케이스는 없음 — 향후 다른
+예시로 검증 필요).
+
+**참고**: `standalone_recommend=false`인 서브카테고리만 감지되고 콤보/중간이상 조건을 못
+채우면 `recommended_institutions`는 빈 배열(`[]`)로 반환됨. 이건 오류가 아니라 "아직 기관
+추천할 단계는 아니다"라는 정상 상태.
 
 `guide_reference_id` 필드는 하위 호환을 위해 당분간 유지하되 항상 null 반환, 실제로는
 `recommended_institutions`를 사용.
@@ -103,13 +145,30 @@
 
 ## 5. 남은 확인 사항
 
-1. **호출 상한 구체적 수치(시간당 N회)** — 서버 부하 테스트 전이라 TBD로 남김.
+1. ~~호출 상한 구체적 수치~~ → **MVP 기본값으로 확정: 세션당 시간당 20회**. 근거:
+   `test_sentences_v1.json`의 음성(negative) 케이스 12개 중 대부분이 회색지대(20~40,
+   55~70) 밖에 위치해서, 정상 대화에서는 서버 호출 자체가 드물게 일어남. 20회는 실제
+   위험 상황에서 여러 턴에 걸쳐 반복 호출되는 것도 넉넉히 허용하면서, 악의적 반복 트리거는
+   차단하는 수준. 실측 데이터 쌓이면 v2에서 조정.
 2. ~~`guide_reference_id` 실제 구조~~ → **해결됨**: `institutions.json` 반영 완료,
    `recommended_institutions` 배열로 스키마 변경 (3-1장 참고).
 3. 이 API 명세는 "회색지대일 때만 호출"이 전제라, 실제 구현 시 온디바이스 쪽에 호출 여부를
    판단하는 로직(1장의 조건문)이 별도로 필요함 — 이건 API 명세가 아니라 Android 쪽 구현
    범위라 Design.md/Tasks.md에서 다룰 부분.
-4. **신규 확인 필요**: 원본 institutions 자료의 위험유형 8분류가 SafeLink 17개 중분류와
-   1:1 대응하지 않아 다대다 매핑을 임의로 구성함(`subcategory_to_risk_type`). 이 매핑이
-   실제로 타당한지 팀 검토 필요 (특히 로맨스스캠을 전부 "금융사기"로 묶은 부분, 가스라이팅
-   대부분을 "심리적조작" 하나로 묶은 부분).
+4. ~~신규 확인 필요: 위험유형 7분류 매핑 타당성~~ → **일부 해결됨**: 가중치 15 미만 서브
+   카테고리 6개(1-3, 2-1, 2-2, 3-1, 3-2, 3-4)에 `standalone_recommend=false` 게이팅을
+   추가해서, 약한 단독 신호만으로 기관 추천이 성급하게 나가지 않도록 수정 (3-1장 참고).
+   다만 로맨스스캠 전체를 "금융사기"로, 가스라이팅 대부분을 "심리적조작" 하나로 묶은
+   근본적인 다대다 매핑 자체는 여전히 팀 검토 필요.
+5. ~~`matched_risk_type` 출처 불명확, 역추적 필드 부재~~ → **해결됨**: `matched_risk_type`이
+   `institutions_v1.json`의 7분류 값이라는 걸 명시하고, `matched_subcategory_id`(keywords.json
+   역추적용)와 `matched_keyword_ids`(최상위, 실제 매칭 키워드 id 전체) 필드를 추가해서
+   응답만 보고도 판정 근거를 keywords.json까지 완전히 재구성 가능하게 함 (3-1장 참고).
+6. ~~`recommended_level_override` 값 체계 불명확~~ → **해결됨**: "낮음"/"중간"/"높음"
+   3단계만 허용하도록 명시 (UI 4단계 라벨 사용 금지, `terminology_v1.md` 3장과 일치).
+7. ~~`recommended_institutions`의 rank 중복~~ → **해결됨**: 위험유형별 개별 순위표를 그대로
+   복사하지 않고 최종 배열 기준으로 1부터 재부여하는 규칙 확정 (3-1장 참고).
+8. **미검증**: 동일 기관이 서로 다른 위험유형(예: "기관사칭"과 "협박" 둘 다)에 겹쳐 등장하는
+   경우의 중복 제거(dedup) 로직은 아직 실제 예시로 검증 못 함. 지금 response_example은
+   중복 없는 케이스라 우연히 문제가 안 드러났을 뿐 — 다중 위험유형이 겹치는 실제 케이스로
+   한 번 더 검증 필요.
