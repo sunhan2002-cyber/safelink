@@ -9,4 +9,13 @@ enum class RiskLevel(val label: String) {
     CAUTION("주의"),
     WARNING("경고"),
     CRITICAL("긴급");
+
+    companion object {
+        fun fromScore(score: Int): RiskLevel = when {
+            score >= 66 -> CRITICAL
+            score >= 31 -> WARNING
+            score >= 16 -> CAUTION
+            else -> SAFE
+        }
+    }
 }
