@@ -3,6 +3,8 @@ package com.safelink.app.ui.screens.detection
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -66,6 +68,7 @@ fun DetectionResultScreen(navController: NavHostController) {
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DetectionResultContent(
     result: DetectionResult,
@@ -130,7 +133,11 @@ private fun DetectionResultContent(
                         Spacer(modifier = Modifier.width(20.dp))
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(text = "감지된 위험 요소", style = MaterialTheme.typography.titleMedium)
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // 태그 3개 이상 시 줄바꿈되도록 FlowRow 사용 (Row는 화면 폭 초과 시 세로로 찌그러짐)
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
                                 result.matchedKeywords
                                     .map { it.subcategoryName }
                                     .distinct()
