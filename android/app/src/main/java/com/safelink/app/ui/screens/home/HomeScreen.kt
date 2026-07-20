@@ -74,7 +74,7 @@ fun HomeScreen(navController: NavHostController) {
 
         // 퀵 액션
         SafeLinkPrimaryButton(
-            text = "스크린샷 분석",
+            text = "대화 분석 시작",
             onClick = { navController.navigate(Screen.DetectionInput.route) }
         )
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

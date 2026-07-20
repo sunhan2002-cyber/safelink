@@ -56,14 +56,14 @@ fun EmergencyScreen(navController: NavHostController) {
             )
 
             EmergencyCallButton(
-                title = "112 경찰 신고",
-                caption = "범죄 신고 · 긴급 출동 요청",
+                title = "112 전화",
+                caption = "경찰 신고 · 범죄 신고·긴급 출동 요청",
                 color = RiskCritical,
                 onClick = { /* TODO: ACTION_DIAL 112 (Task 5.7) */ }
             )
             EmergencyCallButton(
-                title = "1366 여성긴급전화",
-                caption = "가정폭력·데이트폭력 24시간 상담",
+                title = "1366 전화",
+                caption = "여성긴급전화 · 가정폭력·데이트폭력 24시간 상담",
                 color = BrandBlueDark,
                 onClick = { /* TODO: ACTION_DIAL 1366 (Task 5.7) */ }
             )

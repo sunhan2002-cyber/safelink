@@ -102,12 +102,12 @@ fun ResponseGuideScreen(navController: NavHostController, riskLevel: RiskLevel) 
 
             // 긴급 전화 버튼
             SafeLinkPrimaryButton(
-                text = "📞 112 경찰 신고",
+                text = "112 전화",
                 containerColor = RiskCritical,
                 onClick = { /* TODO: ACTION_DIAL 112 (Task 5.7) */ }
             )
             SafeLinkPrimaryButton(
-                text = "📞 1332 금융감독원",
+                text = "1332 전화 (금융감독원)",
                 containerColor = BrandBlueDark,
                 onClick = { /* TODO: ACTION_DIAL 1332 */ }
             )
@@ -117,7 +117,7 @@ fun ResponseGuideScreen(navController: NavHostController, riskLevel: RiskLevel) 
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            SafeLinkPrimaryButton(text = "도움 받기", onClick = {
+            SafeLinkPrimaryButton(text = "지원 기관 보기", onClick = {
                 navController.navigate(Screen.SupportMatch.route)
             })
             SafeLinkOutlinedButton(text = "메인 화면으로 돌아가기", onClick = {
