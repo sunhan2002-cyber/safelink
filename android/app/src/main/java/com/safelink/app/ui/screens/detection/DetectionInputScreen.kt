@@ -13,9 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddPhotoAlternate
-import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -24,18 +22,15 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -49,11 +44,23 @@ import com.safelink.app.ui.theme.BrandBlueLight
 
 private const val MAX_CHARS = 5000
 
-/** 대화 분석 입력 — 스크린샷 업로드 / 텍스트 입력 (Figma 20:762, 20:691) */
+/** 시연·테스트용 예시 대화 (DetectionResultDummyData.vpCritical 원문과 동일) */
+private const val SAMPLE_CONVERSATION =
+    "택배기사인데요, 배송 중 확인 차 연락드렸습니다. 그럼 명의 도용 우려가 있어서 " +
+        "확인이 필요합니다. 지금 당장 확인 안 하시면 계좌가 압류될 수 있습니다."
+
+/**
+ * 대화 분석 입력 화면(DetectionInput) — 입력값 전달 구조 (김선한_02 문서 3-1)
+ * 원문 텍스트(originalText)를 공유 DetectionViewModel에 담아 분석 단계로 전달한다.
+ * 스크린샷 업로드(OCR)는 이번 주 범위 아님(김선한_01 문서 3장) — 안내만 표시.
+ */
 @Composable
-fun DetectionInputScreen(navController: NavHostController) {
-    var mode by remember { mutableIntStateOf(0) }
-    var text by remember { mutableStateOf("") }
+fun DetectionInputScreen(
+    navController: NavHostController,
+    viewModel: DetectionViewModel
+) {
+    val clipboard = LocalClipboardManager.current
+    val isTextMode = viewModel.inputMethod == "텍스트 입력"
 
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(title = "대화 분석", onBack = { navController.popBackStack() })
@@ -67,24 +74,50 @@ fun DetectionInputScreen(navController: NavHostController) {
         ) {
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 SegmentedButton(
-                    selected = mode == 0,
-                    onClick = { mode = 0 },
+                    selected = !isTextMode,
+                    onClick = { viewModel.inputMethod = "스크린샷 업로드" },
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
                 ) { Text("스크린샷 업로드") }
                 SegmentedButton(
-                    selected = mode == 1,
-                    onClick = { mode = 1 },
+                    selected = isTextMode,
+                    onClick = { viewModel.inputMethod = "텍스트 입력" },
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
                 ) { Text("텍스트 입력") }
             }
 
-            if (mode == 0) {
-                ScreenshotUploadArea()
+            if (isTextMode) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = viewModel.originalText,
+                        onValueChange = {
+                            if (it.length <= MAX_CHARS) viewModel.originalText = it
+                        },
+                        placeholder = { Text("의심스러운 대화 내용을 붙여넣어 주세요") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp)
+                    )
+                    Text(
+                        text = "${"%,d".format(viewModel.originalText.length)} / ${"%,d".format(MAX_CHARS)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    SafeLinkOutlinedButton(text = "📋 클립보드에서 붙여넣기", onClick = {
+                        clipboard.getText()?.text
+                            ?.takeIf { it.isNotBlank() }
+                            ?.let { viewModel.originalText = it.take(MAX_CHARS) }
+                    })
+                    TextButton(
+                        onClick = { viewModel.originalText = SAMPLE_CONVERSATION },
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    ) { Text("예시 대화로 테스트하기") }
+                }
             } else {
-                TextInputArea(text = text, onTextChange = { if (it.length <= MAX_CHARS) text = it })
+                ScreenshotUploadArea()
             }
 
-            // 프라이버시 보호 안내
             SafeLinkCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
@@ -106,12 +139,25 @@ fun DetectionInputScreen(navController: NavHostController) {
             }
         }
 
-        // 하단 고정 버튼
         Column(modifier = Modifier.padding(20.dp)) {
+            if (!isTextMode) {
+                Text(
+                    text = "스크린샷 분석(OCR)은 준비 중입니다. 텍스트 입력을 이용해 주세요.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                )
+            }
             SafeLinkPrimaryButton(
                 text = "분석 시작하기",
-                enabled = mode == 0 || text.isNotBlank(),
-                onClick = { navController.navigate(Screen.Analyzing.route) }
+                enabled = isTextMode && viewModel.originalText.isNotBlank(),
+                onClick = {
+                    viewModel.analyze()
+                    navController.navigate(Screen.Analyzing.route)
+                }
             )
         }
     }
@@ -123,7 +169,7 @@ private fun ScreenshotUploadArea() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp)
+            .height(240.dp)
             .drawBehind {
                 drawRoundRect(
                     color = dashColor,
@@ -157,30 +203,6 @@ private fun ScreenshotUploadArea() {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        // TODO: PhotoPicker 연동 + 썸네일 목록/삭제 (OCR 채택 시, Open Question #2)
-    }
-}
-
-@Composable
-private fun TextInputArea(text: String, onTextChange: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        OutlinedTextField(
-            value = text,
-            onValueChange = onTextChange,
-            placeholder = { Text("의심스러운 대화 내용을 붙여넣어 주세요") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(220.dp)
-        )
-        Text(
-            text = "${"%,d".format(text.length)} / ${"%,d".format(MAX_CHARS)}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.End,
-            modifier = Modifier.fillMaxWidth()
-        )
-        SafeLinkOutlinedButton(text = "📋 클립보드에서 붙여넣기", onClick = {
-            // TODO: ClipboardManager 연동 (Task 6.9)
-        })
+        // TODO: PhotoPicker + OCR — 이번 주 범위 아님 (김선한_01 문서 3장)
     }
 }

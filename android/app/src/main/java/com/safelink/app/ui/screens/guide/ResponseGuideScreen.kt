@@ -100,6 +100,18 @@ fun ResponseGuideScreen(navController: NavHostController, riskLevel: RiskLevel) 
                 ReasonRow("출처 불명의 앱(.apk) 설치 유도는 위험합니다.")
             }
 
+            // 대응 가이드 안내 — 김우영 문구 가이드 v4.2 3장 기준
+            SafeLinkCard {
+                ReasonRow("먼저 즉시 대응기관의 안내를 확인하세요.")
+                ReasonRow("필요한 경우 추가 지원기관을 통해 상담 및 회복 지원을 받을 수 있습니다.")
+                ReasonRow("긴급한 상황에서는 즉시 112 또는 해당 기관으로 신고하세요.")
+            }
+            Text(
+                text = "AI 분석 결과는 참고 정보이며 최종 판단은 사용자에게 있습니다.\n상황이 지속되거나 피해가 발생한 경우 전문기관의 도움을 받으세요.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
             // 긴급 전화 버튼
             SafeLinkPrimaryButton(
                 text = "112 전화",

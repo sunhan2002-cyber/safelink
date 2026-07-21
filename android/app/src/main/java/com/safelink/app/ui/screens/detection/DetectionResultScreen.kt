@@ -32,6 +32,7 @@ import androidx.navigation.NavHostController
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.model.DetectionResultDummyData
 import com.safelink.app.data.model.RecommendedInstitutionUi
+import com.safelink.app.data.model.RiskLevel
 import com.safelink.app.ui.components.RiskBadge
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkOutlinedButton
@@ -57,8 +58,13 @@ import com.safelink.app.ui.theme.SafeLinkTheme
  * (Preview에서 NavHostController 없이 4가지 위험도 상태를 바로 확인 가능 — 하단 Preview 함수 참고).
  */
 @Composable
-fun DetectionResultScreen(navController: NavHostController) {
-    val result: DetectionResult = DetectionResultDummyData.vpCritical // TODO: ViewModel에서 수신
+fun DetectionResultScreen(
+    navController: NavHostController,
+    viewModel: DetectionViewModel
+) {
+    // 실제 데이터 흐름 (김선한_02 문서): 공유 ViewModel의 분석 결과를 사용.
+    // 기록 화면 재열람 등 분석 없이 직접 진입한 경우에만 더미로 대체 (TODO: Room 연동 시 recordId 조회로 교체)
+    val result: DetectionResult = viewModel.result ?: DetectionResultDummyData.vpCritical
 
     DetectionResultContent(
         result = result,
@@ -106,7 +112,7 @@ private fun DetectionResultContent(
                                 color = result.riskLevel.color()
                             )
                             Text(
-                                text = "현재 진행 중인 대화에서 위험 패턴이 발견되었습니다.",
+                                text = riskLevelSummary(result.riskLevel),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -181,12 +187,31 @@ private fun DetectionResultContent(
                     }
                 }
 
-                // 추천 기관
+                // 추천 기관 — 즉시 대응기관/추가 지원기관 2단 표시
+                // (김우영 문구 가이드 v4.2 4장 + RecommendedInstitutionUi.group KDoc 기준)
                 if (result.recommendedInstitutions.isNotEmpty()) {
-                    Text(text = "추천 기관", style = MaterialTheme.typography.titleMedium)
-                    result.recommendedInstitutions
+                    val (immediate, additional) = result.recommendedInstitutions
                         .sortedBy { it.rank }
-                        .forEach { inst -> RecommendedInstitutionCard(inst) }
+                        .partition { it.group == "긴급대응" }
+
+                    if (immediate.isNotEmpty()) {
+                        Text(text = "즉시 대응기관", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = "현재 위험 유형에 가장 적합한 기관입니다.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        immediate.forEach { inst -> RecommendedInstitutionCard(inst) }
+                    }
+                    if (additional.isNotEmpty()) {
+                        Text(text = "추가 지원기관", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = "피해 회복, 상담, 법률 및 복지 지원을 받을 수 있는 기관입니다.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        additional.forEach { inst -> RecommendedInstitutionCard(inst) }
+                    }
                 } else {
                     Text(
                         text = "아직 특정 기관을 추천할 만큼 명확한 위험 신호는 아니에요. 계속 지켜봐 주세요.",
@@ -194,6 +219,12 @@ private fun DetectionResultContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+
+                Text(
+                    text = "AI 분석 결과는 참고 정보이며 최종 판단은 사용자에게 있습니다.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
                 Text(
                     text = "* 실제 공공기관은 전화로 자금 송금을 요구하지 않습니다.",
@@ -220,6 +251,14 @@ private fun DetectionResultContent(
             }
         }
     }
+}
+
+/** 위험도별 요약 문구 — 김우영 문구 가이드 v4.2 2장 "위험도" 기준 */
+private fun riskLevelSummary(level: RiskLevel): String = when (level) {
+    RiskLevel.SAFE -> "현재 분석된 대화에서 뚜렷한 위험 신호는 발견되지 않았습니다."
+    RiskLevel.CAUTION -> "주의가 필요한 표현이 확인되었습니다. 상대방의 요청을 다시 확인해 보세요."
+    RiskLevel.WARNING -> "위험 가능성이 높은 표현이 확인되었습니다. 송금이나 개인정보 제공은 신중하게 판단하세요."
+    RiskLevel.CRITICAL -> "즉시 대응이 필요한 위험 신호가 확인되었습니다. 가까운 대응기관의 도움을 받는 것을 권장합니다."
 }
 
 @Composable
