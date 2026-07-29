@@ -2,6 +2,7 @@ package com.safelink.app.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -11,6 +12,7 @@ import com.safelink.app.data.model.RiskLevel
 import com.safelink.app.ui.screens.detection.AnalyzingScreen
 import com.safelink.app.ui.screens.detection.DetectionInputScreen
 import com.safelink.app.ui.screens.detection.DetectionResultScreen
+import com.safelink.app.ui.screens.detection.DetectionViewModel
 import com.safelink.app.ui.screens.diagnosis.DiagnosisResultScreen
 import com.safelink.app.ui.screens.diagnosis.DiagnosisScreen
 import com.safelink.app.ui.screens.emergency.EmergencyScreen
@@ -32,6 +34,10 @@ fun SafeLinkNavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
+    // 대화 분석 공유 ViewModel — 입력→진행→결과 세 화면이 같은 인스턴스를 본다
+    // (Activity 스코프. 실제 데이터 흐름 기준: 김선한_02 문서 4장)
+    val detectionViewModel: DetectionViewModel = viewModel()
+
     NavHost(
         navController = navController,
         startDestination = Screen.Splash.route,
@@ -49,9 +55,15 @@ fun SafeLinkNavGraph(
         composable(Screen.Diagnosis.route) { DiagnosisScreen(navController) }
         composable(Screen.DiagnosisResult.route) { DiagnosisResultScreen(navController) }
 
-        composable(Screen.DetectionInput.route) { DetectionInputScreen(navController) }
-        composable(Screen.Analyzing.route) { AnalyzingScreen(navController) }
-        composable(Screen.DetectionResult.route) { DetectionResultScreen(navController) }
+        composable(Screen.DetectionInput.route) {
+            DetectionInputScreen(navController, detectionViewModel)
+        }
+        composable(Screen.Analyzing.route) {
+            AnalyzingScreen(navController, detectionViewModel)
+        }
+        composable(Screen.DetectionResult.route) {
+            DetectionResultScreen(navController, detectionViewModel)
+        }
 
         composable(
             route = Screen.ResponseGuide.route,
