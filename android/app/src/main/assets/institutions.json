@@ -1,9 +1,9 @@
 {
   "_meta": {
-    "version": "v1",
-    "last_updated": "2026-07-16",
+    "version": "v1.1",
+    "last_updated": "2026-07-29",
     "source": "김우영 작성 자료 기반",
-    "note": "위험유형 7분류(원본 자료, 2026-07-13 개편)는 SafeLink의 3대분류/17중분류와 1:1 대응하지 않아, subcategory_to_risk_type 매핑 레이어를 추가함",
+    "note": "위험유형 7분류(원본 자료, 2026-07-13 개편)는 SafeLink의 3대분류/26중분류와 1:1 대응하지 않아, subcategory_to_risk_type 매핑 레이어를 추가함. v1.1: 4주차 keyword.json 확장(17->26 중분류)에 맞춰 subcategory_to_risk_type에 2-6~2-10, 3-7~3-9 추가",
     "priority_principle": "국가기관 > 공공기관 > 공공 상담기관 > 민간기관 (민간은 후순위 고정)"
   },
 
@@ -91,7 +91,15 @@
     "3-3": { "risk_types": ["심리조작"], "weight": 15, "standalone_recommend": true },
     "3-4": { "risk_types": ["심리조작"], "weight": 12, "standalone_recommend": false },
     "3-5": { "risk_types": ["심리조작"], "weight": 18, "standalone_recommend": true },
-    "3-6": { "risk_types": ["협박"], "weight": 20, "standalone_recommend": true }
+    "3-6": { "risk_types": ["협박"], "weight": 20, "standalone_recommend": true },
+    "2-6": { "risk_types": ["심리조작"], "weight": 10, "standalone_recommend": false },
+    "2-7": { "risk_types": ["심리조작"], "weight": 10, "standalone_recommend": false },
+    "2-8": { "risk_types": ["심리조작"], "weight": 10, "standalone_recommend": false },
+    "2-9": { "risk_types": ["금융사기"], "weight": 15, "standalone_recommend": true },
+    "2-10": { "risk_types": ["금융사기"], "weight": 25, "standalone_recommend": true },
+    "3-7": { "risk_types": ["심리조작"], "weight": 15, "standalone_recommend": true },
+    "3-8": { "risk_types": ["심리조작"], "weight": 15, "standalone_recommend": true },
+    "3-9": { "risk_types": ["심리조작"], "weight": 10, "standalone_recommend": false }
   },
 
   "keyword_risk_type_additions": {
