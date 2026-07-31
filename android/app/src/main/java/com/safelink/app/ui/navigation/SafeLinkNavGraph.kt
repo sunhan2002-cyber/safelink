@@ -58,7 +58,9 @@ fun SafeLinkNavGraph(
         composable(Screen.DetectionInput.route) {
             DetectionInputScreen(navController, detectionViewModel)
         }
-        composable(Screen.Analyzing.route) { AnalyzingScreen(navController) }
+        composable(Screen.Analyzing.route) {
+            AnalyzingScreen(navController, detectionViewModel)
+        }
         composable(Screen.DetectionResult.route) {
             DetectionResultScreen(navController, detectionViewModel)
         }

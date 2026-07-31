@@ -155,7 +155,7 @@ fun DetectionInputScreen(
                 text = "분석 시작하기",
                 enabled = isTextMode && viewModel.originalText.isNotBlank(),
                 onClick = {
-                    viewModel.analyze()
+                    // 실제 분석은 AnalyzingScreen 진입 후 수행 (진행률 표시와 함께)
                     navController.navigate(Screen.Analyzing.route)
                 }
             )
