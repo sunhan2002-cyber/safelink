@@ -1,11 +1,14 @@
 package com.safelink.app.ui.screens.detection
 
 import android.app.Application
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import com.safelink.app.data.model.DetectionResult
+import com.safelink.app.data.ocr.OcrService
+import com.safelink.app.data.ocr.StubOcrService
 import com.safelink.app.data.repository.DetectionRepository
 
 /**
@@ -28,13 +31,38 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
     /** 입력 방식 — "텍스트 입력" | "스크린샷 업로드" (통일본 inputMethod) */
     var inputMethod by mutableStateOf("텍스트 입력")
 
+    /** 스크린샷 업로드 모드에서 선택한 이미지들 (최대 10장) */
+    var selectedImages by mutableStateOf<List<Uri>>(emptyList())
+        private set
+
     var result by mutableStateOf<DetectionResult?>(null)
         private set
 
     private val repository: DetectionRepository by lazy { DetectionRepository(getApplication()) }
+    private val ocrService: OcrService = StubOcrService()
 
-    /** 원문 텍스트를 분석해 result 에 반영한다. Analyzing 화면 진입 전에 호출. */
+    fun addImages(uris: List<Uri>) {
+        selectedImages = (selectedImages + uris).distinct().take(MAX_IMAGES)
+    }
+
+    fun removeImage(uri: Uri) {
+        selectedImages = selectedImages - uri
+    }
+
+    /**
+     * 스크린샷 → OCR(임시 구조) → originalText 채움. 스크린샷 모드에서 분석 시작 직전 호출.
+     * 실제 ML Kit 연결 시 suspend + viewModelScope + 로딩 상태로 감싼다(OcrService KDoc 참고).
+     */
+    fun runOcrOnSelectedImages() {
+        originalText = ocrService.extractText(getApplication(), selectedImages)
+    }
+
+    /** 원문 텍스트를 분석해 result 에 반영한다. Analyzing 화면 진입 후 호출. */
     fun analyze() {
         result = repository.analyze(originalText)
+    }
+
+    companion object {
+        const val MAX_IMAGES = 10
     }
 }

@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- 위험 감지 배너 알림 (Android 13+) — 런타임 권한 요청 UI 는 TODO -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name=".SafeLinkApplication"
         android:allowBackup="false"
@@ -16,6 +19,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 백그라운드 위험 감지 (접근성 서비스) — 사용자가 설정에서 켜야만 동작.
+             현재는 구조 스켈레톤 (MessageDetectionService KDoc 참고). -->
+        <service
+            android:name=".background.MessageDetectionService"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
     </application>
 
 </manifest>
