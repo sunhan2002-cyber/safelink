@@ -61,11 +61,8 @@ class DetectionEngineTest {
     @Test fun `TC-RS-POS-02`() = assertCase("TC-RS-POS-02", listOf("진심으로 마음이 가요, 당신 생각을 안 할 수가 없어요."), 10.0, "낮음")
     @Test fun `TC-RS-POS-03`() = assertCase("TC-RS-POS-03", listOf("이건 아무한테도 말하지 말아주세요."), 15.0, "낮음")
     @Test fun `TC-RS-POS-04`() = assertCase("TC-RS-POS-04", listOf("지금 사업 자금이 급하게 필요해서 그래요."), 30.0, "낮음")
-    // 데이터 이슈(제출 문서 "발견된 이슈" 참고): VP-1-4-003("오늘 안에")가 RS-2-5-001("오늘 안에
-    // 처리 안되면")의 부분 문자열이라 같은 문장에서 두 subcategory(1-4/2-5)로 각각 매칭돼
-    // 20+20=40이 나옴. keyword.json의 실제 매칭 규칙(단순 부분일치)대로 동작한 결과이므로
-    // 엔진 버그가 아니라 키워드 데이터 쪽 충돌 — 픽스 방향은 팀 논의 필요.
-    @Ignore("키워드 데이터 충돌(VP-1-4-003 vs RS-2-5-001) - 제출 문서 참고, 팀 논의 후 처리")
+    // 4주차 05번 문서: findSuppressedByOverlap() 추가로 VP-1-4-003("오늘 안에") vs
+    // RS-2-5-001("오늘 안에 처리 안되면") 부분 문자열 충돌이 해결돼 더 이상 Ignore 불필요.
     @Test fun `TC-RS-POS-05`() = assertCase("TC-RS-POS-05", listOf("오늘 안에 처리 안되면 큰일 나요."), 20.0, "낮음")
     @Test fun `TC-GL-POS-01`() = assertCase("TC-GL-POS-01", listOf("너 오늘 좀 예민한 거 같아."), 8.0, "낮음")
     @Test fun `TC-GL-POS-02`() = assertCase("TC-GL-POS-02", listOf("내가 언제 그렇게 말했어? 기억이나 하고 말하는 거야?"), 12.0, "낮음")
@@ -87,8 +84,7 @@ class DetectionEngineTest {
     @Ignore("테스트 픽스처의 expected_matched_ids와 입력 문장 불일치 - 제출 문서 참고")
     @Test fun `TC-RS-NEG-02`() = assertCase("TC-RS-NEG-02", listOf("자기야 진심으로 마음이 가요, 우리 결혼할까?"), 15.0, "낮음")
     @Test fun `TC-RS-NEG-03`() = assertCase("TC-RS-NEG-03", listOf("친구가 큰돈이 필요하다고 해서 사업 자금 빌려줬어, 다음 달에 갚는대."), 30.0, "낮음")
-    // 데이터 이슈: TC-RS-POS-05와 동일한 원인 (VP-1-4-003 "오늘 안에" 부분 문자열 충돌).
-    @Ignore("키워드 데이터 충돌(VP-1-4-003 vs RS-2-5-001) - 제출 문서 참고, 팀 논의 후 처리")
+    // TC-RS-POS-05와 동일 원인이었던 부분 문자열 충돌 - findSuppressedByOverlap()으로 해결됨.
     @Test fun `TC-RS-NEG-04`() = assertCase("TC-RS-NEG-04", listOf("오늘 안에 처리 안되면 늦게 도착할 것 같아서 미리 말씀드려요."), 20.0, "낮음")
     @Test fun `TC-GL-NEG-01`() = assertCase("TC-GL-NEG-01", listOf("오늘 많이 예민한 거 같아 보이는데 무슨 일 있어? 나한테 얘기해도 괜찮아."), 8.0, "낮음")
     @Test fun `TC-GL-NEG-02`() = assertCase("TC-GL-NEG-02", listOf("엄마가 그러셨어, 다 너를 위해서 하는 말이야 라고."), 12.0, "낮음")

@@ -1,0 +1,73 @@
+{
+  "_meta": {
+    "version": "v1",
+    "purpose": "keyword.json 확장을 위한 실패 문장 수집 - 신기훈 4주차 05번 작업",
+    "source": "팀 제공 시나리오 6건 (보이스피싱2/로맨스스캠2/가스라이팅2), 기법 라벨 체계 기준",
+    "note": "각 문장의 matched_technique_labels는 팀이 원문에 태깅한 라벨. keyword.json 확장 전 갭 분석용 - expected_id는 없음(아직 안 만들어진 키워드 다수 포함이 전제)"
+  },
+  "technique_labels": {
+    "common": {
+      "URGENCY": "시간압박", "SECRECY": "비밀유지 요구", "ISOLATION": "고립유도",
+      "FEAR": "공포조성", "INFO_HARVEST": "개인정보 수집"
+    },
+    "보이스피싱": {
+      "IMPERSONATE": "기관사칭", "ESCALATE": "상위기관 연결", "APP_INSTALL": "악성앱 유도",
+      "TRANSFER": "자금이체", "VERIFY_TRAP": "가짜 검증 유도"
+    },
+    "로맨스스캠": {
+      "LOVE_BOMB": "과잉 애정", "MIGRATE": "외부 메신저 유도", "MEET_AVOID": "만남 회피",
+      "FUTURE_FAKE": "미래 약속", "SMALL_ASK": "소액 선요구", "INVEST_PITCH": "투자 유도",
+      "SUNK_COST": "매몰비용"
+    },
+    "가스라이팅": {
+      "DENY": "사실 부정", "MEM_DOUBT": "기억 불신", "BLAME_SHIFT": "책임 전가",
+      "TRIVIAL": "감정 축소", "DISCREDIT": "주변인 신뢰 훼손", "INTERMIT": "간헐적 보상"
+    }
+  },
+
+  "sentences": [
+    { "id": "N-VP1-01", "category": "보이스피싱", "scenario": "수사기관 사칭형", "text": "서울중앙지검 첨단범죄수사2부 박정호 수사관입니다.", "labels": ["IMPERSONATE"] },
+    { "id": "N-VP1-02", "category": "보이스피싱", "scenario": "수사기관 사칭형", "text": "지금 대포통장 유통 사건 수사 중인데, 압수한 통장 37개 중에 본인 명의 계좌가 나왔습니다.", "labels": ["FEAR"] },
+    { "id": "N-VP1-03", "category": "보이스피싱", "scenario": "수사기관 사칭형", "text": "무혐의 처분을 받으시려면 오늘 중으로 피해자 진술을 확보해야 합니다.", "labels": ["FEAR", "URGENCY"] },
+    { "id": "N-VP1-04", "category": "보이스피싱", "scenario": "수사기관 사칭형", "text": "가족이나 은행 직원한테 말씀하시면 공무상비밀누설로 본인이 처벌받습니다. 통화 중에 다른 사람과 얘기하지 마세요.", "labels": ["SECRECY", "ISOLATION"] },
+    { "id": "N-VP1-05", "category": "보이스피싱", "scenario": "수사기관 사칭형", "text": "제 신분 의심되시면 대검찰청 대표번호 1301로 확인해 보셔도 됩니다. 제가 지금 연결해 드릴게요.", "labels": ["VERIFY_TRAP", "ESCALATE"] },
+    { "id": "N-VP1-06", "category": "보이스피싱", "scenario": "수사기관 사칭형", "text": "원격으로 자금 흐름 확인해야 하니 문자로 보내드린 '검찰청 사건조회' 앱을 설치해 주세요.", "labels": ["APP_INSTALL"] },
+    { "id": "N-VP1-07", "category": "보이스피싱", "scenario": "수사기관 사칭형", "text": "지금 안 하시면 오후 5시에 구속영장이 청구됩니다.", "labels": ["URGENCY", "FEAR"] },
+    { "id": "N-VP1-08", "category": "보이스피싱", "scenario": "수사기관 사칭형", "text": "예금 전액을 국고 안전계좌로 임시 이관해야 합니다.", "labels": ["TRANSFER"] },
+
+    { "id": "N-VP2-01", "category": "보이스피싱", "scenario": "저금리 대환대출 빙자형", "text": "정부 소상공인 특례보증 대상자로 선정되셔서 안내드립니다.", "labels": ["IMPERSONATE"] },
+    { "id": "N-VP2-02", "category": "보이스피싱", "scenario": "저금리 대환대출 빙자형", "text": "연 3.2%에 최대 8천까지 가능하시고요, 접수 기한이 이달 말까지입니다.", "labels": ["URGENCY"] },
+    { "id": "N-VP2-03", "category": "보이스피싱", "scenario": "저금리 대환대출 빙자형", "text": "신분증 앞뒤, 통장 사본, 보안카드 전면 사진 보내주시면 됩니다.", "labels": ["INFO_HARVEST"] },
+    { "id": "N-VP2-04", "category": "보이스피싱", "scenario": "저금리 대환대출 빙자형", "text": "심사 중에 다른 금융사에 조회 이력 남으면 자동 부결됩니다. 이 건 관련해서 은행이나 다른 데 문의하지 마세요.", "labels": ["ISOLATION"] },
+    { "id": "N-VP2-05", "category": "보이스피싱", "scenario": "저금리 대환대출 빙자형", "text": "상환금은 회수 담당 직원이 직접 방문해서 현금으로 받겠습니다.", "labels": ["TRANSFER"] },
+
+    { "id": "N-RS1-01", "category": "로맨스스캠", "scenario": "라포 형성 단계", "text": "한국계 미국인이고 현재 UN 산하 기관 소속 토목기술자로 예멘 재건 프로젝트에 파견 중이에요.", "labels": ["IMPERSONATE"] },
+    { "id": "N-RS1-02", "category": "로맨스스캠", "scenario": "라포 형성 단계", "text": "카톡이 여기선 자꾸 끊겨서요. 텔레그램으로 옮기실 수 있을까요?", "labels": ["MIGRATE"] },
+    { "id": "N-RS1-03", "category": "로맨스스캠", "scenario": "라포 형성 단계", "text": "만난 지 일주일인데 10년 알던 사람 같아요. 당신은 제 인생에서 일어난 가장 좋은 일이에요.", "labels": ["LOVE_BOMB"] },
+    { "id": "N-RS1-04", "category": "로맨스스캠", "scenario": "라포 형성 단계", "text": "기지 내 보안규정상 카메라 사용이 제한돼요.", "labels": ["MEET_AVOID"] },
+    { "id": "N-RS1-05", "category": "로맨스스캠", "scenario": "라포 형성 단계", "text": "계약이 11월에 끝나요. 그때 한국 들어가서 당신부터 만날 겁니다.", "labels": ["FUTURE_FAKE"] },
+    { "id": "N-RS1-06", "category": "로맨스스캠", "scenario": "라포 형성 단계", "text": "부탁 하나만 해도 될까요? 5만원어치 구글기프트카드 번호만 찍어서 보내주실 수 있어요? 다음 주에 바로 돌려드릴게요.", "labels": ["SMALL_ASK"] },
+
+    { "id": "N-RS2-01", "category": "로맨스스캠", "scenario": "투자 유도 전환 (돼지도살형)", "text": "삼촌이 홍콩에서 헤지펀드 애널리스트라 정보를 좀 받아요.", "labels": ["INVEST_PITCH"] },
+    { "id": "N-RS2-02", "category": "로맨스스캠", "scenario": "투자 유도 전환 (돼지도살형)", "text": "정 그러면 100만원만요. 그 이상은 안 돼요. 제가 옆에서 봐드릴게요.", "labels": ["SMALL_ASK"] },
+    { "id": "N-RS2-03", "category": "로맨스스캠", "scenario": "투자 유도 전환 (돼지도살형)", "text": "3주만에 100이 137 됐죠?", "labels": ["INTERMIT"] },
+    { "id": "N-RS2-04", "category": "로맨스스캠", "scenario": "투자 유도 전환 (돼지도살형)", "text": "VIP 등급이어야 참여돼요. 3천 이상이면 자동 승격이에요.", "labels": ["INVEST_PITCH", "URGENCY"] },
+    { "id": "N-RS2-05", "category": "로맨스스캠", "scenario": "투자 유도 전환 (돼지도살형)", "text": "수익금 22% 원천징수를 먼저 납부해야 출금 승인이 나요.", "labels": ["SUNK_COST"] },
+    { "id": "N-RS2-06", "category": "로맨스스캠", "scenario": "투자 유도 전환 (돼지도살형)", "text": "여기까지 왔는데 지금 포기하면 원금까지 묶여요.", "labels": ["SUNK_COST"] },
+
+    { "id": "N-GL1-01", "category": "가스라이팅", "scenario": "친밀 관계", "text": "무슨 말? 나 그런 말 한 적 없는데.", "labels": ["DENY"] },
+    { "id": "N-GL1-02", "category": "가스라이팅", "scenario": "친밀 관계", "text": "정확히는 그렇게 말 안 했어. 너 또 말 지어내네.", "labels": ["DENY", "MEM_DOUBT"] },
+    { "id": "N-GL1-03", "category": "가스라이팅", "scenario": "친밀 관계", "text": "지난번에도 내가 안 한 말 했다고 우겼던 거 기억나?", "labels": ["MEM_DOUBT"] },
+    { "id": "N-GL1-04", "category": "가스라이팅", "scenario": "친밀 관계", "text": "봐, 지금도 확신 못 하잖아. 나는 너 걱정돼서 하는 말이야.", "labels": ["MEM_DOUBT", "BLAME_SHIFT"] },
+    { "id": "N-GL1-05", "category": "가스라이팅", "scenario": "친밀 관계", "text": "이런 걸로 상처받는 사람이 어딨어. 너만 심각하게 받아들이는 거야.", "labels": ["TRIVIAL"] },
+    { "id": "N-GL1-06", "category": "가스라이팅", "scenario": "친밀 관계", "text": "걔가 우리 사이 이간질하는 거 너만 몰라. 그런 애 말을 왜 믿어.", "labels": ["DISCREDIT", "ISOLATION"] },
+    { "id": "N-GL1-07", "category": "가스라이팅", "scenario": "친밀 관계", "text": "내가 뭘 해도 넌 나를 나쁜 사람 만들어. 나 진짜 지친다.", "labels": ["BLAME_SHIFT"] },
+    { "id": "N-GL1-08", "category": "가스라이팅", "scenario": "친밀 관계", "text": "내가 미안해. 내가 널 너무 사랑해서 그래. 우리 밥 먹으러 가자.", "labels": ["INTERMIT"] },
+
+    { "id": "N-GL2-01", "category": "가스라이팅", "scenario": "직장 내 관계", "text": "내가 언제 A안이라 했어? B로 가라고 했지.", "labels": ["DENY"] },
+    { "id": "N-GL2-02", "category": "가스라이팅", "scenario": "직장 내 관계", "text": "회의록은 네가 쓴 거잖아. 네가 듣고 싶은 대로 적은 거지.", "labels": ["DENY", "BLAME_SHIFT"] },
+    { "id": "N-GL2-03", "category": "가스라이팅", "scenario": "직장 내 관계", "text": "다들 너 편들어주느라 그러는 거야. 뒤에서 뭐라고 하는지 알아?", "labels": ["DISCREDIT", "ISOLATION"] },
+    { "id": "N-GL2-04", "category": "가스라이팅", "scenario": "직장 내 관계", "text": "이런 얘기 인사팀 같은 데 가서 하지 마. 커지면 너만 손해야.", "labels": ["SECRECY", "ISOLATION"] },
+    { "id": "N-GL2-05", "category": "가스라이팅", "scenario": "직장 내 관계", "text": "네가 우리 팀에서 제일 아까운 인재라 내가 이렇게 붙잡고 있는 거야.", "labels": ["INTERMIT"] }
+  ]
+}

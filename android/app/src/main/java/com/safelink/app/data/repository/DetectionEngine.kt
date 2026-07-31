@@ -139,11 +139,13 @@ class DetectionEngine(
         val policy = keywordData.repeatDecayPolicy
         var total = 0.0
         val matchedKeywords = mutableListOf<MatchedKeyword>()
+        val suppressed = findSuppressedByOverlap(rawMatches)
 
         val bySubcategory = rawMatches.groupBy { it.entry.subcategoryId }
         for ((_, group) in bySubcategory) {
-            val decaying = group.filter { it.entry.repeatDecay }.sortedBy { it.startInFull }
-            val nonDecaying = group.filter { !it.entry.repeatDecay }
+            val scorable = group.filterNot { it in suppressed }
+            val decaying = scorable.filter { it.entry.repeatDecay }.sortedBy { it.startInFull }
+            val nonDecaying = scorable.filter { !it.entry.repeatDecay }
 
             decaying.forEachIndexed { occurrenceIndex, m ->
                 val multiplier = if (occurrenceIndex == 0) {
@@ -153,15 +155,43 @@ class DetectionEngine(
                 }
                 val contribution = if (m.entry.structuralOnly) 0.0 else m.entry.weight * multiplier
                 total += contribution
-                matchedKeywords += m.toMatchedKeyword()
             }
             nonDecaying.forEach { m ->
                 val contribution = if (m.entry.structuralOnly) 0.0 else m.entry.weight.toDouble()
                 total += contribution
-                matchedKeywords += m.toMatchedKeyword()
             }
+            // matchedKeywords는 억제 여부와 무관하게 전부 기록 - 화면에는 "이 표현도 감지됨"을
+            // 계속 보여주고, 점수 중복 계산만 막는다 (표시와 점수 반영 분리).
+            group.forEach { matchedKeywords += it.toMatchedKeyword() }
         }
         return total to matchedKeywords.sortedBy { it.startIndex }
+    }
+
+    /**
+     * 서로 다른 키워드 id의 매칭 구간이 겹칠 때(한쪽이 다른쪽에 완전히 포함되거나 구간이
+     * 동일할 때), 더 짧은(덜 구체적인) 쪽을 점수 계산에서 제외한다. 예: "오늘 안에"(VP-1-4-003)가
+     * "오늘 안에 처리 안되면"(RS-2-5-001) 안에 완전히 포함되는 경우 - 같은 표현을 두 신호로
+     * 중복 계산하지 않기 위함 (신기훈 4주차 04번 문서 "부분 문자열 충돌" 분석 결과 반영).
+     * 구간 길이가 같으면 keyword.json에 먼저 등록된 쪽을 유지한다(결정론적 tie-break).
+     */
+    private fun findSuppressedByOverlap(rawMatches: List<RawMatch>): Set<RawMatch> {
+        val suppressed = mutableSetOf<RawMatch>()
+        for (i in rawMatches.indices) {
+            val a = rawMatches[i]
+            for (j in rawMatches.indices) {
+                if (i == j) continue
+                val b = rawMatches[j]
+                if (a.entry.id == b.entry.id) continue
+                val aInB = a.startInFull >= b.startInFull && a.endInFull <= b.endInFull
+                if (!aInB) continue
+                val aLength = a.endInFull - a.startInFull
+                val bLength = b.endInFull - b.startInFull
+                val aStrictlyShorter = aLength < bLength
+                val aLosesTie = aLength == bLength && j < i
+                if (aStrictlyShorter || aLosesTie) suppressed += a
+            }
+        }
+        return suppressed
     }
 
     private fun RawMatch.toMatchedKeyword() = MatchedKeyword(
@@ -178,9 +208,11 @@ class DetectionEngine(
     // ─────────────────────────────────────────────────────────────────
     // 콤보 보너스 판정
     //
-    // COMBO-GENERAL-3CAT/4CAT은 min_distinct_subcategories 조건을 그대로 계산해서 판정하지만,
-    // 나머지 4개 specific 콤보는 조건문(트리거 대상 id 조합)이 서로 달라 keyword.json의
-    // condition 설명을 그대로 코드화했다 (일반화된 엔진이 아니라 v1 초안 - 남은 작업 참고).
+    // COMBO-GENERAL-3CAT/4CAT은 min_distinct_subcategories 조건을 그대로 계산해서 판정한다.
+    // related_subcategory_ids가 있는 specific 콤보(세션 전체에서 지정된 subcategory가 전부
+    // 매칭되면 발동)는 아래에서 keyword.json을 순회하며 일반화해서 처리한다.
+    // COMBO-VP-PHONE-VERIFY/COMBO-VP-SMISHING만 "특정 id 조합 + OR 조건"이라 예외적으로
+    // 하드코딩되어 있다 (related_keyword_ids 기반, 전부 매칭이 아니라 일부만 있어도 되는 경우).
     // ─────────────────────────────────────────────────────────────────
 
     private fun evaluateComboRules(rawMatches: List<RawMatch>): List<String> {
@@ -206,9 +238,16 @@ class DetectionEngine(
             triggered += "COMBO-VP-SMISHING"
         }
 
+        // related_subcategory_ids 기반 "전부 매칭 시 발동" 규칙 - 세션 전체 기준으로 자동 판정
+        // (RS-SECRET-MONEY, GL-ISOLATION-GUILT 및 4주차에 추가된 5개 콤보 모두 이 형태라 하드코딩 대신 일반화)
         val subcategoryIds = rawMatches.map { it.entry.subcategoryId }.toSet()
-        if ("2-3" in subcategoryIds && "2-4" in subcategoryIds) triggered += "COMBO-RS-SECRET-MONEY"
-        if ("3-3" in subcategoryIds && "3-4" in subcategoryIds) triggered += "COMBO-GL-ISOLATION-GUILT"
+        keywordData.comboBonusRules
+            .filter { it.type == "specific" && it.relatedSubcategoryIds != null }
+            .forEach { rule ->
+                if (rule.relatedSubcategoryIds!!.all { it in subcategoryIds }) {
+                    triggered += rule.id
+                }
+            }
 
         return triggered
     }
