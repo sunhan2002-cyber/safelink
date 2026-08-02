@@ -35,6 +35,8 @@ import com.safelink.app.ui.theme.RiskCritical
 fun SettingsScreen(navController: NavHostController) {
     var appLock by remember { mutableStateOf(false) }
     var biometric by remember { mutableStateOf(false) }
+    var screenshotAnalysis by remember { mutableStateOf(true) }
+    var backgroundDetection by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(title = "설정")
@@ -71,6 +73,28 @@ fun SettingsScreen(navController: NavHostController) {
             SafeLinkCard {
                 LinkRow(label = "알림 문구 설정", caption = "알림에 표시되는 문구를 바꿀 수 있어요") {
                     // TODO: 중립적 알림 문구 수정 (Task 5.15, Design.md 7장)
+                }
+            }
+
+            SectionLabel("기능 확장")
+            SafeLinkCard {
+                ToggleRow(
+                    label = "스크린샷 분석 사용",
+                    caption = "갤러리에서 선택한 대화 스크린샷을 분석할 수 있어요",
+                    checked = screenshotAnalysis,
+                    onChange = { screenshotAnalysis = it }
+                )
+                ToggleRow(
+                    label = "백그라운드 감지 준비",
+                    caption = "위험 신호 감지 기능의 사용 여부를 추후 이곳에서 관리해요",
+                    checked = backgroundDetection,
+                    onChange = { backgroundDetection = it }
+                )
+                LinkRow(
+                    label = "감지 기능 안내",
+                    caption = "스크린샷 분석과 백그라운드 감지 흐름을 확인할 수 있어요"
+                ) {
+                    // TODO: 기능확장 안내 화면 또는 도움말 연결
                 }
             }
 
