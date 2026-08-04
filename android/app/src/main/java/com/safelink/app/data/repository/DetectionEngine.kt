@@ -339,4 +339,58 @@ class DetectionEngine(
         // 5) 최종 배열 인덱스 기준으로 rank 1부터 재부여
         return merged.values.mapIndexed { index, ui -> ui.copy(rank = index + 1) }
     }
+
+    // ─────────────────────────────────────────────────────────────────
+    // 4. 2차 AI API 보조 분석 호출 판단 (요청: "규칙 엔진으로 안 잡히는 경우 어떤 기준에서
+    //    AI API로 넘길지"). 신기훈 4주차 06번 문서 "AI API 진입 조건 확정본" 그대로 코드화.
+    //    실제 API 호출은 이 함수 밖(김재겸 쪽, 백엔드 미구현)에서 처리 — 여기는 "호출해야
+    //    하는가"만 결정한다. data/API 입출력 초안 v1의 회색지대 조건 + 06번 문서 신규 조건 4개.
+    // ─────────────────────────────────────────────────────────────────
+
+    companion object {
+        /** 반복 2회 이상 감지되면 점수와 무관하게 AI를 부르는 가스라이팅 중분류
+         *  (기존 3-1/3-2 + 4주차에 추가된 3-7/3-8/3-9 — 전부 어조·맥락 의존적이라 동일 취급). */
+        private val GASLIGHTING_REPEAT_TRIGGER_SUBCATEGORIES = setOf("3-1", "3-2", "3-7", "3-8", "3-9")
+
+        /** 장기 서사 흐름에서만 의미가 있는 로맨스스캠 중분류 (세션이 충분히 길 때만 트리거). */
+        private val LONG_SESSION_TRIGGER_SUBCATEGORIES = setOf("2-8", "2-10")
+        private const val LONG_SESSION_MIN_TURNS = 15
+
+        /** 4주차에 신설된 중분류 - 실사용 검증 전까지 한시적으로 회색지대 무관 호출. */
+        private val NEW_SUBCATEGORIES_2026_07 = setOf("2-6", "2-7", "2-8", "2-9", "2-10", "3-7", "3-8", "3-9")
+
+        private val GRAY_ZONE_SCORE_RANGES = listOf(20..40, 55..70)
+    }
+
+    /**
+     * 2차 AI API 보조 분석을 호출해야 하는지 판단한다. 위험도 계산 자체는 항상 온디바이스로
+     * 끝나며(SafeLink 아키텍처 원칙), 이 함수는 "문맥 보정치를 받아올 필요가 있는가"만 결정한다.
+     *
+     * @param result [analyze]가 반환한 온디바이스 분석 결과
+     * @param sessionTurnCount 지금까지 세션에서 누적된 턴 수 (LONG_SESSION 조건에 사용)
+     * @param manualReportFlag 사용자가 직접 "위험한 것 같다"고 표시했는지
+     * @param newSubcategoryRolloutActive 4주차 신설 중분류에 대한 한시적 게이팅 스위치 -
+     *   실사용 데이터가 충분히 쌓이면 false로 전환해서 이 조건을 끄면 됨
+     */
+    fun shouldEscalateToAI(
+        result: DetectionResult,
+        sessionTurnCount: Int,
+        manualReportFlag: Boolean = false,
+        newSubcategoryRolloutActive: Boolean = true
+    ): Boolean {
+        if (manualReportFlag) return true
+
+        if (GRAY_ZONE_SCORE_RANGES.any { result.score in it }) return true
+
+        val matchedSubcategoryIds = result.matchedKeywords.map { it.subcategoryId }
+        val gaslightingRepeatCount = matchedSubcategoryIds.count { it in GASLIGHTING_REPEAT_TRIGGER_SUBCATEGORIES }
+        if (gaslightingRepeatCount >= 2) return true
+
+        val hasLongSessionSubcategory = matchedSubcategoryIds.any { it in LONG_SESSION_TRIGGER_SUBCATEGORIES }
+        if (hasLongSessionSubcategory && sessionTurnCount >= LONG_SESSION_MIN_TURNS) return true
+
+        if (newSubcategoryRolloutActive && matchedSubcategoryIds.any { it in NEW_SUBCATEGORIES_2026_07 }) return true
+
+        return false
+    }
 }

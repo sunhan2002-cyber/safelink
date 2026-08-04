@@ -38,4 +38,17 @@ class DetectionRepository @Inject constructor(
 
     /** 원문 텍스트 1건을 분석해서 [DetectionResult]로 변환. ViewModel에서는 이거 하나만 호출하면 됨. */
     fun analyze(originalText: String): DetectionResult = engine.analyze(originalText)
+
+    /**
+     * [analyze] 결과를 가지고 2차 AI API 보조 분석이 필요한지 판단한다. true가 나오면
+     * 그 시점에 백엔드 `/analyze`를 호출하고 `context_score_adjustment`를 받아 반영하면 됨
+     * (백엔드 자체는 아직 미구현 — 이 함수는 "호출해야 하는가"까지만 책임짐).
+     * 조건 근거: 신기훈 4주차 06번 문서 "AI API 진입 조건 확정본".
+     */
+    fun shouldEscalateToAI(
+        result: DetectionResult,
+        sessionTurnCount: Int,
+        manualReportFlag: Boolean = false,
+        newSubcategoryRolloutActive: Boolean = true
+    ): Boolean = engine.shouldEscalateToAI(result, sessionTurnCount, manualReportFlag, newSubcategoryRolloutActive)
 }
