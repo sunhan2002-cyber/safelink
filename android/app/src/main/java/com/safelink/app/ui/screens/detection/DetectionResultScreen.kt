@@ -102,36 +102,45 @@ private fun DetectionResultContent(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (result.isSafeAndEmpty) {
-                SafeEmptyCard()
-            } else {
-                // 상태 헤더 카드
-                SafeLinkCard {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Filled.Warning,
-                            contentDescription = null,
-                            tint = result.riskLevel.color(),
-                            modifier = Modifier.size(36.dp)
+            // 상태 헤더 카드 — 위험도별 고정 제목/설명 (category 결합 금지, 최종 가이드 v1.0)
+            SafeLinkCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.Warning,
+                        contentDescription = null,
+                        tint = result.riskLevel.color(),
+                        modifier = Modifier.size(36.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = riskLevelHeadline(result.riskLevel),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = result.riskLevel.color()
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            // 위험 유형과 위험도를 분리 (개발용어·단정 표현 배제 — 김우영 final_allfile.wy)
-                            Text(
-                                text = "${result.category} 관련 위험 신호가 확인되었습니다",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = result.riskLevel.color()
-                            )
-                            Text(
-                                text = riskLevelSummary(result.riskLevel),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        Text(
+                            text = riskLevelDescription(result.riskLevel),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
+            }
 
-                // 위험 점수 + 감지 요소 (태그 = matchedKeywords의 subcategoryName, 중복 제거)
+            // 확인된 위험 유형 — category 있을 때만 (최종 가이드 v1.0)
+            if (result.category.isNotBlank()) {
+                SafeLinkCard {
+                    Text(text = "확인된 위험 유형", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = result.category,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = result.riskLevel.color()
+                    )
+                }
+            }
+
+            // 위험 점수 + 감지된 위험 요소 + 분석 근거 — matchedKeywords 있을 때만
+            if (result.matchedKeywords.isNotEmpty()) {
                 SafeLinkCard {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -150,7 +159,6 @@ private fun DetectionResultContent(
                         Spacer(modifier = Modifier.width(20.dp))
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(text = "감지된 위험 요소", style = MaterialTheme.typography.titleMedium)
-                            // 태그 3개 이상 시 줄바꿈되도록 FlowRow 사용 (Row는 화면 폭 초과 시 세로로 찌그러짐)
                             FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -169,12 +177,19 @@ private fun DetectionResultContent(
                                         )
                                     }
                             }
-                            RiskBadge(level = result.riskLevel)
+                            // "위험도: 긴급" 형태 (배지 단독 중복 금지 — 최종 가이드 v1.0)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "위험도: ",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                RiskBadge(level = result.riskLevel)
+                            }
                         }
                     }
                 }
 
-                // 분석 근거 (matchedText 기준 나열 — 인덱스 기반 강조는 TODO)
                 Text(text = "분석 근거", style = MaterialTheme.typography.titleMedium)
                 result.matchedKeywords.forEach { kw ->
                     SafeLinkCard {
@@ -197,56 +212,47 @@ private fun DetectionResultContent(
                         }
                     }
                 }
+            }
 
-                // 추천 기관 — 즉시 대응기관/추가 지원기관 2단 표시
-                // (김우영 문구 가이드 v4.2 4장 + RecommendedInstitutionUi.group KDoc 기준)
-                if (result.recommendedInstitutions.isNotEmpty()) {
-                    val (immediate, additional) = result.recommendedInstitutions
-                        .sortedBy { it.rank }
-                        .partition { it.group == "긴급대응" }
+            // 추천 기관 — 즉시 대응기관/추가 지원기관 2단 (RecommendedInstitutionUi.group 기준)
+            if (result.recommendedInstitutions.isNotEmpty()) {
+                val (immediate, additional) = result.recommendedInstitutions
+                    .sortedBy { it.rank }
+                    .partition { it.group == "긴급대응" }
 
-                    if (immediate.isNotEmpty()) {
-                        Text(text = "즉시 대응기관", style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            text = "현재 위험 유형에 가장 적합한 기관입니다.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        immediate.forEach { inst -> RecommendedInstitutionCard(inst) }
-                    }
-                    if (additional.isNotEmpty()) {
-                        Text(text = "추가 지원기관", style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            text = "피해 회복, 상담, 법률 및 복지 지원을 받을 수 있는 기관입니다.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        additional.forEach { inst -> RecommendedInstitutionCard(inst) }
-                    }
-                } else {
-                    // 기관 없음 문구를 SAFE와 그 외로 분리 (김우영 final_allfile.wy)
+                Text(text = "추천 기관 목록", style = MaterialTheme.typography.titleMedium)
+                if (immediate.isNotEmpty()) {
+                    Text(text = "즉시 대응기관", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        text = if (result.riskLevel == RiskLevel.SAFE)
-                            "현재 분석 결과에서는 추천 기관을 안내하지 않습니다."
-                        else
-                            "현재 분석 결과에 맞는 추천 기관을 안내하지 못했습니다. 상황이 계속 불안하거나 피해가 우려되면 공식 기관에 직접 문의해 보세요.",
+                        text = "현재 상황에서 먼저 도움을 받을 수 있는 기관입니다.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    immediate.forEach { inst -> RecommendedInstitutionCard(inst) }
                 }
-
+                if (additional.isNotEmpty()) {
+                    Text(text = "추가 지원기관", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = "피해 회복, 상담, 법률 및 복지 지원을 받을 수 있는 기관입니다.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    additional.forEach { inst -> RecommendedInstitutionCard(inst) }
+                }
+            } else if (result.riskLevel != RiskLevel.SAFE) {
+                // SAFE는 기관 영역 숨김, CAUTION 이상만 안내 (최종 가이드 v1.0)
                 Text(
-                    text = "분석 결과는 참고 정보이며, 최종 판단은 사용자에게 있습니다.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Text(
-                    text = "* 실제 공공기관은 전화로 자금 송금을 요구하지 않습니다.",
+                    text = "현재 분석 결과에 맞는 추천 기관을 바로 표시하지 못했습니다.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            Text(
+                text = "분석 결과는 참고 정보이며, 최종 판단은 사용자에게 있습니다.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
 
         // 위험도별 CTA (김우영 final_allfile.wy CTA 우선순위)
@@ -296,30 +302,20 @@ private fun DetectionResultContent(
     }
 }
 
-/** 위험도별 요약 문구 — 김우영 final_allfile.wy 기준 */
-private fun riskLevelSummary(level: RiskLevel): String = when (level) {
-    RiskLevel.SAFE -> "현재 분석된 대화에서는 뚜렷한 위험 신호가 확인되지 않았습니다. 의심스러운 상황이 계속되면 내용을 다시 확인해 보세요."
+/** 위험도별 고정 제목 — 최종 가이드 v1.0 (category 결합 금지) */
+private fun riskLevelHeadline(level: RiskLevel): String = when (level) {
+    RiskLevel.SAFE -> "위험한 표현이 감지되지 않았습니다."
     RiskLevel.CAUTION -> "주의가 필요한 표현이 감지되었습니다."
     RiskLevel.WARNING -> "위험 가능성이 높은 표현이 확인되었습니다."
     RiskLevel.CRITICAL -> "즉시 확인이 필요한 위험 신호가 감지되었습니다."
 }
 
-@Composable
-private fun SafeEmptyCard() {
-    SafeLinkCard {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Filled.CheckCircle,
-                contentDescription = null,
-                modifier = Modifier.size(36.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = "위험한 표현이 감지되지 않았습니다",
-                style = MaterialTheme.typography.titleMedium
-            )
-        }
-    }
+/** 위험도별 고정 설명 — 최종 가이드 v1.0 */
+private fun riskLevelDescription(level: RiskLevel): String = when (level) {
+    RiskLevel.SAFE -> "입력한 내용에서 즉시 확인이 필요한 위험 신호는 찾지 못했습니다."
+    RiskLevel.CAUTION -> "일부 표현은 상황을 더 확인해 볼 필요가 있습니다."
+    RiskLevel.WARNING -> "금전·개인정보 제공이나 외부 이동을 요구하는지 확인해 보세요."
+    RiskLevel.CRITICAL -> "앱 설치, 인증정보 제공, 송금 요청은 진행하지 마세요."
 }
 
 @Composable

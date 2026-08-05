@@ -1,5 +1,7 @@
 package com.safelink.app.ui.screens.settings
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,10 +15,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.ui.components.SafeLinkCard
@@ -33,10 +38,39 @@ import com.safelink.app.ui.theme.RiskCritical
 /** 설정 (Figma 20:1061) — 토글은 로컬 상태. 실제 저장은 EncryptedSharedPreferences (Task 5.15) */
 @Composable
 fun SettingsScreen(navController: NavHostController) {
+    val context = LocalContext.current
     var appLock by remember { mutableStateOf(false) }
     var biometric by remember { mutableStateOf(false) }
     var screenshotAnalysis by remember { mutableStateOf(true) }
     var backgroundDetection by remember { mutableStateOf(false) }
+    // 백그라운드 감지 켜기 전 동의·권한 안내 다이얼로그 (최종 가이드 v1.0)
+    var showBackgroundConsent by remember { mutableStateOf(false) }
+
+    if (showBackgroundConsent) {
+        AlertDialog(
+            onDismissRequest = { showBackgroundConsent = false },
+            title = { Text("백그라운드 감지 사용 안내") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("사용자가 명시적으로 동의하고 허용한 범위의 텍스트를 기기에서 분석합니다.")
+                    Text("백그라운드 감지를 사용하려면 접근성 권한이 필요합니다. 설정에서 Safe Link를 켜면 언제든지 해제할 수 있습니다.")
+                    Text("감지 결과를 알려드리려면 알림 권한을 허용해 주세요.")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showBackgroundConsent = false
+                    // 접근성 설정 화면으로 이동 (사용자가 직접 Safe Link 켜기)
+                    runCatching {
+                        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                    }
+                }) { Text("설정으로 이동") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBackgroundConsent = false }) { Text("나중에") }
+            }
+        )
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(title = "설정")
@@ -88,7 +122,10 @@ fun SettingsScreen(navController: NavHostController) {
                     label = "백그라운드 감지 준비",
                     caption = "사용자가 명시적으로 동의하고 허용한 범위의 텍스트를 기기에서 분석합니다.",
                     checked = backgroundDetection,
-                    onChange = { backgroundDetection = it }
+                    onChange = { on ->
+                        // 켤 때는 동의·권한 안내 먼저 (동의/권한 없이 활성화 표시 안 함)
+                        if (on) showBackgroundConsent = true else backgroundDetection = false
+                    }
                 )
                 LinkRow(
                     label = "감지 기능 안내",

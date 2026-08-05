@@ -64,7 +64,7 @@ internal val dummyInstitutions = listOf(
 @Composable
 fun SupportMatchScreen(navController: NavHostController) {
     Column(modifier = Modifier.fillMaxSize()) {
-        SafeLinkTopBar(title = "지원 서비스")
+        SafeLinkTopBar(title = "추천 기관 목록")
 
         Column(
             modifier = Modifier
@@ -74,11 +74,11 @@ fun SupportMatchScreen(navController: NavHostController) {
         ) {
             SafeLinkCard(containerColor = BrandBlueLight) {
                 Text(
-                    text = "도움을 받을 수 있는 기관입니다.",
+                    text = "추천 기관 목록",
                     style = MaterialTheme.typography.titleLarge
                 )
                 Text(
-                    text = "현재 감지된 상황에 가장 적합한 기관입니다.",
+                    text = "분석 결과를 바탕으로 현재 상황에 도움이 될 수 있는 기관을 안내합니다.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -89,6 +89,7 @@ fun SupportMatchScreen(navController: NavHostController) {
                     navController.navigate(Screen.SupportDetail.createRoute(institution.id))
                 }) {
                     Text(text = institution.name, style = MaterialTheme.typography.titleMedium)
+                    Text(text = "추천 이유", style = MaterialTheme.typography.bodyMedium)
                     Text(
                         text = institution.description,
                         style = MaterialTheme.typography.bodyMedium,
@@ -103,7 +104,7 @@ fun SupportMatchScreen(navController: NavHostController) {
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            SafeLinkOutlinedButton(text = "웹사이트 방문", onClick = {
+                            SafeLinkOutlinedButton(text = "홈페이지 이동", onClick = {
                                 // TODO: 브라우저 Intent
                             })
                         }
