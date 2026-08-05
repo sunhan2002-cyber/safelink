@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 백그라운드 위험 감지 서비스 설정 (MessageDetectionService)
+     canRetrieveWindowContent: 화면 텍스트 읽기 위해 필요.
+     사용자가 [설정 > 접근성]에서 직접 켜야만 동작한다. -->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowContentChanged|typeWindowStateChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/accessibility_service_desc"
+    android:notificationTimeout="300" />
