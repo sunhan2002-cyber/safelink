@@ -174,7 +174,13 @@
     { "id": "COMBO-VP-PHONE-VERIFY", "type": "specific", "category": "보이스피싱", "condition": "전화번호(VP-1-3-003) 안내 + 확인/전화 유도 표현(VP-1-3-001, VP-1-3-002)이 1~2턴 이내 함께 등장", "related_keyword_ids": ["VP-1-3-001", "VP-1-3-002", "VP-1-3-003"], "window_turns": 2, "bonus": 15 },
     { "id": "COMBO-VP-SMISHING", "type": "specific", "category": "보이스피싱", "condition": "스미싱 명목 문구(VP-1-6-001~003)와 URL(VP-1-6-004)이 같은 메시지 내 동시 등장", "related_keyword_ids": ["VP-1-6-001", "VP-1-6-002", "VP-1-6-003", "VP-1-6-004"], "window_turns": 0, "bonus": 20 },
     { "id": "COMBO-RS-SECRET-MONEY", "type": "specific", "category": "로맨스스캠", "condition": "비밀유지요구(2-3)와 금전요구(2-4)가 같은 세션에서 함께 감지", "related_subcategory_ids": ["2-3", "2-4"], "window_turns": null, "bonus": 15 },
-    { "id": "COMBO-GL-ISOLATION-GUILT", "type": "specific", "category": "가스라이팅", "condition": "관계고립유도(3-3)와 죄책감유도(3-4)가 같은 세션에서 함께 감지", "related_subcategory_ids": ["3-3", "3-4"], "window_turns": null, "bonus": 15 }
+    { "id": "COMBO-GL-ISOLATION-GUILT", "type": "specific", "category": "가스라이팅", "condition": "관계고립유도(3-3)와 죄책감유도(3-4)가 같은 세션에서 함께 감지", "related_subcategory_ids": ["3-3", "3-4"], "window_turns": null, "bonus": 15 },
+
+    { "id": "COMBO-VP-VERIFY-TRANSFER", "type": "specific", "category": "보이스피싱", "condition": "가짜 검증/상위기관 연결(1-3, VERIFY_TRAP·ESCALATE 포함)과 금전이체 요구(1-5)가 같은 세션에서 함께 감지 - 검증 신뢰 확보 후 이체 요구하는 확정적 사기 흐름", "related_subcategory_ids": ["1-3", "1-5"], "window_turns": null, "bonus": 20 },
+    { "id": "COMBO-RS-GROOMING-MIGRATE", "type": "specific", "category": "로맨스스캠", "condition": "급속친밀감형성(2-2, LOVE_BOMB)과 외부메신저유도(2-6, MIGRATE)가 같은 세션에서 함께 감지 - 초기 라포 형성 후 감시망 회피 시도하는 조기 경보 패턴", "related_subcategory_ids": ["2-2", "2-6"], "window_turns": null, "bonus": 10 },
+    { "id": "COMBO-RS-SUNKCOST-INVEST", "type": "specific", "category": "로맨스스캠", "condition": "금전요구명목(2-4, INVEST_PITCH 포함)과 매몰비용유도(2-10, SUNK_COST)가 같은 세션에서 함께 감지 - 투자사기(돼지도살형) 확정적 패턴", "related_subcategory_ids": ["2-4", "2-10"], "window_turns": null, "bonus": 25 },
+    { "id": "COMBO-GL-DENY-BLAME", "type": "specific", "category": "가스라이팅", "condition": "현실왜곡(3-2, DENY·MEM_DOUBT)과 책임전가(3-7, BLAME_SHIFT)가 같은 세션에서 함께 감지 - 가스라이팅 전형적 부정-전가 사이클", "related_subcategory_ids": ["3-2", "3-7"], "window_turns": null, "bonus": 15 },
+    { "id": "COMBO-GL-ISOLATION-DISCREDIT", "type": "specific", "category": "가스라이팅", "condition": "관계고립유도(3-3)와 주변인신뢰훼손(3-8, DISCREDIT)이 같은 세션에서 함께 감지 - 주변인을 깎아내려 고립을 심화하는 패턴", "related_subcategory_ids": ["3-3", "3-8"], "window_turns": null, "bonus": 15 }
   ],
 
   "repeat_decay_policy": {
