@@ -3,7 +3,6 @@ package com.safelink.app.data.repository
 import android.content.Context
 import com.google.gson.Gson
 import com.safelink.app.data.model.DetectionResult
-import com.safelink.app.data.model.RiskLevel
 import com.safelink.app.data.model.raw.InstitutionData
 import com.safelink.app.data.model.raw.KeywordData
 import com.safelink.app.data.remote.AnalyzeApiClient
@@ -64,18 +63,28 @@ class DetectionRepository @Inject constructor(
     /**
      * [shouldEscalateToAI]가 true일 때 실제로 서버를 호출해서 온디바이스 결과를 보정한다.
      * 원문은 [DetectionEngine.maskSensitiveInfo]로 전화번호/URL을 마스킹한 뒤에만 전송하고,
-     * 서버 응답의 `context_score_adjustment`만 점수에 반영한다 — 서버가 최종 위험도를
-     * 결정하지 않는다는 원칙(CLAUDE.md) 그대로. `recommended_level_override`는 응답에
-     * 담겨오지만 3단계/4단계 라벨 혼동 위험이 있어 이번 버전에서는 자동 반영하지 않고
-     * 클라이언트(온디바이스) 판단을 그대로 유지한다 — "기본은 null, 클라이언트 판단 존중"
-     * 원칙과 동일.
+     * 병합 규칙 자체는 [DetectionEngine.mergeAiResponse]에 있음(점수/riskLevel/추천기관/
+     * AI 요약 문구 — 신기훈 4주차 07번 문서 "AI 응답 반영 범위" 참고). 이 함수는 네트워크
+     * 호출과 성공/실패 분기만 책임진다.
      *
-     * 네트워크 실패/타임아웃/서버 오류(503류) 시에는 **온디바이스 결과를 그대로 반환**한다
-     * (Design.md 원칙: 서버는 필수 경로가 아니다).
+     * `recommended_level_override`는 응답에 담겨오지만 3단계/4단계 라벨 혼동 위험이 있어
+     * 자동 반영하지 않고 클라이언트(온디바이스) 판단을 그대로 유지한다 — "기본은 null,
+     * 클라이언트 판단 존중" 원칙과 동일.
+     *
+     * **실패 시 온디바이스 결과를 그대로 반환하는 경로 3가지** (Design.md 원칙: 서버는
+     * 필수 경로가 아니다 — 무슨 일이 있어도 화면에 아무것도 안 뜨는 상황은 없어야 함):
+     *   1. HTTP 응답이 실패(4xx/5xx, 예: 429 호출한도초과·503 서버오류) → `!response.isSuccessful`
+     *   2. HTTP는 200인데 응답 바디가 비어있음(파싱 실패 등) → `body == null`
+     *   3. 네트워크 자체가 실패(타임아웃·연결거부·DNS 실패 등) → `catch (e: Exception)`
+     * 세 경로 전부 동일하게 `result`(원본 온디바이스 결과)를 그대로 반환한다.
      *
      * @param result 온디바이스 [analyze] 결과
      * @param sessionId 세션(대화방) 식별자
-     * @param recentTurns 최근 턴 원문 목록(마스킹 전) — 최근 10턴 이내로 호출부에서 잘라서 넘길 것
+     * @param recentTurns 최근 턴 원문 목록(마스킹 전) — 최근 10턴 이내로 호출부에서 잘라서 넘길 것.
+     *   **한계**: 지금 유일한 호출부인 [com.safelink.app.ui.screens.detection.DetectionViewModel]은
+     *   `listOf(originalText)`(입력 1건)만 넘긴다 — 진짜 다중 턴 세션이 아니라 단일 입력
+     *   기준이라는 뜻. 실제 다중 턴 추적이 생기면 그 상태를 그대로 넘기면 됨(이 함수 자체는
+     *   턴 개수와 무관하게 동작).
      */
     suspend fun escalateToAI(
         result: DetectionResult,
@@ -97,15 +106,14 @@ class DetectionRepository @Inject constructor(
             val response = apiService.analyze(request)
             val body = response.body()
             if (!response.isSuccessful || body == null) {
-                result // 4xx/5xx - 온디바이스 결과 유지
+                result // 경로 1·2 - 온디바이스 결과 유지
             } else {
-                val adjustedScore = (result.score + body.contextScoreAdjustment).toInt().coerceIn(0, 100)
-                result.copy(score = adjustedScore, riskLevel = RiskLevel.fromScore(adjustedScore))
+                engine.mergeAiResponse(result, body)
             }
         } catch (e: CancellationException) {
-            throw e // 구조적 동시성 - 취소는 그대로 전파
+            throw e // 구조적 동시성 - 취소는 그대로 전파 (온디바이스 결과 폴백 대상 아님)
         } catch (e: Exception) {
-            result // 네트워크 실패/타임아웃 - 온디바이스 결과 그대로 (Design.md 원칙)
+            result // 경로 3 - 네트워크 실패/타임아웃, 온디바이스 결과 그대로
         }
     }
 }

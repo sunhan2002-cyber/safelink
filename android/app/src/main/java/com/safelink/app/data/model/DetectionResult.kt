@@ -25,7 +25,11 @@ data class DetectionResult(
     val originalText: String,                          // 사용자가 입력/붙여넣은 원문 (세션 내 표시만, 저장 안 함)
     val matchedKeywords: List<MatchedKeyword>,
     val recommendedInstitutions: List<RecommendedInstitutionUi>,
-    val appliedComboIds: List<String> = emptyList()    // 발동된 조합 보너스 규칙 id (설명용, 선택 표시)
+    val appliedComboIds: List<String> = emptyList(),   // 발동된 조합 보너스 규칙 id (설명용, 선택 표시)
+    // 아래 2개는 2차 AI 보조 분석(DetectionRepository.escalateToAI)이 실행된 경우에만 채워짐.
+    // 온디바이스 분석만 끝난 상태에서는 항상 null — 기존 더미데이터/화면 코드는 그대로 동작함.
+    val aiSummary: String? = null,          // API 응답의 context_analysis_summary
+    val aiDetectedPattern: String? = null   // API 응답의 context_detected_pattern
 ) {
     /** 위험 없음(SAFE, 매칭 0건) 여부 — "위험한 표현이 감지되지 않았습니다" 문구 표시 조건 */
     val isSafeAndEmpty: Boolean get() = matchedKeywords.isEmpty()

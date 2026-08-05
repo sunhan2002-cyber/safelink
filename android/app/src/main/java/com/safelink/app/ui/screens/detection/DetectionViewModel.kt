@@ -76,13 +76,18 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
      * "나중에 slight 업데이트"로 자연스럽게 들어온다. 네트워크 실패 시 escalateToAI가 온디바이스
      * 결과를 그대로 반환하므로 result가 나빠지는 경우는 없음.
      *
-     * TODO: sessionTurnCount/recentTurns는 지금 "입력 1건 = 세션 1턴" 기준 단순화된 값.
-     * 실제 다중 턴 세션 추적(메시지 여러 개 누적)이 생기면 이 부분을 그 상태로 교체할 것.
+     * ⚠️ 한계: 이 화면은 "대화 전체를 붙여넣는 단일 입력" 구조라서, 서버로 보내는
+     * `sessionTurnCount`는 항상 1, `recentTurns`도 [originalText] 하나짜리 리스트다.
+     * **진짜 다중 턴(메시지가 하나씩 쌓이는 대화)을 추적하는 게 아니다** — API 조건 중
+     * "세션 15턴 이상"(shouldEscalateToAI의 LONG_SESSION 조건)은 지금 구조에서는 사실상
+     * 발동하지 않는다. 실제 다중 턴 세션 추적이 생기면 sessionTurnCount/recentTurns를
+     * 그 누적 상태로 교체할 것 (07번 문서 "recentTurns 한계" 참고).
      */
     fun analyze() {
         val onDeviceResult = repository.analyze(originalText)
         result = onDeviceResult
 
+        // sessionTurnCount=1, recentTurns=[originalText] — 위 KDoc 한계 참고
         if (repository.shouldEscalateToAI(onDeviceResult, sessionTurnCount = 1)) {
             viewModelScope.launch {
                 isEscalatingToAI = true

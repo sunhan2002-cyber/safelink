@@ -1,10 +1,17 @@
 """
-SafeLink 목(mock) 분석 서버 - data/API 입출력 .json 스키마 그대로 구현.
+============================================================================
+ ⚠️  이 서버는 목(MOCK) 서버입니다 — 실제 LLM을 호출하지 않습니다  ⚠️
+============================================================================
+아래 analyze_context() 함수는 진짜 AI 분석이 아니라 "매칭된 키워드 개수"만 보는
+단순 규칙입니다. 목적은 문맥 분석 품질이 아니라 Android <-> 서버 연동 배선이
+실제로 동작하는지 검증/시연하는 것입니다.
 
-실제 LLM을 호출하지 않는 규칙 기반 목 서버다. 목적은 "Android <-> 서버 연동 배선"을
-실제로 검증/시연하기 위함이지, 문맥 분석 품질을 보장하지 않는다. 진짜 AI 분석으로
-교체할 때는 analyze_context() 함수 내부만 갈아끼우면 되고, 요청/응답 스키마와
-FastAPI 라우팅은 그대로 유지된다.
+★ 실제 AI(LLM)로 교체할 때: analyze_context() 함수 내부만 갈아끼우면 됩니다.
+  요청/응답 스키마(AnalyzeRequest/AnalyzeResponse)와 FastAPI 라우팅(@app.post("/analyze"))은
+  그대로 유지하세요 — 그래야 Android 쪽 코드를 한 줄도 안 고쳐도 됩니다.
+============================================================================
+
+SafeLink 목(mock) 분석 서버 - data/API 입출력 .json 스키마 그대로 구현.
 
 아키텍처 원칙(CLAUDE.md) 준수:
 - 서버는 최종 위험도를 결정하지 않는다 - context_score_adjustment(보정치)만 반환.
@@ -22,7 +29,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-app = FastAPI(title="SafeLink Mock Analyze API", version="0.1.0-mock")
+app = FastAPI(
+    title="SafeLink Mock Analyze API",
+    description="⚠️ MOCK 서버 - 실제 LLM 미호출. analyze_context() 함수만 교체하면 실제 AI로 전환.",
+    version="0.1.0-mock",
+)
 
 # 로컬 시연용 - 실제 배포 시에는 허용 origin을 좁혀야 함
 app.add_middleware(
@@ -64,10 +75,16 @@ class AnalyzeResponse(BaseModel):
     analysis_timestamp: str
 
 
+# ============================================================================
+# ↓↓↓ 실제 AI(LLM)로 교체할 때 갈아끼울 지점은 이 함수 하나뿐입니다 ↓↓↓
+# ============================================================================
 def analyze_context(req: AnalyzeRequest) -> AnalyzeResponse:
     """
-    목(mock) 문맥 분석 - 실제 LLM 호출부. 지금은 단순 규칙으로 대체:
-    매칭된 키워드가 3개 이상이면(다단계 패턴 가능성) 소폭 가산, 그 외엔 소폭 감산.
+    ⚠️ MOCK 구현 - 실제 LLM 호출 없음. 지금은 "매칭된 키워드 개수"만 보는 단순 규칙:
+    3개 이상이면(다단계 패턴 가능성) 소폭 가산, 그 외엔 소폭 감산 — 문맥/의미는 전혀
+    분석하지 않는다. 실제 AI로 바꿀 때는 이 함수 시그니처(AnalyzeRequest -> AnalyzeResponse)만
+    유지하고 내부 구현을 통째로 교체하면 된다.
+
     recommended_level_override는 항상 null - 서버가 최종 위험도를 결정하지 않는다는
     원칙을 목 서버에서도 지킴(클라이언트 판단 존중).
     """
@@ -108,4 +125,8 @@ def analyze(req: AnalyzeRequest) -> AnalyzeResponse:
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "note": "SafeLink mock analyze server"}
+    return {
+        "status": "ok",
+        "is_mock": True,
+        "note": "SafeLink mock analyze server - 실제 LLM 미호출, analyze_context()는 규칙 기반",
+    }

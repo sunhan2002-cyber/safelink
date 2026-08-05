@@ -10,6 +10,7 @@ import com.safelink.app.data.model.raw.InstitutionData
 import com.safelink.app.data.model.raw.InstitutionPriorityEntry
 import com.safelink.app.data.model.raw.KeywordData
 import com.safelink.app.data.model.raw.KeywordEntry
+import com.safelink.app.data.remote.dto.AnalyzeResponseDto
 import kotlin.math.min
 
 /**
@@ -406,5 +407,66 @@ class DetectionEngine(
         if (newSubcategoryRolloutActive && matchedSubcategoryIds.any { it in NEW_SUBCATEGORIES_2026_07 }) return true
 
         return false
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // 5. AI 응답 병합 (신기훈 4주차 07번 문서 "AI 응답 반영 범위" 결정 반영)
+    //
+    // 반영하는 것: context_score_adjustment(점수), context_analysis_summary/
+    // context_detected_pattern(문구 2개), recommended_institutions(추천기관 - 온디바이스
+    // 목록과 병합).
+    // 반영 안 하는 것: recommended_level_override — 서버는 3단계(낮음/중간/높음), 클라이언트
+    // RiskLevel은 4단계라 자동 매핑이 모호함(예: "높음"이 WARNING인지 CRITICAL인지 점수 없이는
+    // 알 수 없음). "서버가 최종 위험도를 결정하지 않는다"는 원칙 그대로 점수 보정치만 반영하고
+    // riskLevel은 항상 adjustedScore로부터 다시 계산한다.
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * 온디바이스 결과에 AI 보조 분석 응답을 병합한다. [DetectionRepository.escalateToAI]가
+     * 네트워크 호출 성공 시 이 함수를 호출한다 — 병합 규칙 자체는 여기 한 곳에만 있음.
+     */
+    fun mergeAiResponse(original: DetectionResult, response: AnalyzeResponseDto): DetectionResult {
+        val adjustedScore = (original.score + response.contextScoreAdjustment).toInt().coerceIn(0, 100)
+
+        return original.copy(
+            score = adjustedScore,
+            riskLevel = RiskLevel.fromScore(adjustedScore),
+            recommendedInstitutions = mergeInstitutions(original.recommendedInstitutions, response),
+            aiSummary = response.contextAnalysisSummary,
+            aiDetectedPattern = response.contextDetectedPattern
+        )
+    }
+
+    /**
+     * 서버가 추천한 institution_id를 institutions.json에서 조회해 온디바이스 추천 목록과
+     * 합친다. 서버 응답에는 institution_id/rank/reason/matched_risk_type만 있고
+     * name/contact/group이 없어서(그건 온디바이스 institutions.json에만 있음) 여기서 조회해서
+     * 채운다. 이미 온디바이스 목록에 있는 기관(institution_id 동일)은 온디바이스 쪽을
+     * 우선하고, 최종 배열 인덱스 기준으로 rank를 1부터 재부여한다 (resolveInstitutions와
+     * 동일한 dedup/rerank 원칙).
+     */
+    private fun mergeInstitutions(
+        onDevice: List<RecommendedInstitutionUi>,
+        response: AnalyzeResponseDto
+    ): List<RecommendedInstitutionUi> {
+        if (response.recommendedInstitutions.isEmpty()) return onDevice
+
+        val fromServer = response.recommendedInstitutions.mapNotNull { dto ->
+            institutionsById[dto.institutionId]?.let { institution ->
+                RecommendedInstitutionUi(
+                    institutionId = institution.id,
+                    name = institution.name,
+                    contact = institution.contact,
+                    rank = 0, // 아래서 재부여
+                    reason = dto.reason,
+                    matchedRiskType = dto.matchedRiskType,
+                    group = institution.group
+                )
+            }
+        }
+
+        return (onDevice + fromServer)
+            .distinctBy { it.institutionId } // 온디바이스가 먼저 오므로 겹치면 온디바이스 쪽 유지
+            .mapIndexed { index, ui -> ui.copy(rank = index + 1) }
     }
 }
