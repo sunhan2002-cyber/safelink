@@ -86,7 +86,7 @@ fun SettingsScreen(navController: NavHostController) {
                 )
                 ToggleRow(
                     label = "백그라운드 감지 준비",
-                    caption = "위험 신호 감지 기능의 사용 여부를 추후 이곳에서 관리해요",
+                    caption = "사용자가 명시적으로 동의하고 허용한 범위의 텍스트를 기기에서 분석합니다.",
                     checked = backgroundDetection,
                     onChange = { backgroundDetection = it }
                 )

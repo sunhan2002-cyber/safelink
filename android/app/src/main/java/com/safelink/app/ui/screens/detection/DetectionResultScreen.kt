@@ -106,8 +106,9 @@ private fun DetectionResultContent(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
+                            // 위험 유형과 위험도를 분리 (개발용어·단정 표현 배제 — 김우영 final_allfile.wy)
                             Text(
-                                text = "${result.riskLevel.label}! ${result.category} 위험이 감지되었습니다",
+                                text = "${result.category} 관련 위험 신호가 확인되었습니다",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = result.riskLevel.color()
                             )
@@ -163,8 +164,8 @@ private fun DetectionResultContent(
                     }
                 }
 
-                // 대화 하이라이트 (matchedText 기준 나열 — 인덱스 기반 강조는 TODO)
-                Text(text = "대화 하이라이트", style = MaterialTheme.typography.titleMedium)
+                // 분석 근거 (matchedText 기준 나열 — 인덱스 기반 강조는 TODO)
+                Text(text = "분석 근거", style = MaterialTheme.typography.titleMedium)
                 result.matchedKeywords.forEach { kw ->
                     SafeLinkCard {
                         Row {
@@ -213,15 +214,19 @@ private fun DetectionResultContent(
                         additional.forEach { inst -> RecommendedInstitutionCard(inst) }
                     }
                 } else {
+                    // 기관 없음 문구를 SAFE와 그 외로 분리 (김우영 final_allfile.wy)
                     Text(
-                        text = "아직 특정 기관을 추천할 만큼 명확한 위험 신호는 아니에요. 계속 지켜봐 주세요.",
+                        text = if (result.riskLevel == RiskLevel.SAFE)
+                            "현재 분석 결과에서는 추천 기관을 안내하지 않습니다."
+                        else
+                            "현재 분석 결과에 맞는 추천 기관을 안내하지 못했습니다. 상황이 계속 불안하거나 피해가 우려되면 공식 기관에 직접 문의해 보세요.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
                 Text(
-                    text = "AI 분석 결과는 참고 정보이며 최종 판단은 사용자에게 있습니다.",
+                    text = "분석 결과는 참고 정보이며, 최종 판단은 사용자에게 있습니다.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -245,7 +250,7 @@ private fun DetectionResultContent(
                     onClick = onGuideClick
                 )
                 SafeLinkOutlinedButton(
-                    text = "전문가 상담 연결",
+                    text = "추천 기관 목록 보기",
                     onClick = onSupportClick
                 )
             }
@@ -253,12 +258,12 @@ private fun DetectionResultContent(
     }
 }
 
-/** 위험도별 요약 문구 — 김우영 문구 가이드 v4.2 2장 "위험도" 기준 */
+/** 위험도별 요약 문구 — 김우영 final_allfile.wy 기준 */
 private fun riskLevelSummary(level: RiskLevel): String = when (level) {
-    RiskLevel.SAFE -> "현재 분석된 대화에서 뚜렷한 위험 신호는 발견되지 않았습니다."
-    RiskLevel.CAUTION -> "주의가 필요한 표현이 확인되었습니다. 상대방의 요청을 다시 확인해 보세요."
-    RiskLevel.WARNING -> "위험 가능성이 높은 표현이 확인되었습니다. 송금이나 개인정보 제공은 신중하게 판단하세요."
-    RiskLevel.CRITICAL -> "즉시 대응이 필요한 위험 신호가 확인되었습니다. 가까운 대응기관의 도움을 받는 것을 권장합니다."
+    RiskLevel.SAFE -> "현재 분석된 대화에서는 뚜렷한 위험 신호가 확인되지 않았습니다. 의심스러운 상황이 계속되면 내용을 다시 확인해 보세요."
+    RiskLevel.CAUTION -> "주의가 필요한 표현이 감지되었습니다."
+    RiskLevel.WARNING -> "위험 가능성이 높은 표현이 확인되었습니다."
+    RiskLevel.CRITICAL -> "즉시 확인이 필요한 위험 신호가 감지되었습니다."
 }
 
 @Composable
