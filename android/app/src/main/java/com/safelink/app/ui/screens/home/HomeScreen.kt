@@ -30,10 +30,19 @@ import com.safelink.app.ui.components.SafeLinkOutlinedButton
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
 import com.safelink.app.ui.components.color
 import com.safelink.app.ui.navigation.Screen
+import com.safelink.app.ui.screens.detection.DetectionViewModel
 
 /** 홈 대시보드 (Task 4.14) — 기능 진입점 + 최근 기록 요약 */
 @Composable
-fun HomeScreen(navController: NavHostController) {
+fun HomeScreen(
+    navController: NavHostController,
+    detectionViewModel: DetectionViewModel
+) {
+    // 홈에서 대화 분석에 진입할 때마다 이전 세션(입력·이미지·결과)을 비운다
+    val startAnalysis = {
+        detectionViewModel.reset()
+        navController.navigate(Screen.DetectionInput.route)
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -75,7 +84,7 @@ fun HomeScreen(navController: NavHostController) {
         // 퀵 액션
         SafeLinkPrimaryButton(
             text = "대화 분석 시작",
-            onClick = { navController.navigate(Screen.DetectionInput.route) }
+            onClick = startAnalysis
         )
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             QuickActionCard(
@@ -87,7 +96,7 @@ fun HomeScreen(navController: NavHostController) {
             QuickActionCard(
                 title = "대화 분석",
                 icon = Icons.Filled.ImageSearch,
-                onClick = { navController.navigate(Screen.DetectionInput.route) },
+                onClick = startAnalysis,
                 modifier = Modifier.weight(1f)
             )
         }

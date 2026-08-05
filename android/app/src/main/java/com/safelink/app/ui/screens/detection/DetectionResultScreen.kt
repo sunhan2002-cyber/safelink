@@ -74,7 +74,8 @@ fun DetectionResultScreen(
         onSupportClick = { navController.navigate(Screen.SupportMatch.route) },
         onEmergencyClick = { navController.navigate(Screen.Emergency.route) },
         onReanalyzeClick = {
-            // 다시 분석: 입력 화면으로 돌아가기 (현재 결과 화면은 스택에서 제거)
+            // 다시 분석: 이전 입력·이미지·결과를 비우고 입력 화면으로 (현재 결과 화면은 스택에서 제거)
+            viewModel.reset()
             navController.navigate(Screen.DetectionInput.route) {
                 popUpTo(Screen.DetectionInput.route) { inclusive = true }
             }

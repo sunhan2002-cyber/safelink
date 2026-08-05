@@ -109,12 +109,12 @@ fun DetectionInputScreen(
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 SegmentedButton(
                     selected = !isTextMode,
-                    onClick = { viewModel.inputMethod = "스크린샷 업로드" },
+                    onClick = { viewModel.switchMode("스크린샷 업로드") },
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
                 ) { Text("스크린샷") }
                 SegmentedButton(
                     selected = isTextMode,
-                    onClick = { viewModel.inputMethod = "텍스트 입력" },
+                    onClick = { viewModel.switchMode("텍스트 입력") },
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
                 ) { Text("텍스트 입력") }
             }
