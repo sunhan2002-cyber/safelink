@@ -133,6 +133,9 @@ class DetectionEngineTest {
         100.0, "높음", listOf("COMBO-GENERAL-4CAT", "COMBO-RS-SECRET-MONEY")
     )
 
+    // 4주차 수정2 리뷰 대응(온디바이스 점수에 반복 가스라이팅 패턴 반영, COMBO-GL-REPEAT-PATTERN
+    // 신설)으로 60->75, 중간->높음 전환. GL-3-1-001/003, GL-3-2-001/003은 서로 다른 위치의
+    // 서로 다른 표현이라 겹침 억제 대상이 아니라 4건 전부 repeat_pattern 카운트에 잡힘.
     @Test fun `TC-GL-EDGE-01`() = assertCase(
         "TC-GL-EDGE-01",
         listOf(
@@ -140,7 +143,7 @@ class DetectionEngineTest {
             "내가 언제 그렇게 말했어? 너 또 왜곡해서 기억하는 거야.",
             "걔랑 만나지 마, 부탁이야."
         ),
-        60.0, "중간", listOf("COMBO-GENERAL-3CAT")
+        75.0, "높음", listOf("COMBO-GENERAL-3CAT", "COMBO-GL-REPEAT-PATTERN")
     )
 
     @Test fun `TC-GL-EDGE-02`() = assertCase(
@@ -151,7 +154,7 @@ class DetectionEngineTest {
             "걔랑 만나지 마, 부탁이야.",
             "다 너를 위해서 하는 말이야. 내가 없으면 넌 아무것도 못해."
         ),
-        100.0, "높음", listOf("COMBO-GENERAL-4CAT", "COMBO-GL-ISOLATION-GUILT")
+        100.0, "높음", listOf("COMBO-GENERAL-4CAT", "COMBO-GL-ISOLATION-GUILT", "COMBO-GL-REPEAT-PATTERN")
     )
 
     // ───────────────────────── combo_verification_cases (6) ─────────────────────────
@@ -190,6 +193,20 @@ class DetectionEngineTest {
         "TC-COMBO-06",
         listOf("택배기사인데요.", "명의 도용 우려가 있어서요.", "지금 당장 확인이 필요합니다.", "이 번호로 전화해보세요."),
         85.0, "높음", listOf("COMBO-GENERAL-4CAT")
+    )
+
+    // 4주차 수정2 리뷰 대응: "문장/상황 기반 판단이 shouldEscalateToAI()에만 있고 1차 위험도
+    // 계산 본체에는 없다"는 지적에 대응해 신설한 콤보 2건의 전용 검증 케이스.
+    @Test fun `TC-COMBO-07`() = assertCase(
+        "TC-COMBO-07",
+        listOf("예민한 거 같아.", "별일도 아닌데 왜 그래."),
+        27.0, "낮음", listOf("COMBO-GL-REPEAT-PATTERN")
+    )
+
+    @Test fun `TC-COMBO-08`() = assertCase(
+        "TC-COMBO-08",
+        List(14) { "오늘 날씨가 좋네요." } + "당신부터 만날 겁니다.",
+        25.0, "낮음", listOf("COMBO-RS-LONG-SESSION-PATTERN")
     )
 
     // ───────────────────────── 안전 케이스(더미데이터 대체 확인용) ─────────────────────────
