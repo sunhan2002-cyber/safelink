@@ -6,10 +6,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.ocr.OcrService
 import com.safelink.app.data.ocr.StubOcrService
 import com.safelink.app.data.repository.DetectionRepository
+import kotlinx.coroutines.launch
+import java.util.UUID
 
 /**
  * 대화 분석 공유 ViewModel — DetectionInput -> Analyzing -> DetectionResult 세 화면이
@@ -38,8 +41,15 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
     var result by mutableStateOf<DetectionResult?>(null)
         private set
 
+    /** 2차 AI 보조 분석 호출 진행 중 여부 - 결과 화면에서 "정밀 분석 중" 같은 표시에 쓸 수 있음 */
+    var isEscalatingToAI by mutableStateOf(false)
+        private set
+
     private val repository: DetectionRepository by lazy { DetectionRepository(getApplication()) }
     private val ocrService: OcrService = StubOcrService()
+
+    /** 세션(대화방) 식별자 - ViewModel 생존 기간 동안 고정. 서버 호출 시 session_id로 사용. */
+    private val sessionId: String = UUID.randomUUID().toString()
 
     fun addImages(uris: List<Uri>) {
         selectedImages = (selectedImages + uris).distinct().take(MAX_IMAGES)
@@ -57,9 +67,33 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         originalText = ocrService.extractText(getApplication(), selectedImages)
     }
 
-    /** 원문 텍스트를 분석해 result 에 반영한다. Analyzing 화면 진입 후 호출. */
+    /**
+     * 원문 텍스트를 분석해 result 에 반영한다. Analyzing 화면 진입 후 호출.
+     *
+     * 온디바이스 분석(항상 동기, 즉시 완료) 결과를 먼저 반영하고, [DetectionRepository.shouldEscalateToAI]
+     * 조건에 해당하면 그 뒤에 비동기로 2차 AI 보조 분석을 호출해서 result를 한 번 더 갱신한다.
+     * 서버 호출이 느리거나 실패해도 화면에는 이미 온디바이스 결과가 떠 있는 상태 — AI 보정은
+     * "나중에 slight 업데이트"로 자연스럽게 들어온다. 네트워크 실패 시 escalateToAI가 온디바이스
+     * 결과를 그대로 반환하므로 result가 나빠지는 경우는 없음.
+     *
+     * TODO: sessionTurnCount/recentTurns는 지금 "입력 1건 = 세션 1턴" 기준 단순화된 값.
+     * 실제 다중 턴 세션 추적(메시지 여러 개 누적)이 생기면 이 부분을 그 상태로 교체할 것.
+     */
     fun analyze() {
-        result = repository.analyze(originalText)
+        val onDeviceResult = repository.analyze(originalText)
+        result = onDeviceResult
+
+        if (repository.shouldEscalateToAI(onDeviceResult, sessionTurnCount = 1)) {
+            viewModelScope.launch {
+                isEscalatingToAI = true
+                result = repository.escalateToAI(
+                    result = onDeviceResult,
+                    sessionId = sessionId,
+                    recentTurns = listOf(originalText)
+                )
+                isEscalatingToAI = false
+            }
+        }
     }
 
     companion object {

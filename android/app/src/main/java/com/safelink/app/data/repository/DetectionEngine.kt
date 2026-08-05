@@ -38,6 +38,20 @@ class DetectionEngine(
     /** 원문 텍스트 1건을 분석해서 [DetectionResult]로 변환. 화면/ViewModel에서 사용하는 기본 진입점. */
     fun analyze(originalText: String): DetectionResult = analyze(listOf(originalText))
 
+    /**
+     * 서버로 보내기 전 마스킹. keyword.json의 전화번호(VP-1-3-003)/URL(VP-1-6-004) regex를
+     * 새로 만들지 않고 그대로 재사용해서 [전화번호]/[링크]로 치환한다 (data/API 입출력
+     * 초안 v1 "마스킹 규칙" 그대로). 이 두 id가 keyword.json에서 사라지면 마스킹도 같이
+     * 깨지므로, structural_only 항목을 지울 때는 이 함수도 같이 확인해야 함.
+     */
+    fun maskSensitiveInfo(text: String): String {
+        val phonePattern = keywordData.keywords.first { it.id == "VP-1-3-003" }.pattern!!
+        val urlPattern = keywordData.keywords.first { it.id == "VP-1-6-004" }.pattern!!
+        return text
+            .replace(Regex(phonePattern), "[전화번호]")
+            .replace(Regex(urlPattern), "[링크]")
+    }
+
     /** 여러 턴(대화)을 이어서 분석. 콤보 판정 등 세션 단위 로직 검증에 사용. */
     fun analyze(turns: List<String>): DetectionResult {
         val originalText = turns.joinToString(" ")
