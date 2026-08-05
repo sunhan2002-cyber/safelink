@@ -41,6 +41,7 @@ import com.safelink.app.ui.components.SafeLinkTopBar
 import com.safelink.app.ui.components.color
 import com.safelink.app.ui.components.containerColor
 import com.safelink.app.ui.navigation.Screen
+import com.safelink.app.ui.theme.RiskCritical
 import com.safelink.app.ui.theme.SafeLinkTheme
 
 /**
@@ -70,7 +71,14 @@ fun DetectionResultScreen(
         result = result,
         onBack = { navController.popBackStack() },
         onGuideClick = { navController.navigate(Screen.ResponseGuide.createRoute(result.riskLevel)) },
-        onSupportClick = { navController.navigate(Screen.SupportMatch.route) }
+        onSupportClick = { navController.navigate(Screen.SupportMatch.route) },
+        onEmergencyClick = { navController.navigate(Screen.Emergency.route) },
+        onReanalyzeClick = {
+            // 다시 분석: 입력 화면으로 돌아가기 (현재 결과 화면은 스택에서 제거)
+            navController.navigate(Screen.DetectionInput.route) {
+                popUpTo(Screen.DetectionInput.route) { inclusive = true }
+            }
+        }
     )
 }
 
@@ -80,7 +88,9 @@ private fun DetectionResultContent(
     result: DetectionResult,
     onBack: () -> Unit,
     onGuideClick: () -> Unit,
-    onSupportClick: () -> Unit
+    onSupportClick: () -> Unit,
+    onEmergencyClick: () -> Unit = {},
+    onReanalyzeClick: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(title = "분석 결과", onBack = onBack)
@@ -239,20 +249,48 @@ private fun DetectionResultContent(
             }
         }
 
-        if (!result.isSafeAndEmpty) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                SafeLinkPrimaryButton(
-                    text = "대응 가이드 보기",
-                    containerColor = result.riskLevel.color(),
-                    onClick = onGuideClick
-                )
-                SafeLinkOutlinedButton(
-                    text = "추천 기관 목록 보기",
-                    onClick = onSupportClick
-                )
+        // 위험도별 CTA (김우영 final_allfile.wy CTA 우선순위)
+        //  SAFE     : 다시 분석하기
+        //  CAUTION  : 대응 가이드 보기 → 다시 분석하기
+        //  WARNING  : 대응 가이드 보기 → 추천 기관 목록 보기
+        //  CRITICAL : 긴급 도움 요청 → 대응 가이드 보기 → 추천 기관 목록 보기
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            when (result.riskLevel) {
+                RiskLevel.SAFE -> {
+                    SafeLinkPrimaryButton(text = "다시 분석하기", onClick = onReanalyzeClick)
+                }
+                RiskLevel.CAUTION -> {
+                    SafeLinkPrimaryButton(
+                        text = "대응 가이드 보기",
+                        containerColor = result.riskLevel.color(),
+                        onClick = onGuideClick
+                    )
+                    SafeLinkOutlinedButton(text = "다시 분석하기", onClick = onReanalyzeClick)
+                }
+                RiskLevel.WARNING -> {
+                    SafeLinkPrimaryButton(
+                        text = "대응 가이드 보기",
+                        containerColor = result.riskLevel.color(),
+                        onClick = onGuideClick
+                    )
+                    SafeLinkOutlinedButton(text = "추천 기관 목록 보기", onClick = onSupportClick)
+                }
+                RiskLevel.CRITICAL -> {
+                    SafeLinkPrimaryButton(
+                        text = "긴급 도움 요청",
+                        containerColor = RiskCritical,
+                        onClick = onEmergencyClick
+                    )
+                    SafeLinkPrimaryButton(
+                        text = "대응 가이드 보기",
+                        containerColor = result.riskLevel.color(),
+                        onClick = onGuideClick
+                    )
+                    SafeLinkOutlinedButton(text = "추천 기관 목록 보기", onClick = onSupportClick)
+                }
             }
         }
     }

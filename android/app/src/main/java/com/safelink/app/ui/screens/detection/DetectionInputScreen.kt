@@ -111,7 +111,7 @@ fun DetectionInputScreen(
                     selected = !isTextMode,
                     onClick = { viewModel.inputMethod = "스크린샷 업로드" },
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-                ) { Text("스크린샷 업로드") }
+                ) { Text("스크린샷") }
                 SegmentedButton(
                     selected = isTextMode,
                     onClick = { viewModel.inputMethod = "텍스트 입력" },
@@ -176,7 +176,7 @@ fun DetectionInputScreen(
                 )
             }
             SafeLinkPrimaryButton(
-                text = "분석 시작하기",
+                text = "결과 확인하기",
                 enabled = canAnalyze,
                 onClick = {
                     // 스크린샷 모드면 분석 전에 OCR(임시)로 originalText 채움
