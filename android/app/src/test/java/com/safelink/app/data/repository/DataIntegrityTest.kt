@@ -114,7 +114,8 @@ class DataIntegrityTest {
             "VP-1-3-003" to "010-1234-5678",
             "VP-1-6-004" to "http://example.com",
             "RS-2-4-004" to "500만원 좀 빌려줘.",
-            "GL-3-2-006" to "내가 언제 그런 말을 했어?"
+            "GL-3-2-006" to "내가 언제 그런 말을 했어?",
+            "RS-2-9-003" to "100만원만요."
         )
         val failures = mutableListOf<String>()
         keywordData.keywords.forEach { entry ->

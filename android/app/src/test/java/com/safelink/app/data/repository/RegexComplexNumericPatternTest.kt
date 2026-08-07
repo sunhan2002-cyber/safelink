@@ -61,7 +61,7 @@ class RegexComplexNumericPatternTest {
     // 참고 - 그 코퍼스는 keyword id 매칭 기준이라 여전히 known_gap으로 남아있음).
 
     @Test
-    fun `짧은 기간 고수익률 언급(15% 이상)이면 콤보 발동`() {
+    fun `짧은 기간 고수익률 언급(임계값 15 이상)이면 콤보 발동`() {
         val result = engine.analyze("3주만에 100이 137 됐죠?")
         assertTrue("COMBO-RS-NUMERIC-RATIO" in result.appliedComboIds)
         assertTrue("키워드 매칭 없이 콤보만으로 점수가 생김", result.score > 0)
@@ -69,7 +69,7 @@ class RegexComplexNumericPatternTest {
     }
 
     @Test
-    fun `정상 범위 증가율(15% 미만)이면 콤보 미발동`() {
+    fun `정상 범위 증가율(임계값 15 미만)이면 콤보 미발동`() {
         val result = engine.analyze("3주만에 100이 105 됐죠?")
         assertFalse("COMBO-RS-NUMERIC-RATIO" in result.appliedComboIds)
     }
