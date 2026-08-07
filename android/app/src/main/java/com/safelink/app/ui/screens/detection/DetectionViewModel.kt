@@ -101,18 +101,19 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
      * 결과를 그대로 반환하므로 result가 나빠지는 경우는 없음.
      *
      * ⚠️ 한계: 이 화면은 "대화 전체를 붙여넣는 단일 입력" 구조라서, 서버로 보내는
-     * `sessionTurnCount`는 항상 1, `recentTurns`도 [originalText] 하나짜리 리스트다.
-     * **진짜 다중 턴(메시지가 하나씩 쌓이는 대화)을 추적하는 게 아니다** — API 조건 중
-     * "세션 15턴 이상"(shouldEscalateToAI의 LONG_SESSION 조건)은 지금 구조에서는 사실상
-     * 발동하지 않는다. 실제 다중 턴 세션 추적이 생기면 sessionTurnCount/recentTurns를
-     * 그 누적 상태로 교체할 것 (07번 문서 "recentTurns 한계" 참고).
+     * `recentTurns`도 [originalText] 하나짜리 리스트다. **진짜 다중 턴(메시지가 하나씩
+     * 쌓이는 대화)을 추적하는 게 아니다** — `DetectionEngine.analyze()`의 온디바이스 점수
+     * 콤보 중 `COMBO-RS-LONG-SESSION-PATTERN`(장기세션 15턴+)은 이 화면에서 호출하는
+     * `repository.analyze(originalText)`가 항상 1턴짜리 입력이라 지금 구조에서는 사실상
+     * 발동하지 않는다. 실제 다중 턴 세션 추적이 생기면 이 부분을 그 누적 상태로 교체할 것
+     * (07번 문서 "recentTurns 한계" 참고). shouldEscalateToAI의 AI 호출 판단 자체는 5주차
+     * 정리로 세션 턴 수와 무관해졌음(09번 문서 참고).
      */
     fun analyze() {
         val onDeviceResult = repository.analyze(originalText)
         result = onDeviceResult
 
-        // sessionTurnCount=1, recentTurns=[originalText] — 위 KDoc 한계 참고
-        if (repository.shouldEscalateToAI(onDeviceResult, sessionTurnCount = 1)) {
+        if (repository.shouldEscalateToAI(onDeviceResult)) {
             viewModelScope.launch {
                 isEscalatingToAI = true
                 result = repository.escalateToAI(

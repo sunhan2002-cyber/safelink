@@ -391,20 +391,6 @@ class DetectionEngine(
     // ─────────────────────────────────────────────────────────────────
 
     companion object {
-        /** 반복 2회 이상 감지되면 점수와 무관하게 AI를 부르는 가스라이팅 중분류
-         *  (기존 3-1/3-2 + 4주차에 추가된 3-7/3-8/3-9 — 전부 어조·맥락 의존적이라 동일 취급).
-         *  ⚠️ keyword.json의 COMBO-GL-REPEAT-PATTERN(subcategory_ids/min_match_count)과
-         *  같은 패턴·같은 임계값(2회)을 의도적으로 병행 유지한다 — 저긴 "온디바이스 점수에
-         *  얼마나 더할지", 여긴 "AI를 부를지"로 관심사가 달라서 별도 값이지만, 이 상수를
-         *  바꾸면 keyword.json 쪽 min_match_count도 같이 검토할 것 (4주차 수정 2 리뷰 대응). */
-        private val GASLIGHTING_REPEAT_TRIGGER_SUBCATEGORIES = setOf("3-1", "3-2", "3-7", "3-8", "3-9")
-
-        /** 장기 서사 흐름에서만 의미가 있는 로맨스스캠 중분류 (세션이 충분히 길 때만 트리거).
-         *  ⚠️ keyword.json의 COMBO-RS-LONG-SESSION-PATTERN(subcategory_ids/min_turns)과
-         *  같은 15턴 임계값을 병행 유지 — 위 GASLIGHTING 상수와 동일한 이유. */
-        private val LONG_SESSION_TRIGGER_SUBCATEGORIES = setOf("2-8", "2-10")
-        private const val LONG_SESSION_MIN_TURNS = 15
-
         /** 4주차에 신설된 중분류 - 실사용 검증 전까지 한시적으로 회색지대 무관 호출. */
         private val NEW_SUBCATEGORIES_2026_07 = setOf("2-6", "2-7", "2-8", "2-9", "2-10", "3-7", "3-8", "3-9")
 
@@ -415,15 +401,19 @@ class DetectionEngine(
      * 2차 AI API 보조 분석을 호출해야 하는지 판단한다. 위험도 계산 자체는 항상 온디바이스로
      * 끝나며(SafeLink 아키텍처 원칙), 이 함수는 "문맥 보정치를 받아올 필요가 있는가"만 결정한다.
      *
+     * 5주차 정리: 가스라이팅 반복 2회+/장기세션 15턴+ 트리거는 여기서 제거했다 — 4주차 수정2
+     * 리뷰 대응으로 이미 `COMBO-GL-REPEAT-PATTERN`/`COMBO-RS-LONG-SESSION-PATTERN`(온디바이스
+     * 점수 콤보)에 반영돼 있어서, 같은 패턴을 "AI를 또 부르는 이유"로 중복 유지할 필요가
+     * 없어졌다. 이제 이 함수는 정말 "애매한 경우"(회색지대 점수·수동신고·신뢰도 낮은 신규
+     * subcategory)만 남는다.
+     *
      * @param result [analyze]가 반환한 온디바이스 분석 결과
-     * @param sessionTurnCount 지금까지 세션에서 누적된 턴 수 (LONG_SESSION 조건에 사용)
      * @param manualReportFlag 사용자가 직접 "위험한 것 같다"고 표시했는지
      * @param newSubcategoryRolloutActive 4주차 신설 중분류에 대한 한시적 게이팅 스위치 -
      *   실사용 데이터가 충분히 쌓이면 false로 전환해서 이 조건을 끄면 됨
      */
     fun shouldEscalateToAI(
         result: DetectionResult,
-        sessionTurnCount: Int,
         manualReportFlag: Boolean = false,
         newSubcategoryRolloutActive: Boolean = true
     ): Boolean {
@@ -431,14 +421,10 @@ class DetectionEngine(
 
         if (GRAY_ZONE_SCORE_RANGES.any { result.score in it }) return true
 
-        val matchedSubcategoryIds = result.matchedKeywords.map { it.subcategoryId }
-        val gaslightingRepeatCount = matchedSubcategoryIds.count { it in GASLIGHTING_REPEAT_TRIGGER_SUBCATEGORIES }
-        if (gaslightingRepeatCount >= 2) return true
-
-        val hasLongSessionSubcategory = matchedSubcategoryIds.any { it in LONG_SESSION_TRIGGER_SUBCATEGORIES }
-        if (hasLongSessionSubcategory && sessionTurnCount >= LONG_SESSION_MIN_TURNS) return true
-
-        if (newSubcategoryRolloutActive && matchedSubcategoryIds.any { it in NEW_SUBCATEGORIES_2026_07 }) return true
+        if (newSubcategoryRolloutActive) {
+            val matchedSubcategoryIds = result.matchedKeywords.map { it.subcategoryId }
+            if (matchedSubcategoryIds.any { it in NEW_SUBCATEGORIES_2026_07 }) return true
+        }
 
         return false
     }

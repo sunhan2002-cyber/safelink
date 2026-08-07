@@ -49,16 +49,15 @@ class DetectionRepository @Inject constructor(
 
     /**
      * [analyze] 결과를 가지고 2차 AI API 보조 분석이 필요한지 판단한다. true가 나오면
-     * 그 시점에 백엔드 `/analyze`를 호출하고 `context_score_adjustment`를 받아 반영하면 됨
-     * (백엔드 자체는 아직 미구현 — 이 함수는 "호출해야 하는가"까지만 책임짐).
-     * 조건 근거: 신기훈 4주차 06번 문서 "AI API 진입 조건 확정본".
+     * 그 시점에 [escalateToAI]로 실제 호출한다. 조건 근거: 신기훈 4주차 06번 문서
+     * "AI API 진입 조건 확정본" + 5주차 정리(가스라이팅 반복/장기세션은 온디바이스 점수
+     * 콤보로 옮겨서 여기서 제거 — `DetectionEngine.shouldEscalateToAI` KDoc 참고).
      */
     fun shouldEscalateToAI(
         result: DetectionResult,
-        sessionTurnCount: Int,
         manualReportFlag: Boolean = false,
         newSubcategoryRolloutActive: Boolean = true
-    ): Boolean = engine.shouldEscalateToAI(result, sessionTurnCount, manualReportFlag, newSubcategoryRolloutActive)
+    ): Boolean = engine.shouldEscalateToAI(result, manualReportFlag, newSubcategoryRolloutActive)
 
     /**
      * [shouldEscalateToAI]가 true일 때 실제로 서버를 호출해서 온디바이스 결과를 보정한다.
