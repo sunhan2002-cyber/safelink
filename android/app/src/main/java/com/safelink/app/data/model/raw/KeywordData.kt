@@ -18,14 +18,21 @@ data class KeywordEntry(
     val category: String,
     @SerializedName("subcategory_id") val subcategoryId: String,
     val subcategory: String,
-    @SerializedName("match_type") val matchType: String,   // "keyword" | "regex-simple"
+    @SerializedName("match_type") val matchType: String,   // "keyword" | "regex-simple" | "regex-complex"
     val keyword: String? = null,
     val pattern: String? = null,
     val weight: Int,
     @SerializedName("repeat_decay") val repeatDecay: Boolean = true,
     @SerializedName("structural_only") val structuralOnly: Boolean = false,
     val description: String,
-    val source: String
+    val source: String,
+    // match_type이 regex-complex일 때만 사용 - "숫자 값에 따라 위험 신호 여부가 달라지는
+    // 문장 규칙"(예: "100만원만" 같은 소액한정 요구, 큰 금액이면 오히려 무해) 대응.
+    // pattern의 캡처그룹(기본 1번째)에서 숫자를 뽑아 numeric_min~numeric_max 범위 안일 때만
+    // 매칭으로 인정한다 (둘 다 null이면 범위 체크 없이 regex-simple과 동일하게 동작).
+    @SerializedName("numeric_capture_group") val numericCaptureGroup: Int = 1,
+    @SerializedName("numeric_min") val numericMin: Int? = null,
+    @SerializedName("numeric_max") val numericMax: Int? = null
 )
 
 data class ComboBonusRule(

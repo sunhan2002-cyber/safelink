@@ -1,22 +1,25 @@
 {
   "_meta": {
-    "version": "v1.1",
-    "last_updated": "2026-07-29",
+    "version": "v1.2",
+    "last_updated": "2026-08-07",
     "source_documents": [
       "safelink_scenarios_v1.md",
       "safelink_keyword_categories_v1.md",
       "safelink_risk_scoring_v1.md",
       "신규_기법_문장_수집_v1.json (4주차 확장분)"
     ],
-    "note": "1차 초안입니다. weight는 임시값이며 실사용 데이터로 튜닝이 필요합니다. v1.1: 기법 라벨 체계(URGENCY/SECRECY/... 등 23개) 기반 4주차 확장 - 17개 중분류에서 26개로 확장 (RS 2-6~2-10, GL 3-7~3-9 신설). 신설 사유·매핑 근거는 주차별_결과물/4주차_결과물_신기훈/05번 문서 참고.",
+    "note": "1차 초안입니다. weight는 임시값이며 실사용 데이터로 튜닝이 필요합니다. v1.1: 기법 라벨 체계(URGENCY/SECRECY/... 등 23개) 기반 4주차 확장 - 17개 중분류에서 26개로 확장 (RS 2-6~2-10, GL 3-7~3-9 신설). 신설 사유·매핑 근거는 주차별_결과물/4주차_결과물_신기훈/05번 문서 참고. v1.2: 5주차 - match_type에 regex-complex 신설(숫자 캡처그룹+임계값 조건, RS-2-9-003)로 NUMERIC_PATTERN 갭 1건 해소 + combo_bonus_rules에 repeat_pattern/long_session_pattern 신설(09번 문서). 신설 사유는 주차별_결과물/5주차_결과물_신기훈/ 참고.",
     "field_guide": {
       "id": "카테고리약어-중분류번호-일련번호 형식 (예: VP-1-1-001)",
       "category": "대분류 (보이스피싱 | 로맨스스캠 | 가스라이팅)",
       "subcategory_id": "2단계 문서의 중분류 번호 (예: 1-1)",
       "subcategory": "중분류명",
-      "match_type": "keyword | regex-simple (regex-complex는 combo_bonus_rules에서 별도 처리)",
+      "match_type": "keyword | regex-simple | regex-complex (5주차 신설 - 캡처그룹 숫자값 조건까지 판정)",
       "keyword": "match_type이 keyword일 때 사용하는 표현",
-      "pattern": "match_type이 regex-simple일 때 사용하는 정규식 문자열",
+      "pattern": "match_type이 regex-simple/regex-complex일 때 사용하는 정규식 문자열 (regex-complex는 숫자 캡처그룹 필요)",
+      "numeric_capture_group": "match_type이 regex-complex일 때만 사용 - pattern의 몇 번째 캡처그룹이 숫자인지 (기본 1)",
+      "numeric_min": "match_type이 regex-complex일 때만 사용 - 캡처된 숫자의 최솟값(이 미만이면 매칭 불인정, 생략 가능)",
+      "numeric_max": "match_type이 regex-complex일 때만 사용 - 캡처된 숫자의 최댓값(이 초과면 매칭 불인정, 생략 가능)",
       "weight": "기본 가중치 점수 (3단계 문서 기준)",
       "repeat_decay": "true면 같은 항목 반복 시 2회차부터 50%만 가산 (3단계 반복처리규칙 적용)",
       "structural_only": "true면 단독 점수 없이 combo_bonus_rules 트리거용으로만 사용 (예: 전화번호, URL)",
@@ -123,6 +126,7 @@
 
     { "id": "RS-2-9-001", "category": "로맨스스캠", "subcategory_id": "2-9", "subcategory": "소액 선요구", "match_type": "keyword", "keyword": "기프트카드 번호만", "weight": 15, "repeat_decay": true, "description": "소액 선요구(SMALL_ASK) - 큰 금액 요구 전 심리적 문턱 낮추기", "source": "신규(4주차 시나리오-RS1/RS2, 기법라벨 SMALL_ASK)" },
     { "id": "RS-2-9-002", "category": "로맨스스캠", "subcategory_id": "2-9", "subcategory": "소액 선요구", "match_type": "keyword", "keyword": "부탁 하나만 해도 될까요", "weight": 15, "repeat_decay": true, "description": "소액 선요구(SMALL_ASK) 도입부", "source": "신규(4주차 시나리오-RS1)" },
+    { "id": "RS-2-9-003", "category": "로맨스스캠", "subcategory_id": "2-9", "subcategory": "소액 선요구", "match_type": "regex-complex", "pattern": "(\\d+)\\s?만원만", "numeric_capture_group": 1, "numeric_max": 500, "weight": 15, "repeat_decay": true, "description": "숫자로 한정한 소액 요구(SMALL_ASK) - 금액이 매번 달라 키워드로 전부 나열 불가능해 숫자 추출+임계값(500만원 이하)으로 판정. 큰 금액이면 '소액'의 취지에 안 맞아 매칭 제외", "source": "신규(5주차 문장 규칙, 신규_기법_문장_수집_v1.json N-RS2-02, root_cause=NUMERIC_PATTERN)" },
 
     { "id": "RS-2-10-001", "category": "로맨스스캠", "subcategory_id": "2-10", "subcategory": "매몰비용 유도", "match_type": "keyword", "keyword": "원천징수를 먼저 납부", "weight": 25, "repeat_decay": true, "description": "매몰비용 유도(SUNK_COST) - 돼지도살형 특유의 선입금 요구", "source": "신규(4주차 시나리오-RS2, 기법라벨 SUNK_COST)" },
     { "id": "RS-2-10-002", "category": "로맨스스캠", "subcategory_id": "2-10", "subcategory": "매몰비용 유도", "match_type": "keyword", "keyword": "지금 포기하면 원금까지 묶여요", "weight": 25, "repeat_decay": true, "description": "매몰비용 유도(SUNK_COST)", "source": "신규(4주차 시나리오-RS2)" },

@@ -142,6 +142,27 @@ class DetectionEngine(
                         )
                     }
                 }
+                "regex-complex" -> {
+                    // 문장 규칙(5주차 팀 목표): 정규식만으로는 부족하고 캡처된 숫자값까지
+                    // 조건에 넣어야 하는 패턴 - 예: "100만원만요"는 소액한정 요구(SMALL_ASK)
+                    // 신호지만 "1000만원만요"는 오히려 큰 금액이라 같은 신호로 볼 수 없음.
+                    val pattern = entry.pattern ?: continue
+                    Regex(pattern).findAll(turnText).forEach { m ->
+                        val numberGroup = m.groups[entry.numericCaptureGroup]?.value?.toIntOrNull()
+                        val inRange = numberGroup != null &&
+                            (entry.numericMin == null || numberGroup >= entry.numericMin) &&
+                            (entry.numericMax == null || numberGroup <= entry.numericMax)
+                        if (inRange) {
+                            matches += RawMatch(
+                                entry = entry,
+                                turnIndex = turnIndex,
+                                startInFull = turnOffset + m.range.first,
+                                endInFull = turnOffset + m.range.last + 1,
+                                matchedText = m.value
+                            )
+                        }
+                    }
+                }
             }
         }
         return matches
