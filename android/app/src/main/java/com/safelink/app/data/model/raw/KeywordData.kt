@@ -37,7 +37,7 @@ data class KeywordEntry(
 
 data class ComboBonusRule(
     val id: String,
-    val type: String,           // "general" | "specific" | "repeat_pattern" | "long_session_pattern"
+    val type: String,           // "general" | "specific" | "repeat_pattern" | "long_session_pattern" | "numeric_ratio_pattern"
     val category: String,       // "any" 또는 특정 category명
     val condition: String,
     @SerializedName("min_distinct_subcategories") val minDistinctSubcategories: Int? = null,
@@ -49,7 +49,13 @@ data class ComboBonusRule(
     // all-of 의미와 다름): subcategory_ids 중 하나라도 매칭되면 대상으로 집계한다.
     @SerializedName("subcategory_ids") val subcategoryIds: List<String>? = null,
     @SerializedName("min_match_count") val minMatchCount: Int? = null,
-    @SerializedName("min_turns") val minTurns: Int? = null
+    @SerializedName("min_turns") val minTurns: Int? = null,
+    // numeric_ratio_pattern 전용 (NUMERIC_REASONING 대응) - pattern의 캡처그룹 1·2번을
+    // "이전 값"·"이후 값"으로 보고 증가율(%)을 계산해서 min_growth_rate_percent 이상이면 발동.
+    // 세션 전체 원문(turns를 합친 텍스트) 기준으로 한 번만 평가 - 키워드별 매칭이 아니라
+    // "문장 안의 두 숫자 관계"를 보는 규칙이라 combo_bonus_rules에 둔다.
+    val pattern: String? = null,
+    @SerializedName("min_growth_rate_percent") val minGrowthRatePercent: Double? = null
 )
 
 data class RepeatDecayPolicy(

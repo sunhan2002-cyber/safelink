@@ -64,7 +64,7 @@ class DetectionEngine(
 
         val suppressed = findSuppressedByOverlap(rawMatches)
         val (baseScore, matchedKeywords) = scoreMatches(rawMatches, suppressed)
-        val comboIds = evaluateComboRules(rawMatches, suppressed, turnCount = turns.size)
+        val comboIds = evaluateComboRules(rawMatches, suppressed, turnCount = turns.size, originalText = originalText)
         val comboBonus = comboIds.sumOf { id -> keywordData.comboBonusRules.first { it.id == id }.bonus }
         val totalScore = min(baseScore + comboBonus, 100.0)
         val score = totalScore.toInt()
@@ -256,10 +256,19 @@ class DetectionEngine(
     // (하나라도 매칭되면 집계 대상)라서 related_subcategory_ids(all-of)와 별도 처리한다.
     // AI 호출 여부 판단(shouldEscalateToAI)과는 독립적으로 동작 - 이 콤보가 발동해도 AI 호출
     // 여부와 무관하고, AI가 호출되든 안 되든 이 점수는 항상 온디바이스에서만 계산된다.
+    //
+    // numeric_ratio_pattern: NUMERIC_REASONING 갭(예: "3주만에 100이 137 됐죠?" - 37% 수익률을
+    // 이해해야 위험 신호라는 걸 아는 경우) 스트레치 대응. 원문에서 숫자 두 개를 뽑아 증가율을
+    // 계산하는 방식이라, 매칭된 키워드가 하나도 없어도(rawMatches가 비어도) 평가해야 해서
+    // 이 함수는 rawMatches 존재 여부와 무관하게 항상 끝까지 실행한다.
     // ─────────────────────────────────────────────────────────────────
 
-    private fun evaluateComboRules(rawMatches: List<RawMatch>, suppressed: Set<RawMatch>, turnCount: Int): List<String> {
-        if (rawMatches.isEmpty()) return emptyList()
+    private fun evaluateComboRules(
+        rawMatches: List<RawMatch>,
+        suppressed: Set<RawMatch>,
+        turnCount: Int,
+        originalText: String
+    ): List<String> {
         val matchedIds = rawMatches.map { it.entry.id }.toSet()
         val subcategoriesByCategory = rawMatches.groupBy { it.entry.category }
             .mapValues { (_, list) -> list.map { it.entry.subcategoryId }.toSet() }
@@ -310,6 +319,21 @@ class DetectionEngine(
             .forEach { rule ->
                 val hasMatch = nonSuppressed.any { it.entry.subcategoryId in rule.subcategoryIds!! }
                 if (hasMatch && turnCount >= rule.minTurns!!) triggered += rule.id
+            }
+
+        // numeric_ratio_pattern: pattern의 캡처그룹 1·2번을 "이전 값"·"이후 값"으로 보고
+        // 증가율(%)을 계산 - min_growth_rate_percent 이상이면 발동. 키워드 매칭과 무관하게
+        // 원문 전체(originalText)에 대해 정규식을 돌린다.
+        keywordData.comboBonusRules
+            .filter { it.type == "numeric_ratio_pattern" && it.pattern != null && it.minGrowthRatePercent != null }
+            .forEach { rule ->
+                val match = Regex(rule.pattern!!).find(originalText)
+                val before = match?.groups?.get(1)?.value?.toDoubleOrNull()
+                val after = match?.groups?.get(2)?.value?.toDoubleOrNull()
+                if (before != null && after != null && before > 0) {
+                    val growthRatePercent = (after - before) / before * 100.0
+                    if (growthRatePercent >= rule.minGrowthRatePercent!!) triggered += rule.id
+                }
             }
 
         return triggered
