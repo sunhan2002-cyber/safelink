@@ -107,10 +107,10 @@ fun SupportDetailScreen(navController: NavHostController, institutionId: String)
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            SafeLinkPrimaryButton(text = "전화 연결하기", onClick = {
+            SafeLinkPrimaryButton(text = "전화하기", onClick = {
                 // TODO: ACTION_DIAL Intent (Task 5.7)
             })
-            SafeLinkOutlinedButton(text = "웹사이트 방문", onClick = {
+            SafeLinkOutlinedButton(text = "홈페이지 이동", onClick = {
                 // TODO: 브라우저 Intent
             })
         }

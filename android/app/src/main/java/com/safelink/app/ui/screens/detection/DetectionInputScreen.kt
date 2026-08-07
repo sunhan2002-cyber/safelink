@@ -109,12 +109,12 @@ fun DetectionInputScreen(
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 SegmentedButton(
                     selected = !isTextMode,
-                    onClick = { viewModel.inputMethod = "스크린샷 업로드" },
+                    onClick = { viewModel.switchMode("스크린샷 업로드") },
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-                ) { Text("스크린샷 업로드") }
+                ) { Text("스크린샷") }
                 SegmentedButton(
                     selected = isTextMode,
-                    onClick = { viewModel.inputMethod = "텍스트 입력" },
+                    onClick = { viewModel.switchMode("텍스트 입력") },
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
                 ) { Text("텍스트 입력") }
             }
@@ -154,7 +154,7 @@ fun DetectionInputScreen(
                     Column {
                         Text(text = "개인정보 보호 안내", style = MaterialTheme.typography.titleMedium)
                         Text(
-                            text = "분석된 대화 내용은 익명으로 처리되며 분석 즉시 파기되어 서버에 저장되지 않습니다.",
+                            text = "분석에 사용한 내용은 분석 목적 외에는 사용하지 않습니다.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -166,7 +166,7 @@ fun DetectionInputScreen(
         Column(modifier = Modifier.padding(20.dp)) {
             if (!isTextMode) {
                 Text(
-                    text = "선택한 스크린샷에서 텍스트를 추출해 분석합니다. (OCR 임시 연결)",
+                    text = "스크린샷의 텍스트를 추출해 분석합니다. 텍스트가 잘 보이는 이미지를 선택해 주세요.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -176,7 +176,7 @@ fun DetectionInputScreen(
                 )
             }
             SafeLinkPrimaryButton(
-                text = "분석 시작하기",
+                text = "결과 확인하기",
                 enabled = canAnalyze,
                 onClick = {
                     // 스크린샷 모드면 분석 전에 OCR(임시)로 originalText 채움

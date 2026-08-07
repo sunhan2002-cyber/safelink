@@ -50,7 +50,7 @@ class RiskNotifier(private val context: Context) {
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher) // TODO: 전용 상태바 아이콘
             .setContentTitle(neutralTitle(level))
-            .setContentText("확인이 필요한 내용이 있어요. 눌러서 확인해 주세요.")
+            .setContentText("확인이 필요한 표현이 감지되었습니다. 내용을 확인해 보세요.")
             .setPriority(priorityOf(level))
             .setAutoCancel(true)
             .setContentIntent(pending)

@@ -47,7 +47,7 @@ fun SafeLinkNavGraph(
         composable(Screen.Onboarding.route) { OnboardingScreen(navController) }
         composable(Screen.Lock.route) { LockScreen(navController) }
 
-        composable(Screen.Home.route) { HomeScreen(navController) }
+        composable(Screen.Home.route) { HomeScreen(navController, detectionViewModel) }
         composable(Screen.RecordList.route) { RecordListScreen(navController) }
         composable(Screen.SupportMatch.route) { SupportMatchScreen(navController) }
         composable(Screen.Settings.route) { SettingsScreen(navController) }

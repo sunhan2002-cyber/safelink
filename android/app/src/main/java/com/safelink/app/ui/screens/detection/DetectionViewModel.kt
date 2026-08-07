@@ -60,6 +60,30 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     /**
+     * 새 분석 세션 시작 — 입력·이미지·결과를 모두 비운다.
+     * 홈에서 "대화 분석" 진입, 결과 화면 "다시 분석하기" 등 새 흐름을 시작할 때 호출.
+     * (공유 ViewModel이 NavGraph 범위로 살아있어 초기화하지 않으면 이전 세션 값이 남는다)
+     */
+    fun reset() {
+        originalText = ""
+        inputMethod = "텍스트 입력"
+        selectedImages = emptyList()
+        result = null
+    }
+
+    /**
+     * 입력 방식 전환 — 이전 모드의 입력을 비워 텍스트/스크린샷 데이터가 섞이지 않게 한다.
+     * (텍스트로 분석한 뒤 스크린샷 모드로 넘어가도 이전 텍스트/결과가 따라오지 않도록)
+     */
+    fun switchMode(mode: String) {
+        if (inputMethod == mode) return
+        inputMethod = mode
+        originalText = ""
+        selectedImages = emptyList()
+        result = null
+    }
+
+    /**
      * 스크린샷 → OCR(임시 구조) → originalText 채움. 스크린샷 모드에서 분석 시작 직전 호출.
      * 실제 ML Kit 연결 시 suspend + viewModelScope + 로딩 상태로 감싼다(OcrService KDoc 참고).
      */
