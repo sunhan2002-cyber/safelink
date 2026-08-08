@@ -30,14 +30,19 @@ data class KeywordEntry(
 
 data class ComboBonusRule(
     val id: String,
-    val type: String,           // "general" | "specific"
+    val type: String,           // "general" | "specific" | "repeat_pattern" | "long_session_pattern"
     val category: String,       // "any" 또는 특정 category명
     val condition: String,
     @SerializedName("min_distinct_subcategories") val minDistinctSubcategories: Int? = null,
     @SerializedName("window_turns") val windowTurns: Int? = null,
     val bonus: Int,
     @SerializedName("related_keyword_ids") val relatedKeywordIds: List<String>? = null,
-    @SerializedName("related_subcategory_ids") val relatedSubcategoryIds: List<String>? = null
+    @SerializedName("related_subcategory_ids") val relatedSubcategoryIds: List<String>? = null,
+    // repeat_pattern/long_session_pattern 전용 (any-of 의미 - related_subcategory_ids의
+    // all-of 의미와 다름): subcategory_ids 중 하나라도 매칭되면 대상으로 집계한다.
+    @SerializedName("subcategory_ids") val subcategoryIds: List<String>? = null,
+    @SerializedName("min_match_count") val minMatchCount: Int? = null,
+    @SerializedName("min_turns") val minTurns: Int? = null
 )
 
 data class RepeatDecayPolicy(

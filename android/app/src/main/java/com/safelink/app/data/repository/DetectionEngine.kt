@@ -10,6 +10,7 @@ import com.safelink.app.data.model.raw.InstitutionData
 import com.safelink.app.data.model.raw.InstitutionPriorityEntry
 import com.safelink.app.data.model.raw.KeywordData
 import com.safelink.app.data.model.raw.KeywordEntry
+import com.safelink.app.data.remote.dto.AnalyzeResponseDto
 import kotlin.math.min
 
 /**
@@ -38,6 +39,20 @@ class DetectionEngine(
     /** 원문 텍스트 1건을 분석해서 [DetectionResult]로 변환. 화면/ViewModel에서 사용하는 기본 진입점. */
     fun analyze(originalText: String): DetectionResult = analyze(listOf(originalText))
 
+    /**
+     * 서버로 보내기 전 마스킹. keyword.json의 전화번호(VP-1-3-003)/URL(VP-1-6-004) regex를
+     * 새로 만들지 않고 그대로 재사용해서 [전화번호]/[링크]로 치환한다 (data/API 입출력
+     * 초안 v1 "마스킹 규칙" 그대로). 이 두 id가 keyword.json에서 사라지면 마스킹도 같이
+     * 깨지므로, structural_only 항목을 지울 때는 이 함수도 같이 확인해야 함.
+     */
+    fun maskSensitiveInfo(text: String): String {
+        val phonePattern = keywordData.keywords.first { it.id == "VP-1-3-003" }.pattern!!
+        val urlPattern = keywordData.keywords.first { it.id == "VP-1-6-004" }.pattern!!
+        return text
+            .replace(Regex(phonePattern), "[전화번호]")
+            .replace(Regex(urlPattern), "[링크]")
+    }
+
     /** 여러 턴(대화)을 이어서 분석. 콤보 판정 등 세션 단위 로직 검증에 사용. */
     fun analyze(turns: List<String>): DetectionResult {
         val originalText = turns.joinToString(" ")
@@ -47,8 +62,9 @@ class DetectionEngine(
             matchKeywordsInTurn(turnText, turnIndex, turnOffsets[turnIndex])
         }
 
-        val (baseScore, matchedKeywords) = scoreMatches(rawMatches)
-        val comboIds = evaluateComboRules(rawMatches)
+        val suppressed = findSuppressedByOverlap(rawMatches)
+        val (baseScore, matchedKeywords) = scoreMatches(rawMatches, suppressed)
+        val comboIds = evaluateComboRules(rawMatches, suppressed, turnCount = turns.size)
         val comboBonus = comboIds.sumOf { id -> keywordData.comboBonusRules.first { it.id == id }.bonus }
         val totalScore = min(baseScore + comboBonus, 100.0)
         val score = totalScore.toInt()
@@ -135,11 +151,10 @@ class DetectionEngine(
     // 2. 점수 계산 (요청 3번: repeat_decay + combo_bonus_rules)
     // ─────────────────────────────────────────────────────────────────
 
-    private fun scoreMatches(rawMatches: List<RawMatch>): Pair<Double, List<MatchedKeyword>> {
+    private fun scoreMatches(rawMatches: List<RawMatch>, suppressed: Set<RawMatch>): Pair<Double, List<MatchedKeyword>> {
         val policy = keywordData.repeatDecayPolicy
         var total = 0.0
         val matchedKeywords = mutableListOf<MatchedKeyword>()
-        val suppressed = findSuppressedByOverlap(rawMatches)
 
         val bySubcategory = rawMatches.groupBy { it.entry.subcategoryId }
         for ((_, group) in bySubcategory) {
@@ -213,9 +228,16 @@ class DetectionEngine(
     // 매칭되면 발동)는 아래에서 keyword.json을 순회하며 일반화해서 처리한다.
     // COMBO-VP-PHONE-VERIFY/COMBO-VP-SMISHING만 "특정 id 조합 + OR 조건"이라 예외적으로
     // 하드코딩되어 있다 (related_keyword_ids 기반, 전부 매칭이 아니라 일부만 있어도 되는 경우).
+    //
+    // repeat_pattern/long_session_pattern: shouldEscalateToAI()가 "AI를 부를지"에만 쓰던
+    // 반복/장기세션 신호(가스라이팅 반복, 장기서사형 로맨스스캠)를 온디바이스 점수 계산
+    // 본체에도 반영하기 위해 4주차 수정 2 리뷰 대응으로 추가함 - subcategory_ids는 any-of
+    // (하나라도 매칭되면 집계 대상)라서 related_subcategory_ids(all-of)와 별도 처리한다.
+    // AI 호출 여부 판단(shouldEscalateToAI)과는 독립적으로 동작 - 이 콤보가 발동해도 AI 호출
+    // 여부와 무관하고, AI가 호출되든 안 되든 이 점수는 항상 온디바이스에서만 계산된다.
     // ─────────────────────────────────────────────────────────────────
 
-    private fun evaluateComboRules(rawMatches: List<RawMatch>): List<String> {
+    private fun evaluateComboRules(rawMatches: List<RawMatch>, suppressed: Set<RawMatch>, turnCount: Int): List<String> {
         if (rawMatches.isEmpty()) return emptyList()
         val matchedIds = rawMatches.map { it.entry.id }.toSet()
         val subcategoriesByCategory = rawMatches.groupBy { it.entry.category }
@@ -249,6 +271,26 @@ class DetectionEngine(
                 }
             }
 
+        // repeat_pattern: subcategory_ids(any-of) 매칭이 세션 전체에서 min_match_count 이상.
+        // suppressed(겹침 억제 - 04번 문서 "부분 문자열 충돌") 제외한 매칭만 센다 - 같은 표현이
+        // 두 keyword id(예: 원문 그대로 + 문구변형 대응 regex)로 중복 매칭된 걸 "반복 2회"로
+        // 잘못 세지 않기 위함. 점수 계산(scoreMatches)과 동일한 억제 기준을 공유한다.
+        val nonSuppressed = rawMatches.filterNot { it in suppressed }
+        keywordData.comboBonusRules
+            .filter { it.type == "repeat_pattern" && it.subcategoryIds != null && it.minMatchCount != null }
+            .forEach { rule ->
+                val matchCount = nonSuppressed.count { it.entry.subcategoryId in rule.subcategoryIds!! }
+                if (matchCount >= rule.minMatchCount!!) triggered += rule.id
+            }
+
+        // long_session_pattern: subcategory_ids(any-of) 매칭 + 세션 턴 수가 min_turns 이상
+        keywordData.comboBonusRules
+            .filter { it.type == "long_session_pattern" && it.subcategoryIds != null && it.minTurns != null }
+            .forEach { rule ->
+                val hasMatch = nonSuppressed.any { it.entry.subcategoryId in rule.subcategoryIds!! }
+                if (hasMatch && turnCount >= rule.minTurns!!) triggered += rule.id
+            }
+
         return triggered
     }
 
@@ -272,6 +314,7 @@ class DetectionEngine(
                 rule.relatedKeywordIds != null -> covered += rawMatches
                     .filter { it.entry.id in rule.relatedKeywordIds }
                     .map { it.entry.subcategoryId }
+                rule.subcategoryIds != null -> covered += rule.subcategoryIds
             }
         }
         return covered
@@ -349,10 +392,16 @@ class DetectionEngine(
 
     companion object {
         /** 반복 2회 이상 감지되면 점수와 무관하게 AI를 부르는 가스라이팅 중분류
-         *  (기존 3-1/3-2 + 4주차에 추가된 3-7/3-8/3-9 — 전부 어조·맥락 의존적이라 동일 취급). */
+         *  (기존 3-1/3-2 + 4주차에 추가된 3-7/3-8/3-9 — 전부 어조·맥락 의존적이라 동일 취급).
+         *  ⚠️ keyword.json의 COMBO-GL-REPEAT-PATTERN(subcategory_ids/min_match_count)과
+         *  같은 패턴·같은 임계값(2회)을 의도적으로 병행 유지한다 — 저긴 "온디바이스 점수에
+         *  얼마나 더할지", 여긴 "AI를 부를지"로 관심사가 달라서 별도 값이지만, 이 상수를
+         *  바꾸면 keyword.json 쪽 min_match_count도 같이 검토할 것 (4주차 수정 2 리뷰 대응). */
         private val GASLIGHTING_REPEAT_TRIGGER_SUBCATEGORIES = setOf("3-1", "3-2", "3-7", "3-8", "3-9")
 
-        /** 장기 서사 흐름에서만 의미가 있는 로맨스스캠 중분류 (세션이 충분히 길 때만 트리거). */
+        /** 장기 서사 흐름에서만 의미가 있는 로맨스스캠 중분류 (세션이 충분히 길 때만 트리거).
+         *  ⚠️ keyword.json의 COMBO-RS-LONG-SESSION-PATTERN(subcategory_ids/min_turns)과
+         *  같은 15턴 임계값을 병행 유지 — 위 GASLIGHTING 상수와 동일한 이유. */
         private val LONG_SESSION_TRIGGER_SUBCATEGORIES = setOf("2-8", "2-10")
         private const val LONG_SESSION_MIN_TURNS = 15
 
@@ -392,5 +441,66 @@ class DetectionEngine(
         if (newSubcategoryRolloutActive && matchedSubcategoryIds.any { it in NEW_SUBCATEGORIES_2026_07 }) return true
 
         return false
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // 5. AI 응답 병합 (신기훈 4주차 07번 문서 "AI 응답 반영 범위" 결정 반영)
+    //
+    // 반영하는 것: context_score_adjustment(점수), context_analysis_summary/
+    // context_detected_pattern(문구 2개), recommended_institutions(추천기관 - 온디바이스
+    // 목록과 병합).
+    // 반영 안 하는 것: recommended_level_override — 서버는 3단계(낮음/중간/높음), 클라이언트
+    // RiskLevel은 4단계라 자동 매핑이 모호함(예: "높음"이 WARNING인지 CRITICAL인지 점수 없이는
+    // 알 수 없음). "서버가 최종 위험도를 결정하지 않는다"는 원칙 그대로 점수 보정치만 반영하고
+    // riskLevel은 항상 adjustedScore로부터 다시 계산한다.
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * 온디바이스 결과에 AI 보조 분석 응답을 병합한다. [DetectionRepository.escalateToAI]가
+     * 네트워크 호출 성공 시 이 함수를 호출한다 — 병합 규칙 자체는 여기 한 곳에만 있음.
+     */
+    fun mergeAiResponse(original: DetectionResult, response: AnalyzeResponseDto): DetectionResult {
+        val adjustedScore = (original.score + response.contextScoreAdjustment).toInt().coerceIn(0, 100)
+
+        return original.copy(
+            score = adjustedScore,
+            riskLevel = RiskLevel.fromScore(adjustedScore),
+            recommendedInstitutions = mergeInstitutions(original.recommendedInstitutions, response),
+            aiSummary = response.contextAnalysisSummary,
+            aiDetectedPattern = response.contextDetectedPattern
+        )
+    }
+
+    /**
+     * 서버가 추천한 institution_id를 institutions.json에서 조회해 온디바이스 추천 목록과
+     * 합친다. 서버 응답에는 institution_id/rank/reason/matched_risk_type만 있고
+     * name/contact/group이 없어서(그건 온디바이스 institutions.json에만 있음) 여기서 조회해서
+     * 채운다. 이미 온디바이스 목록에 있는 기관(institution_id 동일)은 온디바이스 쪽을
+     * 우선하고, 최종 배열 인덱스 기준으로 rank를 1부터 재부여한다 (resolveInstitutions와
+     * 동일한 dedup/rerank 원칙).
+     */
+    private fun mergeInstitutions(
+        onDevice: List<RecommendedInstitutionUi>,
+        response: AnalyzeResponseDto
+    ): List<RecommendedInstitutionUi> {
+        if (response.recommendedInstitutions.isEmpty()) return onDevice
+
+        val fromServer = response.recommendedInstitutions.mapNotNull { dto ->
+            institutionsById[dto.institutionId]?.let { institution ->
+                RecommendedInstitutionUi(
+                    institutionId = institution.id,
+                    name = institution.name,
+                    contact = institution.contact,
+                    rank = 0, // 아래서 재부여
+                    reason = dto.reason,
+                    matchedRiskType = dto.matchedRiskType,
+                    group = institution.group
+                )
+            }
+        }
+
+        return (onDevice + fromServer)
+            .distinctBy { it.institutionId } // 온디바이스가 먼저 오므로 겹치면 온디바이스 쪽 유지
+            .mapIndexed { index, ui -> ui.copy(rank = index + 1) }
     }
 }

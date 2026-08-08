@@ -89,7 +89,7 @@
         { "turn": 2, "text": "내가 언제 그렇게 말했어? 너 또 왜곡해서 기억하는 거야.", "matched_ids": ["GL-3-2-001", "GL-3-2-003"] },
         { "turn": 3, "text": "걔랑 만나지 마, 부탁이야.", "matched_ids": ["GL-3-3-002"] }
       ],
-      "expected_base": 45.0, "expected_combo": 15, "expected_combo_rules": ["COMBO-GENERAL-3CAT"], "expected_total": 60.0, "expected_level": "중간"
+      "expected_base": 45.0, "expected_combo": 30, "expected_combo_rules": ["COMBO-GENERAL-3CAT", "COMBO-GL-REPEAT-PATTERN"], "expected_total": 75.0, "expected_level": "높음", "note": "4주차 수정2 리뷰 대응 - 가스라이팅 반복패턴(3-1 2건+3-2 2건, 합산 4건 >= min_match_count 2) 콤보 신설로 60->75, 중간->높음 전환. subcategory_ids는 반복 없이 진짜 서로 다른 표현(예민한 거 같아/별일도 아닌데 왜 그래, 내가 언제 그렇게 말했어/너 또 왜곡해서 기억하는 거야)이라 겹침 억제 대상 아님"
     },
     {
       "id": "TC-GL-EDGE-02", "category": "가스라이팅", "description": "중간→높음 전환 (EDGE-01 이어서)",
@@ -99,7 +99,7 @@
         { "turn": 3, "text": "걔랑 만나지 마, 부탁이야.", "matched_ids": ["GL-3-3-002"] },
         { "turn": 4, "text": "다 너를 위해서 하는 말이야. 내가 없으면 넌 아무것도 못해.", "matched_ids": ["GL-3-4-001", "GL-3-5-001"] }
       ],
-      "expected_base": 75.0, "expected_combo": 40, "expected_combo_rules": ["COMBO-GENERAL-4CAT", "COMBO-GL-ISOLATION-GUILT"], "expected_total": 100, "expected_level": "높음", "note": "캡(100) 도달"
+      "expected_base": 75.0, "expected_combo": 55, "expected_combo_rules": ["COMBO-GENERAL-4CAT", "COMBO-GL-ISOLATION-GUILT", "COMBO-GL-REPEAT-PATTERN"], "expected_total": 100, "expected_level": "높음", "note": "캡(100) 도달 - COMBO-GL-REPEAT-PATTERN도 함께 발동하지만 이미 100 캡이라 total 자체는 안 바뀜(4주차 수정2 리뷰 대응)"
     }
   ],
 
@@ -148,6 +148,23 @@
         { "turn": 4, "text": "이 번호로 전화해보세요.", "matched_ids": ["VP-1-3-002"] }
       ],
       "expected_base": 60, "expected_combo": 25, "expected_total": 85, "expected_level": "높음", "note": "3CAT(+15)과 중복 적용 안 하고 4CAT(+25)만 적용"
+    },
+    {
+      "id": "TC-COMBO-07", "combo_id": "COMBO-GL-REPEAT-PATTERN",
+      "turns": [
+        { "turn": 1, "text": "예민한 거 같아.", "matched_ids": ["GL-3-1-001"] },
+        { "turn": 2, "text": "별일도 아닌데 왜 그래.", "matched_ids": ["GL-3-1-003"] }
+      ],
+      "expected_base": 12, "expected_combo": 15, "expected_total": 27, "expected_level": "낮음", "note": "4주차 수정2 리뷰 대응 신규 콤보 - 가스라이팅 반복 트리거 subcategory(3-1) 매칭이 세션에서 2회 이상이면 온디바이스 점수에도 반영. 서로 다른 표현 2개라 겹침 억제 대상은 아니지만 같은 subcategory라 repeat_decay(8 + 8*0.5=12)는 그대로 적용되고, 거기에 combo bonus(+15)가 더해짐 - repeat_decay(반복 시 가중치 감소)와 이번에 추가한 repeat_pattern 콤보(반복 자체에 보너스)는 서로 다른 목적이라 중복 적용됨"
+    },
+    {
+      "id": "TC-COMBO-08", "combo_id": "COMBO-RS-LONG-SESSION-PATTERN",
+      "turns_summary": "14턴 무해한 필러 + 15번째 턴에 미래 약속(FUTURE_FAKE) 키워드 - 15턴 이상 세션에서만 발동 확인용",
+      "turns": [
+        { "turn": "1-14", "text": "오늘 날씨가 좋네요. (반복)", "matched_ids": [] },
+        { "turn": 15, "text": "당신부터 만날 겁니다.", "matched_ids": ["RS-2-8-001"] }
+      ],
+      "expected_base": 10, "expected_combo": 15, "expected_total": 25, "expected_level": "낮음", "note": "4주차 수정2 리뷰 대응 신규 콤보 - 15턴 미만이면 미발동(신기훈 4주차 07번 문서 recentTurns 한계 참고 - 현재 결과화면은 turns=1 고정이라 실사용에서는 사실상 미발동, 다중 턴 세션 추적 도입 시 자동 활성화)"
     }
   ],
 

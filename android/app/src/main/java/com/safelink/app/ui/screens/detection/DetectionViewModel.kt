@@ -6,10 +6,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.ocr.MlKitOcrService
 import com.safelink.app.data.ocr.OcrService
 import com.safelink.app.data.repository.DetectionRepository
+import kotlinx.coroutines.launch
+import java.util.UUID
 
 /**
  * 대화 분석 공유 ViewModel — DetectionInput -> Analyzing -> DetectionResult 세 화면이
@@ -45,9 +48,16 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
     var ocrNoText by mutableStateOf(false)
         private set
 
+    /** 2차 AI 보조 분석 호출 진행 중 여부 - 결과 화면에서 "정밀 분석 중" 같은 표시에 쓸 수 있음 */
+    var isEscalatingToAI by mutableStateOf(false)
+        private set
+
     private val repository: DetectionRepository by lazy { DetectionRepository(getApplication()) }
     // 실제 온디바이스 OCR. (OCR 없이 흐름만 볼 땐 StubOcrService() 로 교체)
     private val ocrService: OcrService = MlKitOcrService()
+
+    /** 세션(대화방) 식별자 - ViewModel 생존 기간 동안 고정. 서버 호출 시 session_id로 사용. */
+    private val sessionId: String = UUID.randomUUID().toString()
 
     fun addImages(uris: List<Uri>) {
         selectedImages = (selectedImages + uris).distinct().take(MAX_IMAGES)
@@ -102,7 +112,29 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
                 return false
             }
         }
-        result = repository.analyze(originalText)
+
+        // 1차 온디바이스 분석 (항상 동기, 즉시 완료) — 결과를 먼저 반영
+        val onDeviceResult = repository.analyze(originalText)
+        result = onDeviceResult
+
+        // 2차 AI 보조 분석: 조건 충족 시 비동기로 호출해 result 를 한 번 더 갱신(신기훈).
+        // runAnalysis 는 온디바이스 결과가 나오면 바로 반환하고, AI 보정은 이후 자연스럽게 들어온다.
+        // 결과 화면은 viewModel.result 를 구독하므로 자동 재구성된다. 네트워크 실패 시 escalateToAI 가
+        // 온디바이스 결과를 그대로 반환하므로 result 가 나빠지는 경우는 없음.
+        //
+        // ⚠️ 한계: 단일 입력 구조라 sessionTurnCount=1, recentTurns=[originalText] 고정.
+        //   실제 다중 턴 세션 추적이 생기면 누적 상태로 교체할 것 (07번 문서 "recentTurns 한계" 참고).
+        if (repository.shouldEscalateToAI(onDeviceResult, sessionTurnCount = 1)) {
+            viewModelScope.launch {
+                isEscalatingToAI = true
+                result = repository.escalateToAI(
+                    result = onDeviceResult,
+                    sessionId = sessionId,
+                    recentTurns = listOf(originalText)
+                )
+                isEscalatingToAI = false
+            }
+        }
         return true
     }
 

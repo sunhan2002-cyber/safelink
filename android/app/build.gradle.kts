@@ -58,5 +58,10 @@ dependencies {
     implementation(libs.gson)
     // 스크린샷 분석용 온디바이스 OCR (한국어 텍스트 인식, 오프라인)
     implementation(libs.mlkit.text.recognition.korean)
+    // 2차 AI 보조 분석 (네트워크)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp.logging.interceptor)
+    implementation(libs.kotlinx.coroutines.android)
     testImplementation(libs.junit)
 }

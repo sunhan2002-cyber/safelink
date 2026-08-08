@@ -50,8 +50,10 @@ import com.safelink.app.ui.theme.SafeLinkTheme
  * 데이터 구조: com.safelink.app.data.model.DetectionResult (필드 정의 근거는 해당 파일 KDoc 참고)
  * 더미 데이터: DetectionResultDummyData (data/위험 문장 테스트.json 검증 케이스 기반, 점수 실제 계산 로직과 일치)
  *
- * TODO(Task 6.10): 지금은 DetectionResultDummyData.vpCritical 고정 사용 중. ViewModel 연동 시
- * DetectionViewModel의 StateFlow<DetectionResult>를 collectAsState()로 구독하도록 교체.
+ * ViewModel 연동 완료 (Task 6.10) — viewModel.result(mutableStateOf)를 그대로 구독하므로
+ * 온디바이스 분석이 끝난 뒤 AI 보조 분석(escalateToAI)이 비동기로 결과를 갱신해도 이 화면이
+ * 자동으로 재구성된다(별도 StateFlow/collectAsState 불필요). 기록 재열람 등 분석 없이 직접
+ * 진입한 경우에만 더미로 대체.
  * TODO: 원문 내 위험 표현 밑줄/배경 강조는 MatchedKeyword.startIndex/endIndex를 이용해
  * AnnotatedString으로 구현 필요 (지금은 매칭된 구간을 별도 텍스트로만 나열).
  *
