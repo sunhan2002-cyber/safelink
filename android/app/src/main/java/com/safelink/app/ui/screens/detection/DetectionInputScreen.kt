@@ -131,6 +131,9 @@ fun DetectionInputScreen(
                     onSample = { viewModel.originalText = SAMPLE_CONVERSATION }
                 )
             } else {
+                if (viewModel.ocrNoText) {
+                    OcrNoTextBanner()
+                }
                 ScreenshotArea(
                     images = viewModel.selectedImages,
                     onPick = {
@@ -179,8 +182,7 @@ fun DetectionInputScreen(
                 text = "결과 확인하기",
                 enabled = canAnalyze,
                 onClick = {
-                    // 스크린샷 모드면 분석 전에 OCR(임시)로 originalText 채움
-                    if (!isTextMode) viewModel.runOcrOnSelectedImages()
+                    // 스크린샷 모드면 Analyzing 화면에서 OCR 후 분석까지 수행한다
                     navController.navigate(Screen.Analyzing.route)
                 }
             )
@@ -215,6 +217,22 @@ private fun TextInputArea(
         TextButton(onClick = onSample, modifier = Modifier.fillMaxWidth()) {
             Text("예시 대화로 테스트하기")
         }
+    }
+}
+
+/** 스크린샷에서 글자를 인식하지 못했을 때의 안내 배너 */
+@Composable
+private fun OcrNoTextBanner() {
+    SafeLinkCard(containerColor = BrandBlueLight) {
+        Text(
+            text = "스크린샷에서 텍스트를 찾지 못했어요.",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Text(
+            text = "대화 글자가 선명하게 보이는 이미지를 선택하거나, 텍스트 입력으로 분석해 주세요.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

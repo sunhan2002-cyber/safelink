@@ -6,22 +6,17 @@ import android.net.Uri
 /**
  * 스크린샷 → 텍스트 추출(OCR) 추상화.
  *
- * 실제 OCR(ML Kit Text Recognition 한국어) 연결 전까지의 **임시 구조**다.
- * 화면·분석 흐름은 이 인터페이스에만 의존하므로, 나중에 [StubOcrService] 를
- * ML Kit 구현체(MlKitOcrService)로 갈아끼우기만 하면 UI/분석 코드는 그대로 동작한다.
+ * 실제 구현은 [MlKitOcrService] (ML Kit Text Recognition 한국어, 온디바이스·오프라인).
+ * 화면·분석 흐름은 이 인터페이스에만 의존하므로, 구현체 교체만으로 동작한다.
+ * ([StubOcrService] 는 OCR 없이 흐름만 확인하는 테스트/참고용으로 남겨둔다.)
  *
- * ┌ OCR 교체 지점 ─────────────────────────────────────────────┐
- * │ 1. build.gradle: com.google.mlkit:text-recognition-korean 추가 │
- * │ 2. MlKitOcrService 구현:                                        │
- * │    images.forEach { InputImage.fromFilePath(ctx, uri)          │
- * │      -> recognizer.process(img) -> text }                      │
- * │ 3. DetectionViewModel 의 ocrService 를 교체                      │
- * └───────────────────────────────────────────────────────────────┘
- *
- * 참고: 실제 ML Kit 는 비동기(Task/suspend)라 연결 시 이 함수를 suspend 로 바꾸고
- * ViewModel 에서 viewModelScope + 로딩 상태로 감싼다. 지금은 임시(동기)로 둔다.
+ * ML Kit 는 비동기(Task) API 라 여기서는 suspend 로 노출하고, 호출부(Analyzing 화면)는
+ * 코루틴에서 호출하며 진행 상태를 표시한다.
  */
 interface OcrService {
-    /** 여러 스크린샷에서 텍스트를 추출해 하나의 문자열로 합쳐 반환. */
-    fun extractText(context: Context, images: List<Uri>): String
+    /**
+     * 여러 스크린샷에서 텍스트를 추출해 하나의 문자열로 합쳐 반환.
+     * 인식된 텍스트가 없으면 빈 문자열을 반환한다(호출부에서 "텍스트 없음"으로 처리).
+     */
+    suspend fun extractText(context: Context, images: List<Uri>): String
 }

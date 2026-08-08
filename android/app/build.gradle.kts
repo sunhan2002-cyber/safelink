@@ -56,5 +56,7 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     debugImplementation(libs.androidx.ui.tooling)
     implementation(libs.gson)
+    // 스크린샷 분석용 온디바이스 OCR (한국어 텍스트 인식, 오프라인)
+    implementation(libs.mlkit.text.recognition.korean)
     testImplementation(libs.junit)
 }

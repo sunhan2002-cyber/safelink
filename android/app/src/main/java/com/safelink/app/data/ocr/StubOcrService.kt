@@ -4,16 +4,15 @@ import android.content.Context
 import android.net.Uri
 
 /**
- * OCR 연결 전까지의 임시 구현.
+ * OCR 없이 흐름만 확인하는 테스트/참고용 구현.
  *
- * 실제 텍스트 추출 대신, 선택된 스크린샷이 있으면 시연용 예시 텍스트를 반환한다.
- * → 스크린샷 분석 "흐름"(선택 → 추출 → 분석 → 결과)을 앱 안에서 확인할 수 있게 해준다.
- * ML Kit 연결 시 이 클래스를 MlKitOcrService 로 교체하면 된다.
+ * 실제 텍스트 추출 대신, 선택된 스크린샷이 있으면 예시 텍스트를 반환한다.
+ * 실제 앱은 [MlKitOcrService] 를 사용한다(DetectionViewModel 참고).
+ * OCR 모델 없이 UI/분석 흐름만 빠르게 확인하고 싶을 때 ViewModel 에서 이 구현으로 바꾼다.
  */
 class StubOcrService : OcrService {
 
-    override fun extractText(context: Context, images: List<Uri>): String {
-        // TODO(OCR 연결): ML Kit KoreanTextRecognizer 로 각 이미지에서 실제 텍스트 추출.
+    override suspend fun extractText(context: Context, images: List<Uri>): String {
         if (images.isEmpty()) return ""
         return SAMPLE_EXTRACTED_TEXT
     }

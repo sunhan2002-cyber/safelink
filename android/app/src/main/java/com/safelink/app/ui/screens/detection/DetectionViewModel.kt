@@ -7,8 +7,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import com.safelink.app.data.model.DetectionResult
+import com.safelink.app.data.ocr.MlKitOcrService
 import com.safelink.app.data.ocr.OcrService
-import com.safelink.app.data.ocr.StubOcrService
 import com.safelink.app.data.repository.DetectionRepository
 
 /**
@@ -38,15 +38,25 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
     var result by mutableStateOf<DetectionResult?>(null)
         private set
 
+    /**
+     * 스크린샷 OCR 에서 인식된 텍스트가 없을 때 true.
+     * 입력 화면에서 "텍스트를 찾지 못함" 안내를 띄우는 데 쓴다.
+     */
+    var ocrNoText by mutableStateOf(false)
+        private set
+
     private val repository: DetectionRepository by lazy { DetectionRepository(getApplication()) }
-    private val ocrService: OcrService = StubOcrService()
+    // 실제 온디바이스 OCR. (OCR 없이 흐름만 볼 땐 StubOcrService() 로 교체)
+    private val ocrService: OcrService = MlKitOcrService()
 
     fun addImages(uris: List<Uri>) {
         selectedImages = (selectedImages + uris).distinct().take(MAX_IMAGES)
+        ocrNoText = false
     }
 
     fun removeImage(uri: Uri) {
         selectedImages = selectedImages - uri
+        ocrNoText = false
     }
 
     /**
@@ -59,6 +69,7 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         inputMethod = "텍스트 입력"
         selectedImages = emptyList()
         result = null
+        ocrNoText = false
     }
 
     /**
@@ -71,19 +82,28 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         originalText = ""
         selectedImages = emptyList()
         result = null
+        ocrNoText = false
     }
 
     /**
-     * 스크린샷 → OCR(임시 구조) → originalText 채움. 스크린샷 모드에서 분석 시작 직전 호출.
-     * 실제 ML Kit 연결 시 suspend + viewModelScope + 로딩 상태로 감싼다(OcrService KDoc 참고).
+     * 분석 실행 — 스크린샷 모드면 먼저 OCR 로 사진에서 텍스트를 추출한 뒤 분석한다.
+     * Analyzing 화면의 코루틴에서 호출한다(ML Kit 가 비동기라 suspend).
+     *
+     * @return 결과 화면으로 진행할지 여부. 스크린샷에서 텍스트를 찾지 못하면 false
+     *         ([ocrNoText] = true 로 두고 입력 화면에서 안내).
      */
-    fun runOcrOnSelectedImages() {
-        originalText = ocrService.extractText(getApplication(), selectedImages)
-    }
-
-    /** 원문 텍스트를 분석해 result 에 반영한다. Analyzing 화면 진입 후 호출. */
-    fun analyze() {
+    suspend fun runAnalysis(): Boolean {
+        if (inputMethod == "스크린샷 업로드") {
+            val extracted = ocrService.extractText(getApplication(), selectedImages)
+            originalText = extracted
+            if (extracted.isBlank()) {
+                ocrNoText = true
+                result = null
+                return false
+            }
+        }
         result = repository.analyze(originalText)
+        return true
     }
 
     companion object {

@@ -9,6 +9,7 @@ import androidx.core.app.NotificationCompat
 import com.safelink.app.MainActivity
 import com.safelink.app.R
 import com.safelink.app.data.model.RiskLevel
+import com.safelink.app.ui.navigation.Screen
 
 /**
  * 위험 감지 알림 발송 — **구조 스켈레톤**
@@ -38,12 +39,13 @@ class RiskNotifier(private val context: Context) {
 
     /** 위험도별 배너 알림 발송. */
     fun notifyRisk(level: RiskLevel, category: String) {
+        // 알림 탭 시 위험도별 화면으로 딥링크 (MainActivity 가 EXTRA_NAV_ROUTE 를 읽어 이동)
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            // TODO: 위험도별 딥링크 — CAUTION/WARNING→대응 가이드, CRITICAL→긴급 화면 (Task 6.15)
+            putExtra(MainActivity.EXTRA_NAV_ROUTE, routeFor(level))
         }
         val pending = PendingIntent.getActivity(
-            context, 0, intent,
+            context, level.ordinal, intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
@@ -62,6 +64,17 @@ class RiskNotifier(private val context: Context) {
 
     private fun manager() =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+    /**
+     * 위험도 → 알림 탭 시 이동할 화면 라우트.
+     * 감지 후 연결 화면 기준(기능확장 담당 김선한 확정)을 이 한 곳에서 관리한다.
+     *  - CRITICAL : 긴급 화면
+     *  - 그 외(WARNING) : 위험도별 대응 가이드
+     */
+    private fun routeFor(level: RiskLevel): String = when (level) {
+        RiskLevel.CRITICAL -> Screen.Emergency.route
+        else -> Screen.ResponseGuide.createRoute(level)
+    }
 
     /** 민감 단어를 뺀 중립 알림 제목. */
     private fun neutralTitle(level: RiskLevel): String = when (level) {
