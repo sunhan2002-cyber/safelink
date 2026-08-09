@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkTopBar
+import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.RiskCritical
 
 /** 설정 (Figma 20:1061) — 토글은 로컬 상태. 실제 저장은 EncryptedSharedPreferences (Task 5.15) */
@@ -131,7 +132,7 @@ fun SettingsScreen(navController: NavHostController) {
                     label = "감지 기능 안내",
                     caption = "스크린샷 분석과 백그라운드 감지 흐름을 확인할 수 있어요"
                 ) {
-                    // TODO: 기능확장 안내 화면 또는 도움말 연결
+                    navController.navigate(Screen.FeatureGuide.route)
                 }
             }
 

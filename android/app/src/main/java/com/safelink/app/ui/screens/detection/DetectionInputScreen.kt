@@ -76,7 +76,7 @@ private const val SAMPLE_CONVERSATION =
 /**
  * 대화 분석 입력 화면(DetectionInput).
  * - 텍스트 입력: 원문을 직접 입력/붙여넣기
- * - 스크린샷 업로드: 갤러리에서 스크린샷 선택 → OCR(임시 구조)로 텍스트 추출 → 분석
+ * - 스크린샷 업로드: 갤러리에서 스크린샷 선택 → OCR로 텍스트 추출 → 분석
  * 두 경우 모두 최종적으로 originalText 를 공유 ViewModel 에 담아 Analyzing 으로 넘긴다.
  */
 @Composable
@@ -134,6 +134,7 @@ fun DetectionInputScreen(
                 if (viewModel.ocrNoText) {
                     OcrNoTextBanner()
                 }
+                ScreenshotAnalysisGuideCard()
                 ScreenshotArea(
                     images = viewModel.selectedImages,
                     onPick = {
@@ -185,6 +186,38 @@ fun DetectionInputScreen(
                     // 스크린샷 모드면 Analyzing 화면에서 OCR 후 분석까지 수행한다
                     navController.navigate(Screen.Analyzing.route)
                 }
+            )
+        }
+    }
+}
+
+/** 스크린샷 분석 입력 기준 안내 — OCR 성공률을 높이기 위한 사용자 가이드 */
+@Composable
+private fun ScreenshotAnalysisGuideCard() {
+    SafeLinkCard(containerColor = BrandBlueLight) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = "스크린샷 분석 안내",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = "선명한 대화 화면을 선택하면 OCR이 더 안정적으로 작동합니다.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = "• 대화 글자가 잘 보이는 이미지를 선택해 주세요.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "• 여러 장을 선택하면 추출된 텍스트를 합쳐서 한 번에 분석합니다.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "• 텍스트를 찾지 못하면 텍스트 입력 방식으로 바로 다시 분석할 수 있습니다.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

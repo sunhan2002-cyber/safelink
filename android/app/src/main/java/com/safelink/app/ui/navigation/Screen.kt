@@ -18,6 +18,7 @@ sealed class Screen(val route: String) {
     data object RecordList : Screen("records")
     data object SupportMatch : Screen("support")
     data object Settings : Screen("settings")
+    data object FeatureGuide : Screen("feature_guide")
 
     // 자가진단 (F-01)
     data object Diagnosis : Screen("diagnosis")
