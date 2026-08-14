@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -56,16 +57,26 @@ fun AnalyzingScreen(
         label = "analyze-progress"
     )
 
+    // 실제 분석(스크린샷이면 OCR 포함)과 진행률 애니메이션을 동시에 진행한다.
+    // null = 진행 중, true = 결과로 이동, false = 스크린샷에서 텍스트 없음(입력 화면으로 복귀)
+    var analysisOk by remember { mutableStateOf<Boolean?>(null) }
+
     LaunchedEffect(Unit) {
-        viewModel.analyze()   // 실제 키워드 매칭·점수·위험도·추천기관 계산 (결과는 viewModel.result)
-        started = 1f          // 진행률 애니메이션 시작
+        started = 1f                          // 진행률 애니메이션 시작
+        analysisOk = viewModel.runAnalysis()  // OCR(스크린샷) → 키워드 매칭·점수·위험도 계산
     }
 
-    // 진행률이 목표치에 도달하면 결과 화면으로 이동
-    LaunchedEffect(progress) {
-        if (progress >= 1f) {
-            navController.navigate(Screen.DetectionResult.route) {
-                popUpTo(Screen.Analyzing.route) { inclusive = true }
+    // 애니메이션이 끝나고 분석도 끝났을 때만 다음 화면으로 이동
+    LaunchedEffect(progress, analysisOk) {
+        val ok = analysisOk
+        if (progress >= 1f && ok != null) {
+            if (ok) {
+                navController.navigate(Screen.DetectionResult.route) {
+                    popUpTo(Screen.Analyzing.route) { inclusive = true }
+                }
+            } else {
+                // 스크린샷에서 텍스트를 찾지 못함 → 입력 화면으로 돌아가 안내
+                navController.popBackStack()
             }
         }
     }

@@ -156,11 +156,9 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         // 결과 화면은 viewModel.result 를 구독하므로 자동 재구성된다. 네트워크 실패 시 escalateToAI 가
         // 온디바이스 결과를 그대로 반환하므로 result 가 나빠지는 경우는 없음.
         //
-        // ⚠️ 한계: 단일 입력 구조라 recentTurns=[originalText] 고정. 실제 다중 턴 세션 추적이
-        //   생기면 누적 상태로 교체할 것 (07번 문서 "recentTurns 한계" 참고). shouldEscalateToAI의
-        //   AI 호출 판단 자체는 5주차 정리로 세션 턴 수와 무관해졌음(09번 문서 참고) —
-        //   sessionTurnCount 파라미터는 더 이상 없음.
-        if (repository.shouldEscalateToAI(onDeviceResult)) {
+        // ⚠️ 한계: 단일 입력 구조라 sessionTurnCount=1, recentTurns=[originalText] 고정.
+        //   실제 다중 턴 세션 추적이 생기면 누적 상태로 교체할 것 (07번 문서 "recentTurns 한계" 참고).
+        if (repository.shouldEscalateToAI(onDeviceResult, sessionTurnCount = 1)) {
             viewModelScope.launch {
                 isEscalatingToAI = true
                 result = repository.escalateToAI(

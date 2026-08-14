@@ -10,6 +10,7 @@ activityCompose = "1.9.3"
 composeBom = "2024.10.01"
 navigationCompose = "2.8.4"
 gson = "2.11.0"
+mlkitTextKorean = "16.0.1"
 junit = "4.13.2"
 retrofit = "2.11.0"
 okhttp = "4.12.0"
@@ -32,6 +33,7 @@ hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+mlkit-text-recognition-korean = { group = "com.google.mlkit", name = "text-recognition-korean", version.ref = "mlkitTextKorean" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }

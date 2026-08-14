@@ -21,6 +21,7 @@ import com.safelink.app.ui.screens.home.HomeScreen
 import com.safelink.app.ui.screens.lock.LockScreen
 import com.safelink.app.ui.screens.onboarding.OnboardingScreen
 import com.safelink.app.ui.screens.record.MemoEditScreen
+import com.safelink.app.ui.screens.settings.FeatureGuideScreen
 import com.safelink.app.ui.screens.record.RecordListScreen
 import com.safelink.app.ui.screens.settings.SettingsScreen
 import com.safelink.app.ui.screens.splash.SplashScreen
@@ -51,6 +52,7 @@ fun SafeLinkNavGraph(
         composable(Screen.RecordList.route) { RecordListScreen(navController) }
         composable(Screen.SupportMatch.route) { SupportMatchScreen(navController) }
         composable(Screen.Settings.route) { SettingsScreen(navController) }
+        composable(Screen.FeatureGuide.route) { FeatureGuideScreen(navController) }
 
         composable(Screen.Diagnosis.route) { DiagnosisScreen(navController) }
         composable(Screen.DiagnosisResult.route) { DiagnosisResultScreen(navController) }
