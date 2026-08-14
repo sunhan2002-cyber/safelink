@@ -9,6 +9,9 @@ package com.safelink.app.data.model
  *  - vpCritical : 보이스피싱, 82.5점 → CRITICAL (test_sentences_v1.json TC-VP-EDGE-02 재사용)
  *  - rsWarning  : 로맨스스캠, 47.5점 → WARNING  (TC-RS-EDGE-01 재사용, 추천기관 3개 병합·rank 재정렬 예시)
  *  - glCaution  : 가스라이팅, 24점  → CAUTION  (추천기관 없음 — standalone_recommend 게이팅 정상 동작 예시)
+ *  - evidenceShowcase : 6주차 신설 — sentenceRuleEvidences/situationalRuleEvidences/aiSummary/
+ *    aiDetectedPattern이 전부 채워진 미리보기 전용 예시(공식 41개 케이스와 연결 안 됨).
+ *    DetectionResultScreen에 새로 추가한 3개 근거 섹션을 실제로 렌더링해서 확인하는 용도.
  */
 object DetectionResultDummyData {
 
@@ -76,6 +79,55 @@ object DetectionResultDummyData {
         appliedComboIds = emptyList()
     )
 
+    /**
+     * 6주차 신설 — sentenceRuleEvidences/situationalRuleEvidences/aiSummary/aiDetectedPattern
+     * 4개가 전부 채워진 미리보기 전용 예시. 공식 41개 케이스와 연결된 "검증된" 더미가 아니라,
+     * 리뷰(신기훈 6주차: "결과 화면에서 실제로 출력돼야 함")에 대응해 새 근거 섹션 3개
+     * (문장 규칙/상황 규칙/AI 보조분석)가 실제로 렌더링되는 모습을 확인하기 위한 합성 시나리오.
+     *
+     * 가스라이팅 반복(GL-3-1-001/003, GL-3-2-001/003 → COMBO-GL-REPEAT-PATTERN, 상황 규칙)과
+     * 로맨스스캠 소액한정 요구(RS-2-9-003, 문장 규칙)를 한 입력에 합쳐뒀다 — 실제로 한 대화에서
+     * 나올 조합은 아니지만, 새 UI 섹션이 전부 동시에 보이는 상태를 한 번에 점검하기 위함.
+     */
+    val evidenceShowcase = DetectionResult(
+        riskLevel = RiskLevel.CRITICAL,
+        score = 70,
+        category = "가스라이팅",
+        originalText = "너 오늘 좀 예민한 거 같아, 별일도 아닌데 왜 그래? 내가 언제 그렇게 말했어? " +
+            "너 또 왜곡해서 기억하는 거야. 정 그러면 100만원만요. 그 이상은 안 돼요.",
+        matchedKeywords = listOf(
+            MatchedKeyword("GL-3-1-001", "3-1", "감정 무효화", "예민한 거 같아", 5, 13, 8, "감정 무시"),
+            MatchedKeyword("GL-3-1-003", "3-1", "감정 무효화", "별일도 아닌데 왜 그래", 15, 26, 8, "감정 무시"),
+            MatchedKeyword("GL-3-2-001", "3-2", "현실 왜곡", "내가 언제 그렇게 말했어", 28, 41, 12, "기억 부정"),
+            MatchedKeyword("GL-3-2-003", "3-2", "현실 왜곡", "너 또 왜곡해서 기억하는 거야", 43, 58, 12, "현실 왜곡"),
+            MatchedKeyword("RS-2-9-003", "2-9", "소액 선요구", "100만원만", 63, 68, 15,
+                "숫자로 한정한 소액 요구(SMALL_ASK) - 금액이 매번 달라 키워드로 전부 나열 불가능해 " +
+                    "숫자 추출+임계값(500만원 이하)으로 판정. 큰 금액이면 '소액'의 취지에 안 맞아 매칭 제외")
+        ),
+        recommendedInstitutions = listOf(
+            RecommendedInstitutionUi("PUB-MENTALHEALTH", "한국심리학회·지역 정신건강복지센터", "지역별 센터", 1, "심리적 조작·가스라이팅 전문 상담 및 정신건강 지원", "심리조작", "상담"),
+            RecommendedInstitutionUi("PUB-WOMEN1366", "여성가족부·한국여성인권진흥원", "1366", 2, "관계 내 조작·통제 피해자 상담 및 보호", "심리조작", "상담")
+        ),
+        appliedComboIds = listOf("COMBO-GL-REPEAT-PATTERN"),
+        aiSummary = "가스라이팅 반복 패턴과 함께 금전 요구 신호가 감지되어 회색지대 재검토가 필요하다고 판단됨 (목 서버 임시 규칙)",
+        aiDetectedPattern = "반복적 현실 왜곡 + 소액 선요구 복합 패턴 감지 (목 서버 - 실제 분석 아님)",
+        sentenceRuleEvidences = listOf(
+            AnalysisEvidence(
+                label = "숫자로 한정한 소액 요구(SMALL_ASK) - 금액이 매번 달라 키워드로 전부 나열 불가능해 " +
+                    "숫자 추출+임계값(500만원 이하)으로 판정. 큰 금액이면 '소액'의 취지에 안 맞아 매칭 제외",
+                detail = "100만원만"
+            )
+        ),
+        situationalRuleEvidences = listOf(
+            AnalysisEvidence(
+                label = "반복되는 위험 신호 감지",
+                detail = "가스라이팅 관련 중분류(3-1 DENY, 3-2 MEM_DOUBT, 3-7 BLAME_SHIFT, 3-8 DISCREDIT, 3-9) " +
+                    "매칭이 같은 세션에서 합산 2회 이상 감지 - 반복 자체가 심리적조종의 핵심 신호라 AI 보조분석 " +
+                    "트리거 조건(shouldEscalateToAI)과 별개로 온디바이스 점수에도 반영"
+            )
+        )
+    )
+
     /** 위험 없음(SAFE) 상태 — "위험한 표현이 감지되지 않았습니다" 문구 테스트용 */
     val safeEmpty = DetectionResult(
         riskLevel = RiskLevel.SAFE,
@@ -86,5 +138,5 @@ object DetectionResultDummyData {
         recommendedInstitutions = emptyList()
     )
 
-    val all = listOf(vpCritical, rsWarning, glCaution, safeEmpty)
+    val all = listOf(vpCritical, rsWarning, glCaution, evidenceShowcase, safeEmpty)
 }

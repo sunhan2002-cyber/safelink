@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.safelink.app.data.model.AnalysisEvidence
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.model.DetectionResultDummyData
 import com.safelink.app.data.model.RecommendedInstitutionUi
@@ -225,6 +226,40 @@ private fun DetectionResultContent(
                 }
             }
 
+            // 문장 규칙 근거 — sentenceRuleEvidences 있을 때만 (6주차 신설)
+            if (result.sentenceRuleEvidences.isNotEmpty()) {
+                Text(text = "문장 규칙 근거", style = MaterialTheme.typography.titleMedium)
+                result.sentenceRuleEvidences.forEach { ev -> EvidenceCard(ev, result.riskLevel) }
+            }
+
+            // 상황 규칙 근거 — situationalRuleEvidences 있을 때만 (6주차 신설)
+            if (result.situationalRuleEvidences.isNotEmpty()) {
+                Text(text = "상황 규칙 근거", style = MaterialTheme.typography.titleMedium)
+                result.situationalRuleEvidences.forEach { ev -> EvidenceCard(ev, result.riskLevel) }
+            }
+
+            // AI 보조분석 결과 — aiSummary 있을 때만(2차 escalateToAI 병합 완료된 경우, 6주차 신설)
+            if (result.aiSummary != null) {
+                Text(text = "AI 보조분석 결과", style = MaterialTheme.typography.titleMedium)
+                SafeLinkCard {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (result.aiDetectedPattern != null) {
+                            Text(
+                                text = result.aiDetectedPattern,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = result.riskLevel.color()
+                            )
+                        }
+                        Text(
+                            text = result.aiSummary,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             // 추천 기관 — 즉시 대응기관/추가 지원기관 2단 (RecommendedInstitutionUi.group 기준)
             if (result.recommendedInstitutions.isNotEmpty()) {
                 val (immediate, additional) = result.recommendedInstitutions
@@ -329,6 +364,36 @@ private fun riskLevelDescription(level: RiskLevel): String = when (level) {
     RiskLevel.CRITICAL -> "앱 설치, 인증정보 제공, 송금 요청은 진행하지 마세요."
 }
 
+/**
+ * 문장 규칙/상황 규칙 근거 카드 (6주차 신설) — 기존 키워드 "분석 근거" 카드(좌측 컬러바 +
+ * 텍스트)와 동일한 스타일로 맞춤. AnalysisEvidence.label이 설명, .detail이 매칭된 문구/판정
+ * 조건이라 순서를 label 먼저, detail을 부가 설명으로 배치했다 (matchedKeyword 카드와 반대 —
+ * 거긴 매칭 문구가 먼저였는데, 근거 콤보는 매칭된 "문구" 하나가 아니라 "조건 설명"이 핵심이라
+ * label을 먼저 보여주는 게 더 자연스럽다고 판단).
+ */
+@Composable
+private fun EvidenceCard(evidence: AnalysisEvidence, riskLevel: RiskLevel) {
+    SafeLinkCard {
+        Row {
+            Spacer(
+                modifier = Modifier
+                    .width(4.dp)
+                    .height(48.dp)
+                    .background(riskLevel.color(), RoundedCornerShape(2.dp))
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(text = evidence.label, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    text = evidence.detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun RecommendedInstitutionCard(inst: RecommendedInstitutionUi) {
     SafeLinkCard {
@@ -383,6 +448,18 @@ private fun DetectionResultPreviewCaution() {
     SafeLinkTheme {
         DetectionResultContent(
             result = DetectionResultDummyData.glCaution,
+            sourceLabel = "텍스트 입력",
+            onBack = {}, onGuideClick = {}, onSupportClick = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "문장·상황·AI 근거 미리보기 (6주차 신설 섹션 확인용)")
+@Composable
+private fun DetectionResultPreviewEvidenceShowcase() {
+    SafeLinkTheme {
+        DetectionResultContent(
+            result = DetectionResultDummyData.evidenceShowcase,
             sourceLabel = "텍스트 입력",
             onBack = {}, onGuideClick = {}, onSupportClick = {}
         )
