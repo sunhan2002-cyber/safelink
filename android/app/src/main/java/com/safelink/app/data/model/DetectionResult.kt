@@ -30,9 +30,13 @@ data class DetectionResult(
     // 온디바이스 분석만 끝난 상태에서는 항상 null — 기존 더미데이터/화면 코드는 그대로 동작함.
     val aiSummary: String? = null,          // API 응답의 context_analysis_summary
     val aiDetectedPattern: String? = null,  // API 응답의 context_detected_pattern
-    // 결과 화면에 "왜 이 점수가 나왔는지" 보여줄 근거 목록 (5주차 신설 - 김우영 문구 작업용).
+    // 결과 화면에 "왜 이 점수가 나왔는지" 보여줄 근거 — 문장 규칙/상황 규칙 근거를 전용
+    // 필드로 직접 분리했다(6주차, 김선한/신기훈 리뷰 반영: 태그로 섞인 단일 리스트는 화면에서
+    // 매번 필터링해야 해서 "전용 구조"로 약하다는 지적). 키워드 근거는 matchedKeywords, AI
+    // 근거는 aiSummary/aiDetectedPattern을 그대로 쓴다 — 이미 전용 필드가 있어서 안 만듦.
     // 기본값 emptyList()라 기존 더미데이터/화면 코드는 그대로 동작함. AnalysisEvidence.kt 참고.
-    val evidences: List<AnalysisEvidence> = emptyList()
+    val sentenceRuleEvidences: List<AnalysisEvidence> = emptyList(),      // 문장 규칙 근거 (regex-complex, numeric_ratio_pattern)
+    val situationalRuleEvidences: List<AnalysisEvidence> = emptyList()   // 상황 규칙 근거 (repeat_pattern, long_session_pattern)
 ) {
     /** 위험 없음(SAFE, 매칭 0건) 여부 — "위험한 표현이 감지되지 않았습니다" 문구 표시 조건 */
     val isSafeAndEmpty: Boolean get() = matchedKeywords.isEmpty()

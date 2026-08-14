@@ -76,7 +76,7 @@ class DetectionEngine(
             ?.key ?: ""
 
         val recommendedInstitutions = resolveInstitutions(rawMatches, comboIds, score)
-        val evidences = buildEvidences(rawMatches, suppressed, comboIds)
+        val (sentenceRuleEvidences, situationalRuleEvidences) = buildRuleEvidences(rawMatches, suppressed, comboIds)
 
         return DetectionResult(
             riskLevel = riskLevel,
@@ -86,7 +86,8 @@ class DetectionEngine(
             matchedKeywords = matchedKeywords,
             recommendedInstitutions = recommendedInstitutions,
             appliedComboIds = comboIds,
-            evidences = evidences
+            sentenceRuleEvidences = sentenceRuleEvidences,
+            situationalRuleEvidences = situationalRuleEvidences
         )
     }
 
@@ -496,21 +497,15 @@ class DetectionEngine(
     fun mergeAiResponse(original: DetectionResult, response: AnalyzeResponseDto): DetectionResult {
         val adjustedScore = (original.score + response.contextScoreAdjustment).toInt().coerceIn(0, 100)
 
-        // AI 근거는 온디바이스 근거(evidences) 뒤에 이어붙인다 - 화면에서 "키워드/문장 규칙/
-        // 상황 규칙 근거를 먼저 보여주고 AI 보조분석 근거는 마지막에" 순서로 자연스럽게 나열 가능.
-        val aiEvidence = AnalysisEvidence(
-            source = AnalysisEvidence.SOURCE_AI,
-            label = response.contextDetectedPattern ?: "AI 보조분석 결과",
-            detail = response.contextAnalysisSummary
-        )
-
+        // AI 근거는 sentenceRuleEvidences/situationalRuleEvidences에 안 섞는다 - AI 보조분석
+        // 근거는 이미 aiSummary/aiDetectedPattern이라는 전용 필드가 있다(6주차 구조 개선,
+        // AnalysisEvidence.kt 참고). 문장/상황 규칙 근거는 온디바이스 analyze() 결과 그대로 유지.
         return original.copy(
             score = adjustedScore,
             riskLevel = RiskLevel.fromScore(adjustedScore),
             recommendedInstitutions = mergeInstitutions(original.recommendedInstitutions, response),
             aiSummary = response.contextAnalysisSummary,
-            aiDetectedPattern = response.contextDetectedPattern,
-            evidences = original.evidences + aiEvidence
+            aiDetectedPattern = response.contextDetectedPattern
         )
     }
 
@@ -548,46 +543,40 @@ class DetectionEngine(
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // 6. 분석 근거 정리 (5주차 신설 - 결과 화면에 "왜 이 점수인지" 넘길 데이터, AnalysisEvidence 참고)
+    // 6. 분석 근거 정리 (5주차 신설, 6주차 구조 개선 - 결과 화면에 "왜 이 점수인지" 넘길
+    //    데이터를 문장 규칙/상황 규칙 전용 필드로 직접 분리. AnalysisEvidence 참고.)
     //
-    // rawMatches -> 키워드/문장 규칙 근거 (match_type 기준), comboIds -> 키워드조합/문장규칙/
-    // 상황규칙 근거 (combo type 기준). AI 근거는 여기서 안 만듦 - analyze() 시점엔 AI 응답이
-    // 아직 없으므로, mergeAiResponse()가 응답을 병합할 때 AI 근거를 별도로 추가한다.
+    // 키워드 매칭(match_type: keyword/regex-simple)과 키워드 co-occurrence 콤보(general/
+    // specific)는 여기서 안 다룬다 - matchedKeywords/appliedComboIds가 이미 그 근거다.
+    // 여기서는 "문장 규칙"(regex-complex 매칭, numeric_ratio_pattern 콤보)과 "상황 규칙"
+    // (repeat_pattern/long_session_pattern 콤보)만 뽑아서 전용 리스트 2개로 분리한다.
+    // AI 근거는 여기서 안 만듦 - aiSummary/aiDetectedPattern이 이미 전용 필드다.
     // ─────────────────────────────────────────────────────────────────
 
-    private fun buildEvidences(
+    private fun buildRuleEvidences(
         rawMatches: List<RawMatch>,
         suppressed: Set<RawMatch>,
         comboIds: List<String>
-    ): List<AnalysisEvidence> {
-        val keywordEvidences = rawMatches
+    ): Pair<List<AnalysisEvidence>, List<AnalysisEvidence>> {
+        val sentenceRuleFromKeywords = rawMatches
             .filterNot { it in suppressed }
+            .filter { it.entry.matchType == "regex-complex" }
             .distinctBy { it.entry.id }
-            .map { m ->
-                val source = if (m.entry.matchType == "regex-complex") {
-                    AnalysisEvidence.SOURCE_SENTENCE_RULE
-                } else {
-                    AnalysisEvidence.SOURCE_KEYWORD
-                }
-                AnalysisEvidence(source = source, label = m.entry.description, detail = m.matchedText)
+            .map { m -> AnalysisEvidence(label = m.entry.description, detail = m.matchedText) }
+
+        val triggeredRules = comboIds.mapNotNull { id -> keywordData.comboBonusRules.firstOrNull { it.id == id } }
+
+        val sentenceRuleFromCombos = triggeredRules
+            .filter { it.type == "numeric_ratio_pattern" }
+            .map { rule -> AnalysisEvidence(label = "비정상적인 수치 변화 감지", detail = rule.condition) }
+
+        val situationalRuleEvidences = triggeredRules
+            .filter { it.type == "repeat_pattern" || it.type == "long_session_pattern" }
+            .map { rule ->
+                val label = if (rule.type == "repeat_pattern") "반복되는 위험 신호 감지" else "장기간에 걸친 위험 신호 감지"
+                AnalysisEvidence(label = label, detail = rule.condition)
             }
 
-        val comboEvidences = comboIds.mapNotNull { id ->
-            val rule = keywordData.comboBonusRules.firstOrNull { it.id == id } ?: return@mapNotNull null
-            val source = when (rule.type) {
-                "repeat_pattern", "long_session_pattern" -> AnalysisEvidence.SOURCE_SITUATIONAL_RULE
-                "numeric_ratio_pattern" -> AnalysisEvidence.SOURCE_SENTENCE_RULE
-                else -> AnalysisEvidence.SOURCE_KEYWORD // general/specific - 여러 키워드 co-occurrence 조합
-            }
-            val label = when (rule.type) {
-                "repeat_pattern" -> "반복되는 위험 신호 감지"
-                "long_session_pattern" -> "장기간에 걸친 위험 신호 감지"
-                "numeric_ratio_pattern" -> "비정상적인 수치 변화 감지"
-                else -> "여러 위험 신호가 함께 감지됨"
-            }
-            AnalysisEvidence(source = source, label = label, detail = rule.condition)
-        }
-
-        return keywordEvidences + comboEvidences
+        return (sentenceRuleFromKeywords + sentenceRuleFromCombos) to situationalRuleEvidences
     }
 }
