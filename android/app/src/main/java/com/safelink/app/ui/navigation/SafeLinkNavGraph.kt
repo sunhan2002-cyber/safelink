@@ -76,7 +76,7 @@ fun SafeLinkNavGraph(
             val levelName = entry.arguments?.getString(Screen.ResponseGuide.ARG_RISK_LEVEL)
             val level = levelName?.let { runCatching { RiskLevel.valueOf(it) }.getOrNull() }
                 ?: RiskLevel.CAUTION
-            ResponseGuideScreen(navController, level)
+            ResponseGuideScreen(navController, level, detectionViewModel)
         }
 
         composable(

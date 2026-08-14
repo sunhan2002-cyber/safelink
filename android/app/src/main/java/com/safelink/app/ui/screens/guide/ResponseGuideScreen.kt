@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.background.BackgroundDetectionState
 import com.safelink.app.background.BackgroundDetectionSnapshot
+import com.safelink.app.ui.screens.detection.DetectionViewModel
 import com.safelink.app.data.model.RiskLevel
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkOutlinedButton
@@ -41,7 +42,11 @@ import com.safelink.app.ui.theme.BrandBlueDark
 import com.safelink.app.ui.theme.RiskCritical
 
 @Composable
-fun ResponseGuideScreen(navController: NavHostController, riskLevel: RiskLevel) {
+fun ResponseGuideScreen(
+    navController: NavHostController,
+    riskLevel: RiskLevel,
+    detectionViewModel: DetectionViewModel
+) {
     val backgroundSnapshot by BackgroundDetectionState.latestSnapshot.collectAsState()
     val matchedBackgroundSnapshot = backgroundSnapshot?.takeIf { it.riskLevel == riskLevel }
 
@@ -125,6 +130,15 @@ fun ResponseGuideScreen(navController: NavHostController, riskLevel: RiskLevel) 
                         )
                     }
                 }
+                // 백그라운드 감지 → 전체 분석 결과(점수·유형·근거·기관)로 이어보기 (결과 화면 데이터 흐름)
+                SafeLinkOutlinedButton(
+                    text = "분석 결과 자세히 보기",
+                    onClick = {
+                        if (detectionViewModel.loadBackgroundResult()) {
+                            navController.navigate(Screen.DetectionResult.route)
+                        }
+                    }
+                )
             }
 
             Text(text = "지금 해야 할 행동", style = MaterialTheme.typography.titleMedium)

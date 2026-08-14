@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +39,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import com.safelink.app.background.MessageDetectionService
+import com.safelink.app.settings.FeatureToggleState
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkTopBar
 import com.safelink.app.ui.navigation.Screen
@@ -50,7 +52,8 @@ fun SettingsScreen(navController: NavHostController) {
     val lifecycleOwner = LocalLifecycleOwner.current
     var appLock by remember { mutableStateOf(false) }
     var biometric by remember { mutableStateOf(false) }
-    var screenshotAnalysis by remember { mutableStateOf(true) }
+    // 스크린샷 분석 사용 — 앱 레벨 토글(FeatureToggleState)에 연결해 실제 기능(스크린샷 탭)을 제어
+    val screenshotAnalysis by FeatureToggleState.screenshotAnalysisEnabled.collectAsState()
     var backgroundDetection by remember { mutableStateOf(isBackgroundDetectionEnabled(context)) }
     // 백그라운드 감지 켜기 전 동의·권한 안내 다이얼로그 (최종 가이드 v1.0)
     var showBackgroundConsent by remember { mutableStateOf(false) }
@@ -133,9 +136,9 @@ fun SettingsScreen(navController: NavHostController) {
             SafeLinkCard {
                 ToggleRow(
                     label = "스크린샷 분석 사용",
-                    caption = "갤러리에서 선택한 대화 스크린샷을 분석할 수 있어요",
+                    caption = "끄면 대화 분석에서 스크린샷 탭이 숨겨지고 텍스트 입력만 사용합니다.",
                     checked = screenshotAnalysis,
-                    onChange = { screenshotAnalysis = it }
+                    onChange = { FeatureToggleState.setScreenshotAnalysisEnabled(it) }
                 )
                 ToggleRow(
                     label = "백그라운드 감지 설정",
