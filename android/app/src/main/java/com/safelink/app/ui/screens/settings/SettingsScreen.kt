@@ -1,5 +1,7 @@
 package com.safelink.app.ui.screens.settings
 
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.clickable
@@ -22,6 +24,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,7 +33,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
+import com.safelink.app.background.MessageDetectionService
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkTopBar
 import com.safelink.app.ui.navigation.Screen
@@ -40,12 +47,23 @@ import com.safelink.app.ui.theme.RiskCritical
 @Composable
 fun SettingsScreen(navController: NavHostController) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     var appLock by remember { mutableStateOf(false) }
     var biometric by remember { mutableStateOf(false) }
     var screenshotAnalysis by remember { mutableStateOf(true) }
-    var backgroundDetection by remember { mutableStateOf(false) }
+    var backgroundDetection by remember { mutableStateOf(isBackgroundDetectionEnabled(context)) }
     // 백그라운드 감지 켜기 전 동의·권한 안내 다이얼로그 (최종 가이드 v1.0)
     var showBackgroundConsent by remember { mutableStateOf(false) }
+
+    DisposableEffect(context, lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                backgroundDetection = isBackgroundDetectionEnabled(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     if (showBackgroundConsent) {
         AlertDialog(
@@ -125,7 +143,15 @@ fun SettingsScreen(navController: NavHostController) {
                     checked = backgroundDetection,
                     onChange = { on ->
                         // 켤 때는 동의·권한 안내 먼저 (동의/권한 없이 활성화 표시 안 함)
-                        if (on) showBackgroundConsent = true else backgroundDetection = false
+                        if (on) {
+                            if (!backgroundDetection) showBackgroundConsent = true
+                        } else if (backgroundDetection) {
+                            runCatching {
+                                context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                            }
+                        } else {
+                            backgroundDetection = false
+                        }
                     }
                 )
                 LinkRow(
@@ -222,4 +248,16 @@ private fun LinkRow(label: String, caption: String? = null, onClick: () -> Unit)
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
+}
+
+private fun isBackgroundDetectionEnabled(context: Context): Boolean {
+    val enabledServices = Settings.Secure.getString(
+        context.contentResolver,
+        Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+    ) ?: return false
+
+    val serviceName = ComponentName(context, MessageDetectionService::class.java).flattenToString()
+    return enabledServices
+        .split(':')
+        .any { it.equals(serviceName, ignoreCase = true) }
 }
