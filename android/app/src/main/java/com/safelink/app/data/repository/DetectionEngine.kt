@@ -1,6 +1,7 @@
 package com.safelink.app.data.repository
 
 import com.google.gson.Gson
+import com.safelink.app.data.model.AnalysisEvidence
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.model.MatchedKeyword
 import com.safelink.app.data.model.RecommendedInstitutionUi
@@ -75,6 +76,7 @@ class DetectionEngine(
             ?.key ?: ""
 
         val recommendedInstitutions = resolveInstitutions(rawMatches, comboIds, score)
+        val evidences = buildEvidences(rawMatches, suppressed, comboIds)
 
         return DetectionResult(
             riskLevel = riskLevel,
@@ -83,7 +85,8 @@ class DetectionEngine(
             originalText = originalText,
             matchedKeywords = matchedKeywords,
             recommendedInstitutions = recommendedInstitutions,
-            appliedComboIds = comboIds
+            appliedComboIds = comboIds,
+            evidences = evidences
         )
     }
 
@@ -493,12 +496,21 @@ class DetectionEngine(
     fun mergeAiResponse(original: DetectionResult, response: AnalyzeResponseDto): DetectionResult {
         val adjustedScore = (original.score + response.contextScoreAdjustment).toInt().coerceIn(0, 100)
 
+        // AI 근거는 온디바이스 근거(evidences) 뒤에 이어붙인다 - 화면에서 "키워드/문장 규칙/
+        // 상황 규칙 근거를 먼저 보여주고 AI 보조분석 근거는 마지막에" 순서로 자연스럽게 나열 가능.
+        val aiEvidence = AnalysisEvidence(
+            source = AnalysisEvidence.SOURCE_AI,
+            label = response.contextDetectedPattern ?: "AI 보조분석 결과",
+            detail = response.contextAnalysisSummary
+        )
+
         return original.copy(
             score = adjustedScore,
             riskLevel = RiskLevel.fromScore(adjustedScore),
             recommendedInstitutions = mergeInstitutions(original.recommendedInstitutions, response),
             aiSummary = response.contextAnalysisSummary,
-            aiDetectedPattern = response.contextDetectedPattern
+            aiDetectedPattern = response.contextDetectedPattern,
+            evidences = original.evidences + aiEvidence
         )
     }
 
@@ -533,5 +545,49 @@ class DetectionEngine(
         return (onDevice + fromServer)
             .distinctBy { it.institutionId } // 온디바이스가 먼저 오므로 겹치면 온디바이스 쪽 유지
             .mapIndexed { index, ui -> ui.copy(rank = index + 1) }
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // 6. 분석 근거 정리 (5주차 신설 - 결과 화면에 "왜 이 점수인지" 넘길 데이터, AnalysisEvidence 참고)
+    //
+    // rawMatches -> 키워드/문장 규칙 근거 (match_type 기준), comboIds -> 키워드조합/문장규칙/
+    // 상황규칙 근거 (combo type 기준). AI 근거는 여기서 안 만듦 - analyze() 시점엔 AI 응답이
+    // 아직 없으므로, mergeAiResponse()가 응답을 병합할 때 AI 근거를 별도로 추가한다.
+    // ─────────────────────────────────────────────────────────────────
+
+    private fun buildEvidences(
+        rawMatches: List<RawMatch>,
+        suppressed: Set<RawMatch>,
+        comboIds: List<String>
+    ): List<AnalysisEvidence> {
+        val keywordEvidences = rawMatches
+            .filterNot { it in suppressed }
+            .distinctBy { it.entry.id }
+            .map { m ->
+                val source = if (m.entry.matchType == "regex-complex") {
+                    AnalysisEvidence.SOURCE_SENTENCE_RULE
+                } else {
+                    AnalysisEvidence.SOURCE_KEYWORD
+                }
+                AnalysisEvidence(source = source, label = m.entry.description, detail = m.matchedText)
+            }
+
+        val comboEvidences = comboIds.mapNotNull { id ->
+            val rule = keywordData.comboBonusRules.firstOrNull { it.id == id } ?: return@mapNotNull null
+            val source = when (rule.type) {
+                "repeat_pattern", "long_session_pattern" -> AnalysisEvidence.SOURCE_SITUATIONAL_RULE
+                "numeric_ratio_pattern" -> AnalysisEvidence.SOURCE_SENTENCE_RULE
+                else -> AnalysisEvidence.SOURCE_KEYWORD // general/specific - 여러 키워드 co-occurrence 조합
+            }
+            val label = when (rule.type) {
+                "repeat_pattern" -> "반복되는 위험 신호 감지"
+                "long_session_pattern" -> "장기간에 걸친 위험 신호 감지"
+                "numeric_ratio_pattern" -> "비정상적인 수치 변화 감지"
+                else -> "여러 위험 신호가 함께 감지됨"
+            }
+            AnalysisEvidence(source = source, label = label, detail = rule.condition)
+        }
+
+        return keywordEvidences + comboEvidences
     }
 }

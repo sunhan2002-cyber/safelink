@@ -30,7 +30,18 @@ object DetectionResultDummyData {
             RecommendedInstitutionUi("GOV-FSS", "금융감독원 (금융사기대응단)", "1332", 2, "기관사칭 및 금융사기 가능성에 대한 피해 상담과 지급정지 안내 가능", "기관사칭", "긴급대응"),
             RecommendedInstitutionUi("GOV-PIPC", "개인정보보호위원회", "118", 3, "명의도용 및 개인정보 탈취 우려에 대한 신고 가능", "개인정보탈취", "긴급대응")
         ),
-        appliedComboIds = listOf("COMBO-GENERAL-3CAT")
+        appliedComboIds = listOf("COMBO-GENERAL-3CAT"),
+        // matchedKeywords/appliedComboIds에서 그대로 파생 (5주차 신설 - AnalysisEvidence 참고).
+        // 이 시나리오는 전부 키워드 매칭 기반이라 SOURCE_KEYWORD만 등장 - 문장 규칙/상황 규칙/
+        // AI 근거 미리보기는 신기훈 5주차 결과물 01번 문서의 실제 검증된 예시 문장 참고.
+        evidences = listOf(
+            AnalysisEvidence(AnalysisEvidence.SOURCE_KEYWORD, "택배기사 사칭 접근", "택배기사"),
+            AnalysisEvidence(AnalysisEvidence.SOURCE_KEYWORD, "택배기사 사칭 접근", "배송 중"),
+            AnalysisEvidence(AnalysisEvidence.SOURCE_KEYWORD, "명의도용 우려 고지", "명의 도용 우려"),
+            AnalysisEvidence(AnalysisEvidence.SOURCE_KEYWORD, "긴급성 압박", "지금 당장"),
+            AnalysisEvidence(AnalysisEvidence.SOURCE_KEYWORD, "법적 위협", "압류"),
+            AnalysisEvidence(AnalysisEvidence.SOURCE_KEYWORD, "여러 위험 신호가 함께 감지됨", "같은 대분류 내 서로 다른 중분류 3개 이상이 최근 10턴 이내 동시 감지")
+        )
     )
 
     val rsWarning = DetectionResult(
@@ -53,7 +64,14 @@ object DetectionResultDummyData {
             RecommendedInstitutionUi("PUB-MENTALHEALTH", "한국심리학회·지역 정신건강복지센터", "지역별 센터", 2, "심리적 조작·가스라이팅 전문 상담 및 정신건강 지원", "심리조작", "상담"),
             RecommendedInstitutionUi("PUB-WOMEN1366", "여성가족부·한국여성인권진흥원", "1366", 3, "관계 내 조작·통제 피해자 상담 및 보호", "심리조작", "상담")
         ),
-        appliedComboIds = listOf("COMBO-GENERAL-3CAT")
+        appliedComboIds = listOf("COMBO-GENERAL-3CAT"),
+        evidences = listOf(
+            AnalysisEvidence(AnalysisEvidence.SOURCE_KEYWORD, "그럴듯한 국내형 직업 설정", "지방 파견"),
+            AnalysisEvidence(AnalysisEvidence.SOURCE_KEYWORD, "직업 설정", "무역회사 대표"),
+            AnalysisEvidence(AnalysisEvidence.SOURCE_KEYWORD, "급속 애정 표현", "진심으로 마음이 가요"),
+            AnalysisEvidence(AnalysisEvidence.SOURCE_KEYWORD, "비밀 유지 요구", "아무한테도 말하지 말아주세요"),
+            AnalysisEvidence(AnalysisEvidence.SOURCE_KEYWORD, "여러 위험 신호가 함께 감지됨", "같은 대분류 내 서로 다른 중분류 3개 이상이 최근 10턴 이내 동시 감지")
+        )
     )
 
     val glCaution = DetectionResult(
@@ -69,7 +87,11 @@ object DetectionResultDummyData {
         // 조합보너스(3개 이상 필요)도 발동 안 함 + 세션 점수 24점은 아직 "낮음" 구간 →
         // 추천 기관 없음(빈 리스트)이 정상 동작. UI에서 "추천 기관 없음" 상태 테스트용.
         recommendedInstitutions = emptyList(),
-        appliedComboIds = emptyList()
+        appliedComboIds = emptyList(),
+        evidences = listOf(
+            AnalysisEvidence(AnalysisEvidence.SOURCE_KEYWORD, "기억 부정", "내가 언제 그렇게 말했어"),
+            AnalysisEvidence(AnalysisEvidence.SOURCE_KEYWORD, "죄책감 유도", "다 너를 위해서 하는 말이야")
+        )
     )
 
     /** 위험 없음(SAFE) 상태 — "위험한 표현이 감지되지 않았습니다" 문구 테스트용 */
