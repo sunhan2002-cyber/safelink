@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -73,6 +74,7 @@ fun DetectionResultScreen(
     DetectionResultContent(
         result = result,
         sourceLabel = viewModel.lastAnalysisSource.label,
+        isEscalatingToAI = viewModel.isEscalatingToAI,
         onBack = { navController.popBackStack() },
         onGuideClick = { navController.navigate(Screen.ResponseGuide.createRoute(result.riskLevel)) },
         onSupportClick = { navController.navigate(Screen.SupportMatch.route) },
@@ -92,6 +94,7 @@ fun DetectionResultScreen(
 private fun DetectionResultContent(
     result: DetectionResult,
     sourceLabel: String,
+    isEscalatingToAI: Boolean = false,
     onBack: () -> Unit,
     onGuideClick: () -> Unit,
     onSupportClick: () -> Unit,
@@ -238,24 +241,40 @@ private fun DetectionResultContent(
                 result.situationalRuleEvidences.forEach { ev -> EvidenceCard(ev, result.riskLevel) }
             }
 
-            // AI 보조분석 결과 — aiSummary 있을 때만(2차 escalateToAI 병합 완료된 경우, 6주차 신설)
-            if (result.aiSummary != null) {
-                Text(text = "AI 보조분석 결과", style = MaterialTheme.typography.titleMedium)
+            // AI 보조 분석 — 2차 AI 분석(escalateToAI)이 실행됐거나 진행 중일 때만 (김재겸 8/14
+            // 추가과제 item5 병합: 로딩 상태 표시 + 빈 문자열 안전 처리를 그대로 가져옴).
+            // 순서: 문장 규칙 근거 → 상황 규칙 근거 → AI 보조 분석 (위 두 섹션 기준으로 확정).
+            if (isEscalatingToAI || result.aiSummary != null || result.aiDetectedPattern != null) {
+                Text(text = "AI 보조 분석", style = MaterialTheme.typography.titleMedium)
                 SafeLinkCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        if (result.aiDetectedPattern != null) {
+                    if (result.aiSummary == null && result.aiDetectedPattern == null) {
+                        // 온디바이스 결과는 이미 위에 표시됨 — AI 응답은 도착하는 대로 이 카드에 채워진다
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
                             Text(
-                                text = result.aiDetectedPattern,
+                                text = "정밀 분석을 진행하고 있어요. 잠시 후 결과가 더해집니다.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        result.aiDetectedPattern?.takeIf { it.isNotBlank() }?.let { pattern ->
+                            Text(
+                                text = "감지된 맥락: $pattern",
                                 style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
                                 color = result.riskLevel.color()
                             )
                         }
-                        Text(
-                            text = result.aiSummary,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        result.aiSummary?.takeIf { it.isNotBlank() }?.let { summary ->
+                            Text(
+                                text = summary,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                 }
             }
