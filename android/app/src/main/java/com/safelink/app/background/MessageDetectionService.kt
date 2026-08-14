@@ -56,10 +56,15 @@ class MessageDetectionService : AccessibilityService() {
 
         // 기존 온디바이스 엔진 재사용 — 실제 감지/분석은 여기서 일어난다
         val result = repository.analyze(text)
+        BackgroundDetectionState.update(result, sourceApp = pkg)
 
         // 알림 흐름: 경고(WARNING) 이상일 때만 배너 알림
         if (result.riskLevel.ordinal >= RiskLevel.WARNING.ordinal) {
-            notifier.notifyRisk(result.riskLevel, result.category)
+            notifier.notifyRisk(
+                result.riskLevel,
+                result.category,
+                result.matchedKeywords.firstOrNull()?.matchedText
+            )
         }
     }
 
