@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -72,6 +73,7 @@ fun DetectionResultScreen(
     DetectionResultContent(
         result = result,
         sourceLabel = viewModel.lastAnalysisSource.label,
+        isEscalatingToAI = viewModel.isEscalatingToAI,
         onBack = { navController.popBackStack() },
         onGuideClick = { navController.navigate(Screen.ResponseGuide.createRoute(result.riskLevel)) },
         onSupportClick = { navController.navigate(Screen.SupportMatch.route) },
@@ -91,6 +93,7 @@ fun DetectionResultScreen(
 private fun DetectionResultContent(
     result: DetectionResult,
     sourceLabel: String,
+    isEscalatingToAI: Boolean = false,
     onBack: () -> Unit,
     onGuideClick: () -> Unit,
     onSupportClick: () -> Unit,
@@ -220,6 +223,44 @@ private fun DetectionResultContent(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+                        }
+                    }
+                }
+            }
+
+            // AI 보조 분석 근거 — 2차 AI 분석(escalateToAI)이 실행됐거나 진행 중일 때만 (신기훈 로직 연동).
+            // ※ 분석 근거 영역은 "문장 규칙 근거(matchedKeywords, 위) → 상황 규칙 근거(향후) → AI 보조 분석(아래)"
+            //   순서로 확장할 수 있게 열어둔다. 신기훈 상황 규칙 근거/김우영 문구가 확정되면 이 사이에 카드를 추가.
+            if (isEscalatingToAI || result.aiSummary != null || result.aiDetectedPattern != null) {
+                Text(text = "AI 보조 분석", style = MaterialTheme.typography.titleMedium)
+                SafeLinkCard {
+                    if (result.aiSummary == null && result.aiDetectedPattern == null) {
+                        // 온디바이스 결과는 이미 위에 표시됨 — AI 응답은 도착하는 대로 이 카드에 채워진다
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "정밀 분석을 진행하고 있어요. 잠시 후 결과가 더해집니다.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        result.aiDetectedPattern?.takeIf { it.isNotBlank() }?.let { pattern ->
+                            Text(
+                                text = "감지된 맥락: $pattern",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = result.riskLevel.color()
+                            )
+                        }
+                        result.aiSummary?.takeIf { it.isNotBlank() }?.let { summary ->
+                            Text(
+                                text = summary,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         }
                     }
                 }
