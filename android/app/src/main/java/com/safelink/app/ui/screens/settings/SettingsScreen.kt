@@ -17,7 +17,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -33,12 +35,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import com.safelink.app.background.MessageDetectionService
+import com.safelink.app.security.AppLockManager
 import com.safelink.app.settings.FeatureToggleState
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkTopBar
@@ -50,7 +55,9 @@ import com.safelink.app.ui.theme.RiskCritical
 fun SettingsScreen(navController: NavHostController) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    var appLock by remember { mutableStateOf(false) }
+    var appLock by remember { mutableStateOf(AppLockManager.isEnabled(context)) }
+    var showPinDialog by remember { mutableStateOf(false) }
+    var pinInput by remember { mutableStateOf("") }
     var biometric by remember { mutableStateOf(false) }
     // 스크린샷 분석 사용 — 앱 레벨 토글(FeatureToggleState)에 연결해 실제 기능(스크린샷 탭)을 제어
     val screenshotAnalysis by FeatureToggleState.screenshotAnalysisEnabled.collectAsState()
@@ -94,6 +101,39 @@ fun SettingsScreen(navController: NavHostController) {
         )
     }
 
+    if (showPinDialog) {
+        AlertDialog(
+            onDismissRequest = { showPinDialog = false; pinInput = "" },
+            title = { Text(if (appLock) "PIN 변경" else "앱 잠금 PIN 설정") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("앱을 열 때 입력할 4자리 PIN을 설정하세요.")
+                    OutlinedTextField(
+                        value = pinInput,
+                        onValueChange = { if (it.length <= 4 && it.all(Char::isDigit)) pinInput = it },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = pinInput.length == 4,
+                    onClick = {
+                        AppLockManager.setPin(context, pinInput)
+                        appLock = true
+                        pinInput = ""
+                        showPinDialog = false
+                    }
+                ) { Text("저장") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPinDialog = false; pinInput = "" }) { Text("취소") }
+            }
+        )
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(title = "설정")
 
@@ -105,14 +145,31 @@ fun SettingsScreen(navController: NavHostController) {
         ) {
             SectionLabel("보안")
             SafeLinkCard {
-                ToggleRow(label = "앱 잠금", checked = appLock, onChange = { appLock = it })
+                ToggleRow(
+                    label = "앱 잠금",
+                    caption = "앱을 열 때 4자리 PIN을 입력해야 합니다.",
+                    checked = appLock,
+                    onChange = { on ->
+                        if (on) {
+                            showPinDialog = true // PIN 설정을 마쳐야 실제로 켜진다
+                        } else {
+                            AppLockManager.disable(context)
+                            appLock = false
+                        }
+                    }
+                )
                 ToggleRow(
                     label = "생체인증 사용",
                     caption = "지문 또는 얼굴 인식으로 잠금 해제",
                     checked = biometric,
                     onChange = { biometric = it }
                 )
-                LinkRow(label = "PIN 변경") { /* TODO: PIN 변경 흐름 (Task 5.12) */ }
+                LinkRow(
+                    label = "PIN 변경",
+                    caption = if (appLock) "저장된 PIN을 새로 설정합니다" else "앱 잠금을 먼저 켜 주세요"
+                ) {
+                    if (appLock) showPinDialog = true
+                }
             }
 
             SectionLabel("긴급 연락처")

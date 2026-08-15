@@ -16,17 +16,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.safelink.app.security.AppLockManager
 import com.safelink.app.ui.navigation.Screen
 import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(navController: NavHostController) {
-    // TODO: 첫 실행 여부(온보딩), 잠금 설정 여부(LockScreen) 분기 — Sprint 5 (Tasks 5.10~5.14)
+    val context = LocalContext.current
+    // 앱 잠금이 켜져 있으면 잠금 화면부터, 아니면 홈으로 (TODO: 온보딩 최초 실행 분기)
     LaunchedEffect(Unit) {
         delay(1500)
-        navController.navigate(Screen.Home.route) {
+        val destination = if (AppLockManager.isEnabled(context)) Screen.Lock.route else Screen.Home.route
+        navController.navigate(destination) {
             popUpTo(Screen.Splash.route) { inclusive = true }
         }
     }

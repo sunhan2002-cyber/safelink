@@ -27,22 +27,34 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.safelink.app.security.AppLockManager
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.BrandBlueLight
+import com.safelink.app.ui.theme.RiskCritical
 
-/** PIN 입력 잠금 화면 — UI 뼈대. 실제 PIN 검증·차단 로직은 Tasks 5.11~5.12 */
+/** PIN 입력 잠금 화면 — 저장된 PIN(SHA-256)과 비교해 일치할 때만 홈으로 진입. */
 @Composable
 fun LockScreen(navController: NavHostController) {
+    val context = LocalContext.current
     var pin by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf(false) }
 
-    // TODO: SHA-256 해시 비교 (Task 5.12). 지금은 4자리 입력 시 통과.
+    // 4자리가 모이면 저장된 PIN과 대조 — 일치 시 홈, 불일치 시 오류 표시 후 초기화
     LaunchedEffect(pin) {
         if (pin.length == 4) {
-            navController.navigate(Screen.Home.route) {
-                popUpTo(Screen.Lock.route) { inclusive = true }
+            if (AppLockManager.verify(context, pin)) {
+                navController.navigate(Screen.Home.route) {
+                    popUpTo(Screen.Lock.route) { inclusive = true }
+                }
+            } else {
+                error = true
+                pin = ""
             }
+        } else if (pin.isNotEmpty()) {
+            error = false
         }
     }
 
@@ -76,7 +88,15 @@ fun LockScreen(navController: NavHostController) {
                 )
             }
         }
-        // TODO: 오류 시 도트 흔들림 + "PIN이 일치하지 않습니다 (n/5회)", 5회 오류 30초 차단
+        if (error) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "PIN이 일치하지 않습니다. 다시 입력해 주세요.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = RiskCritical
+            )
+        }
+        // TODO: 5회 오류 시 30초 차단(Task 5.12)
 
         Spacer(modifier = Modifier.weight(1f))
 
