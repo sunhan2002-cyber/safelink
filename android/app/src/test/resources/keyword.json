@@ -1,14 +1,14 @@
 {
   "_meta": {
-    "version": "v1.2",
-    "last_updated": "2026-08-07",
+    "version": "v1.3",
+    "last_updated": "2026-08-21",
     "source_documents": [
       "safelink_scenarios_v1.md",
       "safelink_keyword_categories_v1.md",
       "safelink_risk_scoring_v1.md",
       "신규_기법_문장_수집_v1.json (4주차 확장분)"
     ],
-    "note": "1차 초안입니다. weight는 임시값이며 실사용 데이터로 튜닝이 필요합니다. v1.1: 기법 라벨 체계(URGENCY/SECRECY/... 등 23개) 기반 4주차 확장 - 17개 중분류에서 26개로 확장 (RS 2-6~2-10, GL 3-7~3-9 신설). 신설 사유·매핑 근거는 주차별_결과물/4주차_결과물_신기훈/05번 문서 참고. v1.2: 5주차 - match_type에 regex-complex 신설(숫자 캡처그룹+임계값 조건, RS-2-9-003)로 NUMERIC_PATTERN 갭 1건 해소 + combo_bonus_rules에 repeat_pattern/long_session_pattern 신설(09번 문서) + numeric_ratio_pattern 신설(COMBO-RS-NUMERIC-RATIO, 두 숫자의 증가율 계산 - NUMERIC_REASONING 갭 스트레치 대응). 신설 사유는 주차별_결과물/5주차_결과물_신기훈/ 참고.",
+    "note": "1차 초안입니다. weight는 임시값이며 실사용 데이터로 튜닝이 필요합니다. v1.1: 기법 라벨 체계(URGENCY/SECRECY/... 등 23개) 기반 4주차 확장 - 17개 중분류에서 26개로 확장 (RS 2-6~2-10, GL 3-7~3-9 신설). 신설 사유·매핑 근거는 주차별_결과물/4주차_결과물_신기훈/05번 문서 참고. v1.2: 5주차 - match_type에 regex-complex 신설(숫자 캡처그룹+임계값 조건, RS-2-9-003)로 NUMERIC_PATTERN 갭 1건 해소 + combo_bonus_rules에 repeat_pattern/long_session_pattern 신설(09번 문서) + numeric_ratio_pattern 신설(COMBO-RS-NUMERIC-RATIO, 두 숫자의 증가율 계산 - NUMERIC_REASONING 갭 스트레치 대응). 신설 사유는 주차별_결과물/5주차_결과물_신기훈/ 참고. v1.3: 7주차 - 김우영 v8.2 UI 가이드 예시 문장 10건을 실제 엔진에 테스트해서 발견한 커버리지 공백(9/10 미탐지) 중 기존 subcategory로 해결 가능한 6건 대응 - VP-1-1(정부지원금/환급 대상), VP-1-2(계좌 정지/동결), VP-1-6(APK 설치, 특정 원격제어 앱 명칭, 쿠폰/당첨 미끼) 추가. '가족사칭'/콜드아웃리치 투자사기/경품사기 3건은 새 subcategory 설계가 필요해 보류(7주차 02번 문서 참고).",
     "field_guide": {
       "id": "카테고리약어-중분류번호-일련번호 형식 (예: VP-1-1-001)",
       "category": "대분류 (보이스피싱 | 로맨스스캠 | 가스라이팅)",
@@ -40,6 +40,8 @@
     { "id": "VP-1-1-009", "category": "보이스피싱", "subcategory_id": "1-1", "subcategory": "기관사칭", "match_type": "keyword", "keyword": "수사관", "weight": 15, "repeat_decay": true, "description": "경찰/검찰 사칭", "source": "공통" },
     { "id": "VP-1-1-010", "category": "보이스피싱", "subcategory_id": "1-1", "subcategory": "기관사칭", "match_type": "regex-simple", "pattern": "(경찰서|지검|지방검찰청|금융감독원)\\s?(직원|수사관|검사)?", "weight": 15, "repeat_decay": true, "description": "기관명+직위 조합 패턴", "source": "공통" },
     { "id": "VP-1-1-011", "category": "보이스피싱", "subcategory_id": "1-1", "subcategory": "기관사칭", "match_type": "keyword", "keyword": "특례보증 대상자", "weight": 15, "repeat_decay": true, "description": "정부지원 프로그램 사칭", "source": "신규(4주차 시나리오-VP2)" },
+    { "id": "VP-1-1-012", "category": "보이스피싱", "subcategory_id": "1-1", "subcategory": "기관사칭", "match_type": "keyword", "keyword": "정부지원금", "weight": 15, "repeat_decay": true, "description": "정부지원금 사칭", "source": "신규(7주차, 김우영 v8.2 가이드 예시 G10 대응)" },
+    { "id": "VP-1-1-013", "category": "보이스피싱", "subcategory_id": "1-1", "subcategory": "기관사칭", "match_type": "keyword", "keyword": "환급 대상", "weight": 15, "repeat_decay": true, "description": "환급 명목 기관 사칭", "source": "신규(7주차, 김우영 v8.2 가이드 예시 G10 대응)" },
 
     { "id": "VP-1-2-001", "category": "보이스피싱", "subcategory_id": "1-2", "subcategory": "명의도용/사건연루 경고", "match_type": "keyword", "keyword": "명의도용", "weight": 15, "repeat_decay": true, "description": "명의도용 우려 고지", "source": "시나리오1 T3" },
     { "id": "VP-1-2-002", "category": "보이스피싱", "subcategory_id": "1-2", "subcategory": "명의도용/사건연루 경고", "match_type": "keyword", "keyword": "명의 도용 우려", "weight": 15, "repeat_decay": true, "description": "명의도용 우려 고지", "source": "시나리오1 T3" },
@@ -48,6 +50,7 @@
     { "id": "VP-1-2-005", "category": "보이스피싱", "subcategory_id": "1-2", "subcategory": "명의도용/사건연루 경고", "match_type": "keyword", "keyword": "계좌가 범죄이용계좌로 의심", "weight": 15, "repeat_decay": true, "description": "계좌 관련 사건 연루 고지", "source": "시나리오1 T5" },
     { "id": "VP-1-2-006", "category": "보이스피싱", "subcategory_id": "1-2", "subcategory": "명의도용/사건연루 경고", "match_type": "keyword", "keyword": "대포통장", "weight": 15, "repeat_decay": true, "description": "대포통장 연루 경고", "source": "신규(4주차 시나리오-VP1)" },
     { "id": "VP-1-2-007", "category": "보이스피싱", "subcategory_id": "1-2", "subcategory": "명의도용/사건연루 경고", "match_type": "keyword", "keyword": "공범으로 입건", "weight": 15, "repeat_decay": true, "description": "공범 연루 경고", "source": "신규(4주차 시나리오-VP1)" },
+    { "id": "VP-1-2-008", "category": "보이스피싱", "subcategory_id": "1-2", "subcategory": "명의도용/사건연루 경고", "match_type": "regex-simple", "pattern": "계좌.{0,5}(정지|동결|잠김)", "weight": 15, "repeat_decay": true, "description": "계좌 정지/동결 협박 - 기존 '계좌가 범죄이용계좌로 의심'과 다른 프레임(사건연루 아닌 단순 동결 협박) 대응", "source": "신규(7주차, 김우영 v8.2 가이드 예시 G01 대응)" },
 
     { "id": "VP-1-3-001", "category": "보이스피싱", "subcategory_id": "1-3", "subcategory": "제3자 연결 유도", "match_type": "keyword", "keyword": "담당자 번호 알려드릴게요", "weight": 10, "repeat_decay": true, "description": "제3자(공범) 연결 유도", "source": "시나리오1 T3" },
     { "id": "VP-1-3-002", "category": "보이스피싱", "subcategory_id": "1-3", "subcategory": "제3자 연결 유도", "match_type": "keyword", "keyword": "이 번호로 전화해보세요", "weight": 10, "repeat_decay": true, "description": "제3자(공범) 연결 유도", "source": "시나리오1 T3" },
@@ -86,6 +89,10 @@
     { "id": "VP-1-6-004", "category": "보이스피싱", "subcategory_id": "1-6", "subcategory": "악성링크/스미싱", "match_type": "regex-simple", "pattern": "https?://\\S+", "weight": 0, "structural_only": true, "repeat_decay": false, "description": "URL/단축링크 - 단독 점수 없음, combo 트리거용", "source": "업로드 사례(이미지2)" },
     { "id": "VP-1-6-005", "category": "보이스피싱", "subcategory_id": "1-6", "subcategory": "악성링크/스미싱", "match_type": "keyword", "keyword": "앱 설치", "weight": 25, "repeat_decay": true, "description": "악성 앱 설치 유도", "source": "공통" },
     { "id": "VP-1-6-006", "category": "보이스피싱", "subcategory_id": "1-6", "subcategory": "악성링크/스미싱", "match_type": "keyword", "keyword": "원격제어 앱", "weight": 25, "repeat_decay": true, "description": "악성 앱 설치 유도", "source": "공통" },
+    { "id": "VP-1-6-007", "category": "보이스피싱", "subcategory_id": "1-6", "subcategory": "악성링크/스미싱", "match_type": "regex-simple", "pattern": "(APK|apk)\\s?(파일)?\\s?를?\\s?설치", "weight": 25, "repeat_decay": true, "description": "악성 APK 설치 유도 - 기존 '앱 설치'(VP-1-6-005)와 다른 표현(APK 특화) 대응", "source": "신규(7주차, 김우영 v8.2 가이드 예시 G03 대응)" },
+    { "id": "VP-1-6-008", "category": "보이스피싱", "subcategory_id": "1-6", "subcategory": "악성링크/스미싱", "match_type": "regex-simple", "pattern": "AnyDesk|TeamViewer|팀뷰어|퀵서포트", "weight": 25, "repeat_decay": true, "description": "특정 원격제어 앱 명칭 유도 - 기존 '원격제어 앱'(VP-1-6-006, 일반 표현)과 별개로 실제 앱 이름 직접 언급 대응", "source": "신규(7주차, 김우영 v8.2 가이드 예시 G09 대응)" },
+    { "id": "VP-1-6-009", "category": "보이스피싱", "subcategory_id": "1-6", "subcategory": "악성링크/스미싱", "match_type": "keyword", "keyword": "무료 쿠폰", "weight": 25, "repeat_decay": true, "description": "스미싱 미끼 문구(쿠폰)", "source": "신규(7주차, 김우영 v8.2 가이드 예시 G07 대응)" },
+    { "id": "VP-1-6-010", "category": "보이스피싱", "subcategory_id": "1-6", "subcategory": "악성링크/스미싱", "match_type": "keyword", "keyword": "당첨을 축하합니다", "weight": 25, "repeat_decay": true, "description": "스미싱/경품사기 미끼 문구(당첨)", "source": "신규(7주차, 김우영 v8.2 가이드 예시 G08 대응)" },
 
     { "id": "RS-2-1-001", "category": "로맨스스캠", "subcategory_id": "2-1", "subcategory": "신원 설정", "match_type": "keyword", "keyword": "지방 파견", "weight": 5, "repeat_decay": true, "description": "그럴듯한 국내형 직업 설정", "source": "시나리오2 T1" },
     { "id": "RS-2-1-002", "category": "로맨스스캠", "subcategory_id": "2-1", "subcategory": "신원 설정", "match_type": "keyword", "keyword": "무역회사 대표", "weight": 5, "repeat_decay": true, "description": "직업 설정", "source": "시나리오2 T1" },
