@@ -53,7 +53,7 @@ import com.safelink.app.ui.theme.SafeLinkTheme
  * 더미 데이터: DetectionResultDummyData (data/위험 문장 테스트.json 검증 케이스 기반, 점수 실제 계산 로직과 일치)
  *
  * ViewModel 연동 완료 (Task 6.10) — viewModel.result(mutableStateOf)를 그대로 구독하므로
- * 온디바이스 분석이 끝난 뒤 AI 보조 분석(escalateToAI)이 비동기로 결과를 갱신해도 이 화면이
+ * 온디바이스 분석이 끝난 뒤 AI 보조분석(escalateToAI)이 비동기로 결과를 갱신해도 이 화면이
  * 자동으로 재구성된다(별도 StateFlow/collectAsState 불필요). 기록 재열람 등 분석 없이 직접
  * 진입한 경우에만 더미로 대체.
  * TODO: 원문 내 위험 표현 밑줄/배경 강조는 MatchedKeyword.startIndex/endIndex를 이용해
@@ -241,11 +241,13 @@ private fun DetectionResultContent(
                 result.situationalRuleEvidences.forEach { ev -> EvidenceCard(ev, result.riskLevel) }
             }
 
-            // AI 보조 분석 — 2차 AI 분석(escalateToAI)이 실행됐거나 진행 중일 때만 (김재겸 8/14
+            // AI 보조분석 — 2차 AI 분석(escalateToAI)이 실행됐거나 진행 중일 때만 (김재겸 8/14
             // 추가과제 item5 병합: 로딩 상태 표시 + 빈 문자열 안전 처리를 그대로 가져옴).
-            // 순서: 문장 규칙 근거 → 상황 규칙 근거 → AI 보조 분석 (위 두 섹션 기준으로 확정).
+            // 순서: 문장 규칙 근거 → 상황 규칙 근거 → AI 보조분석 (위 두 섹션 기준으로 확정).
+            // 용어 표기는 "AI 보조분석"(붙여쓰기)로 통일 — SafeLink UI Guide v8.2 15장 용어
+            // 통일 기준("AI 판단"/"AI 결과" → "AI 보조분석") 반영.
             if (isEscalatingToAI || result.aiSummary != null || result.aiDetectedPattern != null) {
-                Text(text = "AI 보조 분석", style = MaterialTheme.typography.titleMedium)
+                Text(text = "AI 보조분석", style = MaterialTheme.typography.titleMedium)
                 SafeLinkCard {
                     if (result.aiSummary == null && result.aiDetectedPattern == null) {
                         // 온디바이스 결과는 이미 위에 표시됨 — AI 응답은 도착하는 대로 이 카드에 채워진다
