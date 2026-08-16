@@ -27,9 +27,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.compose.ui.platform.LocalContext
 import com.safelink.app.background.BackgroundDetectionState
 import com.safelink.app.background.BackgroundDetectionSnapshot
 import com.safelink.app.ui.screens.detection.DetectionViewModel
+import com.safelink.app.util.IntentActions
 import com.safelink.app.data.model.RiskLevel
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkOutlinedButton
@@ -47,6 +49,7 @@ fun ResponseGuideScreen(
     riskLevel: RiskLevel,
     detectionViewModel: DetectionViewModel
 ) {
+    val context = LocalContext.current
     val backgroundSnapshot by BackgroundDetectionState.latestSnapshot.collectAsState()
     val matchedBackgroundSnapshot = backgroundSnapshot?.takeIf { it.riskLevel == riskLevel }
 
@@ -161,12 +164,12 @@ fun ResponseGuideScreen(
                 SafeLinkPrimaryButton(
                     text = "112 전화",
                     containerColor = RiskCritical,
-                    onClick = { /* TODO */ }
+                    onClick = { IntentActions.dial(context, "112") }
                 )
                 SafeLinkPrimaryButton(
                     text = "1332 전화",
                     containerColor = BrandBlueDark,
-                    onClick = { /* TODO */ }
+                    onClick = { IntentActions.dial(context, "1332") }
                 )
             }
 

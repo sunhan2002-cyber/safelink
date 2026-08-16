@@ -44,6 +44,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import com.safelink.app.background.MessageDetectionService
 import com.safelink.app.security.AppLockManager
+import com.safelink.app.settings.EmergencyContactStore
 import com.safelink.app.settings.FeatureToggleState
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkTopBar
@@ -59,6 +60,14 @@ fun SettingsScreen(navController: NavHostController) {
     var showPinDialog by remember { mutableStateOf(false) }
     var pinInput by remember { mutableStateOf("") }
     var biometric by remember { mutableStateOf(false) }
+    // 긴급 연락처 + 긴급 문자 본문 (긴급 화면 SMS 에 실제 사용)
+    var contact by remember { mutableStateOf(EmergencyContactStore.getContact(context)) }
+    var emergencyMessage by remember { mutableStateOf(EmergencyContactStore.getMessage(context)) }
+    var showContactDialog by remember { mutableStateOf(false) }
+    var showMessageDialog by remember { mutableStateOf(false) }
+    var contactNameInput by remember { mutableStateOf("") }
+    var contactPhoneInput by remember { mutableStateOf("") }
+    var messageInput by remember { mutableStateOf("") }
     // 스크린샷 분석 사용 — 앱 레벨 토글(FeatureToggleState)에 연결해 실제 기능(스크린샷 탭)을 제어
     val screenshotAnalysis by FeatureToggleState.screenshotAnalysisEnabled.collectAsState()
     var backgroundDetection by remember { mutableStateOf(isBackgroundDetectionEnabled(context)) }
@@ -134,6 +143,83 @@ fun SettingsScreen(navController: NavHostController) {
         )
     }
 
+    if (showContactDialog) {
+        AlertDialog(
+            onDismissRequest = { showContactDialog = false },
+            title = { Text("긴급 연락처 등록") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("긴급 상황에서 문자를 보낼 지인의 이름과 전화번호를 입력하세요.")
+                    OutlinedTextField(
+                        value = contactNameInput,
+                        onValueChange = { contactNameInput = it },
+                        singleLine = true,
+                        label = { Text("이름") }
+                    )
+                    OutlinedTextField(
+                        value = contactPhoneInput,
+                        onValueChange = { if (it.all { c -> c.isDigit() || c == '+' || c == '-' }) contactPhoneInput = it },
+                        singleLine = true,
+                        label = { Text("전화번호") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = contactNameInput.isNotBlank() && contactPhoneInput.isNotBlank(),
+                    onClick = {
+                        EmergencyContactStore.setContact(context, contactNameInput, contactPhoneInput)
+                        contact = EmergencyContactStore.getContact(context)
+                        showContactDialog = false
+                    }
+                ) { Text("저장") }
+            },
+            dismissButton = {
+                Row {
+                    if (contact != null) {
+                        TextButton(onClick = {
+                            EmergencyContactStore.clearContact(context)
+                            contact = null
+                            showContactDialog = false
+                        }) { Text("삭제", color = RiskCritical) }
+                    }
+                    TextButton(onClick = { showContactDialog = false }) { Text("취소") }
+                }
+            }
+        )
+    }
+
+    if (showMessageDialog) {
+        AlertDialog(
+            onDismissRequest = { showMessageDialog = false },
+            title = { Text("긴급 문자 내용 설정") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("긴급 상황에서 지인에게 보낼 문구를 설정하세요.")
+                    OutlinedTextField(
+                        value = messageInput,
+                        onValueChange = { messageInput = it },
+                        label = { Text("문자 내용") }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = messageInput.isNotBlank(),
+                    onClick = {
+                        EmergencyContactStore.setMessage(context, messageInput)
+                        emergencyMessage = EmergencyContactStore.getMessage(context)
+                        showMessageDialog = false
+                    }
+                ) { Text("저장") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showMessageDialog = false }) { Text("취소") }
+            }
+        )
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(title = "설정")
 
@@ -174,11 +260,17 @@ fun SettingsScreen(navController: NavHostController) {
 
             SectionLabel("긴급 연락처")
             SafeLinkCard {
-                LinkRow(label = "긴급 연락처 등록", caption = "등록된 연락처가 없습니다") {
-                    // TODO: 이름·전화번호 입력 + 암호화 저장 (Task 5.15)
+                LinkRow(
+                    label = "긴급 연락처 등록",
+                    caption = contact?.let { "${it.name} · ${it.phone}" } ?: "등록된 연락처가 없습니다"
+                ) {
+                    contactNameInput = contact?.name.orEmpty()
+                    contactPhoneInput = contact?.phone.orEmpty()
+                    showContactDialog = true
                 }
-                LinkRow(label = "긴급 문자 내용 설정", caption = "\"도움이 필요해요. 연락 부탁해요.\"") {
-                    // TODO: 긴급 문자 본문 편집
+                LinkRow(label = "긴급 문자 내용 설정", caption = "\"$emergencyMessage\"") {
+                    messageInput = emergencyMessage
+                    showMessageDialog = true
                 }
             }
 

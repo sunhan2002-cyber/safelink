@@ -23,11 +23,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import android.net.Uri
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.safelink.app.util.IntentActions
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkOutlinedButton
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
@@ -39,6 +42,7 @@ import com.safelink.app.ui.theme.BrandBlueLight
 /** 지원 기관 상세 (Figma 20:1236) — 기관 정보 + 전화 연결 (Task 5.4) */
 @Composable
 fun SupportDetailScreen(navController: NavHostController, institutionId: String) {
+    val context = LocalContext.current
     val institution = dummyInstitutions.find { it.id == institutionId } ?: dummyInstitutions.first()
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -108,10 +112,11 @@ fun SupportDetailScreen(navController: NavHostController, institutionId: String)
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             SafeLinkPrimaryButton(text = "전화하기", onClick = {
-                // TODO: ACTION_DIAL Intent (Task 5.7)
+                IntentActions.dial(context, institution.phone)
             })
             SafeLinkOutlinedButton(text = "홈페이지 이동", onClick = {
-                // TODO: 브라우저 Intent
+                // 기관별 공식 URL 데이터가 아직 없어 기관명 검색으로 연결 (institutions.json 확장 시 교체)
+                IntentActions.openWeb(context, "https://www.google.com/search?q=${Uri.encode(institution.name)}")
             })
         }
     }

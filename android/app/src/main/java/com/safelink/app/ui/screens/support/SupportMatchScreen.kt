@@ -13,9 +13,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import android.net.Uri
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.safelink.app.util.IntentActions
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkOutlinedButton
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
@@ -63,6 +66,7 @@ internal val dummyInstitutions = listOf(
 /** 지원 서비스 추천 (Figma 20:318) — 위험 유형별 필터링은 Task 5.3 */
 @Composable
 fun SupportMatchScreen(navController: NavHostController) {
+    val context = LocalContext.current
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(title = "추천 기관 목록")
 
@@ -99,13 +103,13 @@ fun SupportMatchScreen(navController: NavHostController) {
                     Row {
                         Column(modifier = Modifier.weight(1f)) {
                             SafeLinkPrimaryButton(text = "전화하기", onClick = {
-                                // TODO: ACTION_DIAL (Task 5.7)
+                                IntentActions.dial(context, institution.phone)
                             })
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             SafeLinkOutlinedButton(text = "홈페이지 이동", onClick = {
-                                // TODO: 브라우저 Intent
+                                IntentActions.openWeb(context, "https://www.google.com/search?q=${Uri.encode(institution.name)}")
                             })
                         }
                     }

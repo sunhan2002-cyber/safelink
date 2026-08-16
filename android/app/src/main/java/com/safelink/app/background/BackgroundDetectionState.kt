@@ -25,6 +25,10 @@ object BackgroundDetectionState {
     private val _latestResult = MutableStateFlow<DetectionResult?>(null)
     val latestResult: StateFlow<DetectionResult?> = _latestResult.asStateFlow()
 
+    /** 백그라운드 감지로 알림을 띄운 누적 횟수 — 홈 대시보드 "오늘의 알림"에 표시. */
+    private val _detectionCount = MutableStateFlow(0)
+    val detectionCount: StateFlow<Int> = _detectionCount.asStateFlow()
+
     fun update(result: DetectionResult, sourceApp: String) {
         val phrases = result.matchedKeywords
             .map { it.matchedText.trim() }
@@ -39,5 +43,6 @@ object BackgroundDetectionState {
             sourceApp = sourceApp
         )
         _latestResult.value = result
+        _detectionCount.value += 1
     }
 }

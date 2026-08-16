@@ -28,6 +28,9 @@ import com.safelink.app.data.model.RiskLevel
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkOutlinedButton
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.safelink.app.background.BackgroundDetectionState
 import com.safelink.app.ui.components.color
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.screens.detection.DetectionViewModel
@@ -43,6 +46,10 @@ fun HomeScreen(
         detectionViewModel.reset()
         navController.navigate(Screen.DetectionInput.route)
     }
+    // 백그라운드 감지 상태를 홈 대시보드에 반영 (감지가 있으면 상태 카드/알림 수가 살아난다)
+    val snapshot by BackgroundDetectionState.latestSnapshot.collectAsState()
+    val detectionCount by BackgroundDetectionState.detectionCount.collectAsState()
+    val statusLevel = snapshot?.riskLevel ?: RiskLevel.SAFE
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -50,24 +57,27 @@ fun HomeScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 상태 카드
-        SafeLinkCard {
+        // 상태 카드 — 백그라운드 감지가 있으면 그 위험도로, 없으면 안전함. 감지 시 탭하면 대응 가이드로.
+        SafeLinkCard(onClick = {
+            snapshot?.let { navController.navigate(Screen.ResponseGuide.createRoute(statusLevel)) }
+        }) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Filled.Shield,
                     contentDescription = null,
-                    tint = RiskLevel.SAFE.color(),
+                    tint = statusLevel.color(),
                     modifier = Modifier.size(48.dp)
                 )
                 Spacer(modifier = Modifier.size(16.dp))
                 Column {
                     Text(
-                        text = "안전함",
+                        text = homeStatusTitle(statusLevel),
                         style = MaterialTheme.typography.titleLarge,
-                        color = RiskLevel.SAFE.color()
+                        color = statusLevel.color()
                     )
                     Text(
-                        text = "실시간 보호 작동 중",
+                        text = snapshot?.let { "최근 감지된 표현이 있어요 · ${it.category}" }
+                            ?: "실시간 보호 작동 중",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -75,9 +85,9 @@ fun HomeScreen(
             }
         }
 
-        // 활동 요약
+        // 활동 요약 — 오늘의 알림 = 백그라운드 감지 누적 횟수
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SummaryTile(label = "오늘의 알림", count = 0, modifier = Modifier.weight(1f))
+            SummaryTile(label = "오늘의 알림", count = detectionCount, modifier = Modifier.weight(1f))
             SummaryTile(label = "정밀 검사", count = 0, modifier = Modifier.weight(1f))
         }
 
@@ -119,6 +129,14 @@ fun HomeScreen(
         // TODO: 최근 기록 2~3개 요약 (Room DB 연동 후, Task 4.14)
         Spacer(modifier = Modifier.height(72.dp)) // SOS FAB 가림 방지
     }
+}
+
+/** 홈 상태 카드 제목 — 백그라운드 감지 위험도별 (없으면 SAFE) */
+private fun homeStatusTitle(level: RiskLevel): String = when (level) {
+    RiskLevel.SAFE -> "안전함"
+    RiskLevel.CAUTION -> "주의가 필요해요"
+    RiskLevel.WARNING -> "확인이 필요해요"
+    RiskLevel.CRITICAL -> "위험 신호가 있어요"
 }
 
 @Composable
