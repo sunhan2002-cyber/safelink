@@ -18,6 +18,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -26,6 +29,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -44,6 +49,12 @@ import com.safelink.app.ui.components.color
 import com.safelink.app.ui.components.containerColor
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.RiskCritical
+import com.safelink.app.ui.theme.RuleAiAccent
+import com.safelink.app.ui.theme.RuleAiContainer
+import com.safelink.app.ui.theme.RuleSentenceAccent
+import com.safelink.app.ui.theme.RuleSentenceContainer
+import com.safelink.app.ui.theme.RuleSituationalAccent
+import com.safelink.app.ui.theme.RuleSituationalContainer
 import com.safelink.app.ui.theme.SafeLinkTheme
 
 /**
@@ -229,16 +240,20 @@ private fun DetectionResultContent(
                 }
             }
 
+            // 문장 규칙 / 상황 규칙 / AI 보조분석 — 키워드 근거 카드와 똑같아 보여서 "결국
+            // 키워드 중심"처럼 느껴진다는 지적(7주차 수정) 대응. 아이콘+전용 색상으로 세 층을
+            // 시각적으로 구분한다 — 최종 색상/아이콘 선택은 김우영/김재겸이 다듬을 수 있음.
+
             // 문장 규칙 근거 — sentenceRuleEvidences 있을 때만 (6주차 신설)
             if (result.sentenceRuleEvidences.isNotEmpty()) {
-                Text(text = "문장 규칙 근거", style = MaterialTheme.typography.titleMedium)
-                result.sentenceRuleEvidences.forEach { ev -> EvidenceCard(ev, result.riskLevel) }
+                EvidenceSectionHeader(icon = Icons.Filled.TextFields, title = "문장 규칙 근거", accent = RuleSentenceAccent)
+                result.sentenceRuleEvidences.forEach { ev -> EvidenceCard(ev, RuleSentenceAccent, RuleSentenceContainer) }
             }
 
             // 상황 규칙 근거 — situationalRuleEvidences 있을 때만 (6주차 신설)
             if (result.situationalRuleEvidences.isNotEmpty()) {
-                Text(text = "상황 규칙 근거", style = MaterialTheme.typography.titleMedium)
-                result.situationalRuleEvidences.forEach { ev -> EvidenceCard(ev, result.riskLevel) }
+                EvidenceSectionHeader(icon = Icons.Filled.Repeat, title = "상황 규칙 근거", accent = RuleSituationalAccent)
+                result.situationalRuleEvidences.forEach { ev -> EvidenceCard(ev, RuleSituationalAccent, RuleSituationalContainer) }
             }
 
             // AI 보조분석 — 2차 AI 분석(escalateToAI)이 실행됐거나 진행 중일 때만 (김재겸 8/14
@@ -247,8 +262,8 @@ private fun DetectionResultContent(
             // 용어 표기는 "AI 보조분석"(붙여쓰기)로 통일 — SafeLink UI Guide v8.2 15장 용어
             // 통일 기준("AI 판단"/"AI 결과" → "AI 보조분석") 반영.
             if (isEscalatingToAI || result.aiSummary != null || result.aiDetectedPattern != null) {
-                Text(text = "AI 보조분석", style = MaterialTheme.typography.titleMedium)
-                SafeLinkCard {
+                EvidenceSectionHeader(icon = Icons.Filled.SmartToy, title = "AI 보조분석", accent = RuleAiAccent)
+                SafeLinkCard(containerColor = RuleAiContainer) {
                     if (result.aiSummary == null && result.aiDetectedPattern == null) {
                         // 온디바이스 결과는 이미 위에 표시됨 — AI 응답은 도착하는 대로 이 카드에 채워진다
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -386,21 +401,38 @@ private fun riskLevelDescription(level: RiskLevel): String = when (level) {
 }
 
 /**
- * 문장 규칙/상황 규칙 근거 카드 (6주차 신설) — 기존 키워드 "분석 근거" 카드(좌측 컬러바 +
- * 텍스트)와 동일한 스타일로 맞춤. AnalysisEvidence.label이 설명, .detail이 매칭된 문구/판정
- * 조건이라 순서를 label 먼저, detail을 부가 설명으로 배치했다 (matchedKeyword 카드와 반대 —
- * 거긴 매칭 문구가 먼저였는데, 근거 콤보는 매칭된 "문구" 하나가 아니라 "조건 설명"이 핵심이라
- * label을 먼저 보여주는 게 더 자연스럽다고 판단).
+ * 근거 섹션 제목(아이콘+컬러 텍스트) — 문장 규칙/상황 규칙/AI 보조분석을 키워드 "분석 근거"
+ * 섹션과 시각적으로 구분하기 위해 7주차에 추가. 아이콘 하나만으로도 스크롤하면서 "지금
+ * 어느 층을 보고 있는지" 바로 알 수 있게 하는 게 목적 — 최종 아이콘/색상 선택은
+ * 김우영/김재겸이 다듬을 수 있음(구조는 고정, 표현은 유동).
  */
 @Composable
-private fun EvidenceCard(evidence: AnalysisEvidence, riskLevel: RiskLevel) {
-    SafeLinkCard {
+private fun EvidenceSectionHeader(icon: ImageVector, title: String, accent: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(imageVector = icon, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(text = title, style = MaterialTheme.typography.titleMedium, color = accent)
+    }
+}
+
+/**
+ * 문장 규칙/상황 규칙 근거 카드 (6주차 신설, 7주차 시각 구분 추가) — 기존 키워드 "분석 근거"
+ * 카드(좌측 컬러바 + 텍스트)와 같은 골격이지만, 컬러바를 리스크 색상이 아니라 근거 유형별
+ * 전용 색상([RuleSentenceAccent]/[RuleSituationalAccent])으로 칠해서 키워드 카드와 구분되게
+ * 했다. AnalysisEvidence.label이 설명, .detail이 매칭된 문구/판정 조건이라 순서를 label
+ * 먼저, detail을 부가 설명으로 배치했다 (matchedKeyword 카드와 반대 — 거긴 매칭 문구가
+ * 먼저였는데, 근거 콤보는 매칭된 "문구" 하나가 아니라 "조건 설명"이 핵심이라 label을 먼저
+ * 보여주는 게 더 자연스럽다고 판단).
+ */
+@Composable
+private fun EvidenceCard(evidence: AnalysisEvidence, accent: Color, container: Color) {
+    SafeLinkCard(containerColor = container) {
         Row {
             Spacer(
                 modifier = Modifier
                     .width(4.dp)
                     .height(48.dp)
-                    .background(riskLevel.color(), RoundedCornerShape(2.dp))
+                    .background(accent, RoundedCornerShape(2.dp))
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column {
