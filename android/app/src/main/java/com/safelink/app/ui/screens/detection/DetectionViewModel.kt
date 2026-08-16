@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.safelink.app.background.BackgroundDetectionState
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.ocr.MlKitOcrService
 import com.safelink.app.data.ocr.OcrService
@@ -116,6 +117,20 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun switchToTextInput() {
         switchMode("텍스트 입력")
+    }
+
+    /**
+     * 백그라운드 감지에서 나온 최신 전체 결과를 결과 화면에 싣는다.
+     * 알림 → 대응 가이드 → "분석 결과 자세히 보기" 흐름에서 호출한다.
+     * 직전에 다른(텍스트/스크린샷) 결과가 남아 있어도 백그라운드 결과로 덮어써 혼동을 막는다.
+     * @return 실을 백그라운드 결과가 있으면 true.
+     */
+    fun loadBackgroundResult(): Boolean {
+        val bg = BackgroundDetectionState.latestResult.value ?: return false
+        result = bg
+        originalText = bg.originalText
+        lastAnalysisSource = AnalysisSource.BACKGROUND
+        return true
     }
 
     /**

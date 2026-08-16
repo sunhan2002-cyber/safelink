@@ -37,6 +37,8 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
@@ -58,6 +60,7 @@ import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkOutlinedButton
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
 import com.safelink.app.ui.components.SafeLinkTopBar
+import com.safelink.app.settings.FeatureToggleState
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.BrandBlue
 import com.safelink.app.ui.theme.BrandBlueLight
@@ -85,7 +88,16 @@ fun DetectionInputScreen(
     viewModel: DetectionViewModel
 ) {
     val clipboard = LocalClipboardManager.current
-    val isTextMode = viewModel.inputMethod == "텍스트 입력"
+    // 스크린샷 분석 사용 토글(설정) — off 면 스크린샷 탭을 숨기고 텍스트 입력만 사용
+    val screenshotEnabled by FeatureToggleState.screenshotAnalysisEnabled.collectAsState()
+    val isTextMode = viewModel.inputMethod == "텍스트 입력" || !screenshotEnabled
+
+    // 설정에서 스크린샷 분석을 끈 상태로 스크린샷 모드가 남아 있으면 텍스트 입력으로 되돌린다
+    LaunchedEffect(screenshotEnabled) {
+        if (!screenshotEnabled && viewModel.inputMethod != "텍스트 입력") {
+            viewModel.switchToTextInput()
+        }
+    }
 
     // 갤러리에서 스크린샷 여러 장 선택 (Android PhotoPicker — 별도 권한 불필요)
     val pickImages = rememberLauncherForActivityResult(
@@ -106,17 +118,20 @@ fun DetectionInputScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                SegmentedButton(
-                    selected = !isTextMode,
-                    onClick = { viewModel.switchMode("스크린샷 업로드") },
-                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-                ) { Text("스크린샷") }
-                SegmentedButton(
-                    selected = isTextMode,
-                    onClick = { viewModel.switchMode("텍스트 입력") },
-                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-                ) { Text("텍스트 입력") }
+            // 스크린샷 분석 사용 시에만 입력 방식 선택 탭 노출 (off 면 텍스트 입력 전용)
+            if (screenshotEnabled) {
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = !isTextMode,
+                        onClick = { viewModel.switchMode("스크린샷 업로드") },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                    ) { Text("스크린샷") }
+                    SegmentedButton(
+                        selected = isTextMode,
+                        onClick = { viewModel.switchMode("텍스트 입력") },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                    ) { Text("텍스트 입력") }
+                }
             }
 
             if (isTextMode) {

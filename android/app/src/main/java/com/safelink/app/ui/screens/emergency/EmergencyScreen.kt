@@ -25,18 +25,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.safelink.app.settings.EmergencyContactStore
 import com.safelink.app.ui.components.SafeLinkOutlinedButton
 import com.safelink.app.ui.components.SafeLinkTopBar
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.BrandBlueDark
 import com.safelink.app.ui.theme.RiskCritical
 import com.safelink.app.ui.theme.SurfaceWhite
+import com.safelink.app.util.IntentActions
 
 /** 긴급 도움 요청 (Figma 20:987) — 스트레스 상황용 초대형 버튼 (Tasks 5.6~5.9) */
 @Composable
 fun EmergencyScreen(navController: NavHostController) {
+    val context = LocalContext.current
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(
             title = "긴급 도움 요청",
@@ -59,13 +63,13 @@ fun EmergencyScreen(navController: NavHostController) {
                 title = "112 전화",
                 caption = "경찰 신고 · 범죄 신고·긴급 출동 요청",
                 color = RiskCritical,
-                onClick = { /* TODO: ACTION_DIAL 112 (Task 5.7) */ }
+                onClick = { IntentActions.dial(context, "112") }
             )
             EmergencyCallButton(
                 title = "1366 전화",
                 caption = "여성긴급전화 · 가정폭력·데이트폭력 24시간 상담",
                 color = BrandBlueDark,
-                onClick = { /* TODO: ACTION_DIAL 1366 (Task 5.7) */ }
+                onClick = { IntentActions.dial(context, "1366") }
             )
 
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -78,15 +82,21 @@ fun EmergencyScreen(navController: NavHostController) {
                 HorizontalDivider(modifier = Modifier.weight(1f))
             }
 
+            val contact = EmergencyContactStore.getContact(context)
             SafeLinkOutlinedButton(
-                text = "등록된 지인에게 긴급 문자 보내기",
+                text = if (contact != null) "${contact.name}에게 긴급 문자 보내기" else "등록된 지인에게 긴급 문자 보내기",
                 onClick = {
-                    // TODO: 연락처 미등록 시 설정 이동 안내 팝업 (Task 5.9)
-                    //       등록 시 ACTION_SENDTO + 사전 설정 본문 (Task 5.8)
+                    if (contact != null) {
+                        // 문자 앱에 수신번호+사전 문구를 채워 열어준다(자동 전송 아님)
+                        IntentActions.sendSms(context, contact.phone, EmergencyContactStore.getMessage(context))
+                    } else {
+                        navController.navigate(Screen.Settings.route)
+                    }
                 }
             )
             Text(
-                text = "미리 작성된 문자가 전송됩니다",
+                text = if (contact != null) "미리 작성된 문구가 문자 앱에 채워집니다"
+                else "먼저 설정에서 긴급 연락처를 등록해 주세요",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.align(Alignment.CenterHorizontally)

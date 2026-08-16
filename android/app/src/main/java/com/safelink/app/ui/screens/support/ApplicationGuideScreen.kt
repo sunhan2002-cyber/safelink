@@ -27,7 +27,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
+import com.safelink.app.util.IntentActions
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
 import com.safelink.app.ui.components.SafeLinkTopBar
@@ -48,6 +50,7 @@ private val requiredDocuments = listOf("신분증", "피해 관련 증거 자료
 /** 신청 절차 안내 (Figma 20:1332) — 단계 타임라인 + 완료 체크 (Task 5.5) */
 @Composable
 fun ApplicationGuideScreen(navController: NavHostController, institutionId: String) {
+    val context = LocalContext.current
     val institution = dummyInstitutions.find { it.id == institutionId } ?: dummyInstitutions.first()
     val completed = remember { mutableStateListOf<Int>() } // 세션 내 유지 (Task 5.5)
 
@@ -146,7 +149,7 @@ fun ApplicationGuideScreen(navController: NavHostController, institutionId: Stri
 
         Column(modifier = Modifier.padding(20.dp)) {
             SafeLinkPrimaryButton(text = "기관에 전화하기", onClick = {
-                // TODO: ACTION_DIAL Intent (Task 5.7)
+                IntentActions.dial(context, institution.phone)
             })
         }
     }

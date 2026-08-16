@@ -14,8 +14,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.safelink.app.util.IntentActions
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkOutlinedButton
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
@@ -30,7 +32,10 @@ internal data class Institution(
     val description: String,
     val phone: String,
     val hours: String,
-    val target: String
+    val target: String,
+    // 홈페이지 이동 대상 URL. 실제 기관 URL 확보 전까지 임시로 네이버.
+    // 나중에 각 기관 항목에 website = "https://실제주소" 만 채워 넣으면 된다.
+    val website: String = "https://www.naver.com"
 )
 
 internal val dummyInstitutions = listOf(
@@ -63,6 +68,7 @@ internal val dummyInstitutions = listOf(
 /** 지원 서비스 추천 (Figma 20:318) — 위험 유형별 필터링은 Task 5.3 */
 @Composable
 fun SupportMatchScreen(navController: NavHostController) {
+    val context = LocalContext.current
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(title = "추천 기관 목록")
 
@@ -99,13 +105,13 @@ fun SupportMatchScreen(navController: NavHostController) {
                     Row {
                         Column(modifier = Modifier.weight(1f)) {
                             SafeLinkPrimaryButton(text = "전화하기", onClick = {
-                                // TODO: ACTION_DIAL (Task 5.7)
+                                IntentActions.dial(context, institution.phone)
                             })
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             SafeLinkOutlinedButton(text = "홈페이지 이동", onClick = {
-                                // TODO: 브라우저 Intent
+                                IntentActions.openWeb(context, institution.website)
                             })
                         }
                     }

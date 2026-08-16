@@ -17,7 +17,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -25,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,12 +35,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import com.safelink.app.background.MessageDetectionService
+import com.safelink.app.security.AppLockManager
+import com.safelink.app.settings.EmergencyContactStore
+import com.safelink.app.settings.FeatureToggleState
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkTopBar
 import com.safelink.app.ui.navigation.Screen
@@ -48,9 +56,20 @@ import com.safelink.app.ui.theme.RiskCritical
 fun SettingsScreen(navController: NavHostController) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    var appLock by remember { mutableStateOf(false) }
+    var appLock by remember { mutableStateOf(AppLockManager.isEnabled(context)) }
+    var showPinDialog by remember { mutableStateOf(false) }
+    var pinInput by remember { mutableStateOf("") }
     var biometric by remember { mutableStateOf(false) }
-    var screenshotAnalysis by remember { mutableStateOf(true) }
+    // 긴급 연락처 + 긴급 문자 본문 (긴급 화면 SMS 에 실제 사용)
+    var contact by remember { mutableStateOf(EmergencyContactStore.getContact(context)) }
+    var emergencyMessage by remember { mutableStateOf(EmergencyContactStore.getMessage(context)) }
+    var showContactDialog by remember { mutableStateOf(false) }
+    var showMessageDialog by remember { mutableStateOf(false) }
+    var contactNameInput by remember { mutableStateOf("") }
+    var contactPhoneInput by remember { mutableStateOf("") }
+    var messageInput by remember { mutableStateOf("") }
+    // 스크린샷 분석 사용 — 앱 레벨 토글(FeatureToggleState)에 연결해 실제 기능(스크린샷 탭)을 제어
+    val screenshotAnalysis by FeatureToggleState.screenshotAnalysisEnabled.collectAsState()
     var backgroundDetection by remember { mutableStateOf(isBackgroundDetectionEnabled(context)) }
     // 백그라운드 감지 켜기 전 동의·권한 안내 다이얼로그 (최종 가이드 v1.0)
     var showBackgroundConsent by remember { mutableStateOf(false) }
@@ -91,6 +110,116 @@ fun SettingsScreen(navController: NavHostController) {
         )
     }
 
+    if (showPinDialog) {
+        AlertDialog(
+            onDismissRequest = { showPinDialog = false; pinInput = "" },
+            title = { Text(if (appLock) "PIN 변경" else "앱 잠금 PIN 설정") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("앱을 열 때 입력할 4자리 PIN을 설정하세요.")
+                    OutlinedTextField(
+                        value = pinInput,
+                        onValueChange = { if (it.length <= 4 && it.all(Char::isDigit)) pinInput = it },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = pinInput.length == 4,
+                    onClick = {
+                        AppLockManager.setPin(context, pinInput)
+                        appLock = true
+                        pinInput = ""
+                        showPinDialog = false
+                    }
+                ) { Text("저장") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPinDialog = false; pinInput = "" }) { Text("취소") }
+            }
+        )
+    }
+
+    if (showContactDialog) {
+        AlertDialog(
+            onDismissRequest = { showContactDialog = false },
+            title = { Text("긴급 연락처 등록") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("긴급 상황에서 문자를 보낼 지인의 이름과 전화번호를 입력하세요.")
+                    OutlinedTextField(
+                        value = contactNameInput,
+                        onValueChange = { contactNameInput = it },
+                        singleLine = true,
+                        label = { Text("이름") }
+                    )
+                    OutlinedTextField(
+                        value = contactPhoneInput,
+                        onValueChange = { if (it.all { c -> c.isDigit() || c == '+' || c == '-' }) contactPhoneInput = it },
+                        singleLine = true,
+                        label = { Text("전화번호") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = contactNameInput.isNotBlank() && contactPhoneInput.isNotBlank(),
+                    onClick = {
+                        EmergencyContactStore.setContact(context, contactNameInput, contactPhoneInput)
+                        contact = EmergencyContactStore.getContact(context)
+                        showContactDialog = false
+                    }
+                ) { Text("저장") }
+            },
+            dismissButton = {
+                Row {
+                    if (contact != null) {
+                        TextButton(onClick = {
+                            EmergencyContactStore.clearContact(context)
+                            contact = null
+                            showContactDialog = false
+                        }) { Text("삭제", color = RiskCritical) }
+                    }
+                    TextButton(onClick = { showContactDialog = false }) { Text("취소") }
+                }
+            }
+        )
+    }
+
+    if (showMessageDialog) {
+        AlertDialog(
+            onDismissRequest = { showMessageDialog = false },
+            title = { Text("긴급 문자 내용 설정") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("긴급 상황에서 지인에게 보낼 문구를 설정하세요.")
+                    OutlinedTextField(
+                        value = messageInput,
+                        onValueChange = { messageInput = it },
+                        label = { Text("문자 내용") }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = messageInput.isNotBlank(),
+                    onClick = {
+                        EmergencyContactStore.setMessage(context, messageInput)
+                        emergencyMessage = EmergencyContactStore.getMessage(context)
+                        showMessageDialog = false
+                    }
+                ) { Text("저장") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showMessageDialog = false }) { Text("취소") }
+            }
+        )
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(title = "설정")
 
@@ -102,23 +231,46 @@ fun SettingsScreen(navController: NavHostController) {
         ) {
             SectionLabel("보안")
             SafeLinkCard {
-                ToggleRow(label = "앱 잠금", checked = appLock, onChange = { appLock = it })
+                ToggleRow(
+                    label = "앱 잠금",
+                    caption = "앱을 열 때 4자리 PIN을 입력해야 합니다.",
+                    checked = appLock,
+                    onChange = { on ->
+                        if (on) {
+                            showPinDialog = true // PIN 설정을 마쳐야 실제로 켜진다
+                        } else {
+                            AppLockManager.disable(context)
+                            appLock = false
+                        }
+                    }
+                )
                 ToggleRow(
                     label = "생체인증 사용",
                     caption = "지문 또는 얼굴 인식으로 잠금 해제",
                     checked = biometric,
                     onChange = { biometric = it }
                 )
-                LinkRow(label = "PIN 변경") { /* TODO: PIN 변경 흐름 (Task 5.12) */ }
+                LinkRow(
+                    label = "PIN 변경",
+                    caption = if (appLock) "저장된 PIN을 새로 설정합니다" else "앱 잠금을 먼저 켜 주세요"
+                ) {
+                    if (appLock) showPinDialog = true
+                }
             }
 
             SectionLabel("긴급 연락처")
             SafeLinkCard {
-                LinkRow(label = "긴급 연락처 등록", caption = "등록된 연락처가 없습니다") {
-                    // TODO: 이름·전화번호 입력 + 암호화 저장 (Task 5.15)
+                LinkRow(
+                    label = "긴급 연락처 등록",
+                    caption = contact?.let { "${it.name} · ${it.phone}" } ?: "등록된 연락처가 없습니다"
+                ) {
+                    contactNameInput = contact?.name.orEmpty()
+                    contactPhoneInput = contact?.phone.orEmpty()
+                    showContactDialog = true
                 }
-                LinkRow(label = "긴급 문자 내용 설정", caption = "\"도움이 필요해요. 연락 부탁해요.\"") {
-                    // TODO: 긴급 문자 본문 편집
+                LinkRow(label = "긴급 문자 내용 설정", caption = "\"$emergencyMessage\"") {
+                    messageInput = emergencyMessage
+                    showMessageDialog = true
                 }
             }
 
@@ -133,9 +285,9 @@ fun SettingsScreen(navController: NavHostController) {
             SafeLinkCard {
                 ToggleRow(
                     label = "스크린샷 분석 사용",
-                    caption = "갤러리에서 선택한 대화 스크린샷을 분석할 수 있어요",
+                    caption = "끄면 대화 분석에서 스크린샷 탭이 숨겨지고 텍스트 입력만 사용합니다.",
                     checked = screenshotAnalysis,
-                    onChange = { screenshotAnalysis = it }
+                    onChange = { FeatureToggleState.setScreenshotAnalysisEnabled(it) }
                 )
                 ToggleRow(
                     label = "백그라운드 감지 설정",

@@ -63,10 +63,12 @@ class MessageDetectionService : AccessibilityService() {
 
         // 기존 온디바이스 엔진 재사용 — 실제 감지/분석은 여기서 일어난다
         val result = repository.analyze(text)
-        BackgroundDetectionState.update(result, sourceApp = pkg)
 
-        // 알림 흐름: 경고(WARNING) 이상일 때만 배너 알림
+        // 알림 흐름: 경고(WARNING) 이상일 때만 상태 저장 + 배너 알림
+        // (SAFE/CAUTION 등 일상 화면까지 상태·카운트에 반영하면 "오늘의 알림"이 부풀어 오르므로
+        //  BackgroundDetectionState 는 실제 알림(경고 이상)만 기록한다)
         if (result.riskLevel.ordinal >= RiskLevel.WARNING.ordinal) {
+            BackgroundDetectionState.update(result, sourceApp = pkg)
             notifier.notifyRisk(
                 result.riskLevel,
                 result.category,

@@ -26,8 +26,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.safelink.app.util.IntentActions
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkOutlinedButton
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
@@ -39,6 +41,7 @@ import com.safelink.app.ui.theme.BrandBlueLight
 /** 지원 기관 상세 (Figma 20:1236) — 기관 정보 + 전화 연결 (Task 5.4) */
 @Composable
 fun SupportDetailScreen(navController: NavHostController, institutionId: String) {
+    val context = LocalContext.current
     val institution = dummyInstitutions.find { it.id == institutionId } ?: dummyInstitutions.first()
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -108,10 +111,11 @@ fun SupportDetailScreen(navController: NavHostController, institutionId: String)
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             SafeLinkPrimaryButton(text = "전화하기", onClick = {
-                // TODO: ACTION_DIAL Intent (Task 5.7)
+                IntentActions.dial(context, institution.phone)
             })
             SafeLinkOutlinedButton(text = "홈페이지 이동", onClick = {
-                // TODO: 브라우저 Intent
+                // 실제 기관 URL 확보 전까지 임시(네이버). Institution.website 만 실제 주소로 채우면 됨
+                IntentActions.openWeb(context, institution.website)
             })
         }
     }
