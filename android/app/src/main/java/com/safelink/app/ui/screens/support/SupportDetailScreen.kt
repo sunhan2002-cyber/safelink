@@ -23,7 +23,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import android.net.Uri
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -115,8 +114,8 @@ fun SupportDetailScreen(navController: NavHostController, institutionId: String)
                 IntentActions.dial(context, institution.phone)
             })
             SafeLinkOutlinedButton(text = "홈페이지 이동", onClick = {
-                // 기관별 공식 URL 데이터가 아직 없어 기관명 검색으로 연결 (institutions.json 확장 시 교체)
-                IntentActions.openWeb(context, "https://www.google.com/search?q=${Uri.encode(institution.name)}")
+                // 실제 기관 URL 확보 전까지 임시(네이버). Institution.website 만 실제 주소로 채우면 됨
+                IntentActions.openWeb(context, institution.website)
             })
         }
     }
