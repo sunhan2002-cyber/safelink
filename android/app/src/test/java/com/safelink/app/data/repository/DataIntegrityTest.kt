@@ -39,7 +39,7 @@ class DataIntegrityTest {
 
     @Test
     fun `id 형식은 카테고리약어-중분류번호-일련번호 형식을 지켜야 함`() {
-        val idPattern = Regex("^(VP|RS|GL)-\\d+-\\d+-\\d{3}$")
+        val idPattern = Regex("^(VP|RS|GL|FM|IV|LN|TH|JB|UD)-\\d+-\\d+-\\d{3}$")
         val invalid = keywordData.keywords.map { it.id }.filterNot { idPattern.matches(it) }
         assertTrue("id 형식 위반: $invalid", invalid.isEmpty())
     }

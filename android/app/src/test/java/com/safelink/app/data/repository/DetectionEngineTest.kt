@@ -109,7 +109,8 @@ class DetectionEngineTest {
             "그럼 명의 도용 우려가 있어서 확인이 필요합니다.",
             "지금 당장 확인 안 하시면 계좌가 압류될 수 있습니다."
         ),
-        82.5, "높음", listOf("COMBO-GENERAL-3CAT")
+        // 상황규칙 추가(신기훈 8주차): 1-1+1-4 AUTHORITY-ISOLATION, 1-4 2회(지금 당장+압류) REPEAT-PRESSURE 가산 → 82.5→100
+        100.0, "높음", listOf("COMBO-GENERAL-3CAT", "COMBO-VP-AUTHORITY-ISOLATION", "COMBO-VP-REPEAT-PRESSURE")
     )
 
     @Test fun `TC-RS-EDGE-01`() = assertCase(
@@ -186,13 +187,15 @@ class DetectionEngineTest {
     @Test fun `TC-COMBO-05`() = assertCase(
         "TC-COMBO-05",
         listOf("택배기사인데요.", "명의 도용 우려가 있어서요.", "지금 당장 확인이 필요합니다."),
-        65.0, "중간", listOf("COMBO-GENERAL-3CAT")
+        // 상황규칙 추가: 1-1+1-4 AUTHORITY-ISOLATION 가산 → 65→80(중간→높음)
+        80.0, "높음", listOf("COMBO-GENERAL-3CAT", "COMBO-VP-AUTHORITY-ISOLATION")
     )
 
     @Test fun `TC-COMBO-06`() = assertCase(
         "TC-COMBO-06",
         listOf("택배기사인데요.", "명의 도용 우려가 있어서요.", "지금 당장 확인이 필요합니다.", "이 번호로 전화해보세요."),
-        85.0, "높음", listOf("COMBO-GENERAL-4CAT")
+        // 상황규칙 추가: 1-1+1-4 AUTHORITY-ISOLATION 가산 → 85→100
+        100.0, "높음", listOf("COMBO-GENERAL-4CAT", "COMBO-VP-AUTHORITY-ISOLATION")
     )
 
     // 4주차 수정2 리뷰 대응: "문장/상황 기반 판단이 shouldEscalateToAI()에만 있고 1차 위험도
@@ -218,5 +221,58 @@ class DetectionEngineTest {
         assertTrue(result.isSafeAndEmpty)
         assertTrue(result.matchedKeywords.isEmpty())
         assertTrue(result.recommendedInstitutions.isEmpty())
+    }
+
+    // ───────────── 신규 상황 규칙 콤보(신기훈 8주차 반영) ─────────────
+
+    @Test
+    fun `신규콤보 - VP 권위+고립 (AUTHORITY-ISOLATION)`() {
+        val r = engine.analyze(listOf("저는 금융감독원 직원입니다. 사건 조사 중입니다.", "가족이나 지인에게 절대 말씀하시면 안 됩니다. 지금 당장 확인하셔야 합니다."))
+        assertTrue(r.appliedComboIds.contains("COMBO-VP-AUTHORITY-ISOLATION"))
+    }
+
+    @Test
+    fun `신규콤보 - GL 고립+통제 (CONTROL-ISOLATION)`() {
+        val r = engine.analyze(listOf("걔랑 만나지 마, 가족이랑 좀 거리 둬.", "너 나 아니면 안 돼. 헤어지자고 하면 가만 안 둘 거야."))
+        assertTrue(r.appliedComboIds.contains("COMBO-GL-CONTROL-ISOLATION"))
+    }
+
+    @Test
+    fun `신규콤보 - VP 반복압박은 긴급성 2회일 때만 (오탐방지)`() {
+        // 기관사칭만 반복(택배기사+배송 중)되는 무해 문장은 REPEAT-PRESSURE 미발동
+        val benign = engine.analyze("택배기사님이 지금 배송 중이라고 문자 오셨더라, 진짜 친절하시다.")
+        assertTrue(!benign.appliedComboIds.contains("COMBO-VP-REPEAT-PRESSURE"))
+        // 긴급/협박 표현이 2회(지금 당장 + 압류) 반복되면 발동
+        val pressured = engine.analyze("지금 당장 확인 안 하시면 계좌가 압류됩니다.")
+        assertTrue(pressured.appliedComboIds.contains("COMBO-VP-REPEAT-PRESSURE"))
+    }
+
+    // ───────────── 신규 카테고리 감지(김재겸 수집분 반영) ─────────────
+
+    @Test
+    fun `신규 - 가족사칭 감지 및 분류`() {
+        val r = engine.analyze(listOf(
+            "엄마 나야 폰이 고장 나서 새 번호로 저장해줘",
+            "지금 통화가 안 돼, 급하게 대신 결제 좀 해줘"
+        ))
+        assertEquals("가족사칭", r.category)
+        assertTrue("FM 키워드가 잡혀야 함", r.matchedKeywords.any { it.keywordId.startsWith("FM-") })
+        assertTrue(r.score > 0)
+    }
+
+    @Test
+    fun `신규 - 투자사기 감지 및 분류`() {
+        val r = engine.analyze(listOf("원금 보장 확정 수익, 코인 투자 VIP방으로 초대할게요"))
+        assertEquals("투자사기", r.category)
+        assertTrue("IV 키워드가 잡혀야 함", r.matchedKeywords.any { it.keywordId.startsWith("IV-") })
+        assertTrue(r.score > 0)
+    }
+
+    @Test
+    fun `신규 - 협박·갈취 감지 및 분류`() {
+        val r = engine.analyze(listOf("영상 유포 전에 입금하세요", "지인들에게 뿌리기 전에 조용히 처리하죠"))
+        assertEquals("협박·갈취", r.category)
+        assertTrue("TH 키워드가 잡혀야 함", r.matchedKeywords.any { it.keywordId.startsWith("TH-") })
+        assertTrue("고위험 신호는 중간 이상", r.score >= 31)
     }
 }
