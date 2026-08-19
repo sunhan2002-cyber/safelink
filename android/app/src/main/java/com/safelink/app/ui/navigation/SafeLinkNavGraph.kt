@@ -2,6 +2,8 @@ package com.safelink.app.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.ComponentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -35,10 +37,6 @@ fun SafeLinkNavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
-    // 대화 분석 공유 ViewModel — 입력→진행→결과 세 화면이 같은 인스턴스를 본다
-    // (Activity 스코프. 실제 데이터 흐름 기준: 김선한_02 문서 4장)
-    val detectionViewModel: DetectionViewModel = viewModel()
-
     NavHost(
         navController = navController,
         startDestination = Screen.Splash.route,
@@ -48,7 +46,9 @@ fun SafeLinkNavGraph(
         composable(Screen.Onboarding.route) { OnboardingScreen(navController) }
         composable(Screen.Lock.route) { LockScreen(navController) }
 
-        composable(Screen.Home.route) { HomeScreen(navController, detectionViewModel) }
+        composable(Screen.Home.route) {
+            HomeScreen(navController, activityDetectionViewModel())
+        }
         composable(Screen.RecordList.route) { RecordListScreen(navController) }
         composable(Screen.SupportMatch.route) { SupportMatchScreen(navController) }
         composable(Screen.Settings.route) { SettingsScreen(navController) }
@@ -58,13 +58,13 @@ fun SafeLinkNavGraph(
         composable(Screen.DiagnosisResult.route) { DiagnosisResultScreen(navController) }
 
         composable(Screen.DetectionInput.route) {
-            DetectionInputScreen(navController, detectionViewModel)
+            DetectionInputScreen(navController, activityDetectionViewModel())
         }
         composable(Screen.Analyzing.route) {
-            AnalyzingScreen(navController, detectionViewModel)
+            AnalyzingScreen(navController, activityDetectionViewModel())
         }
         composable(Screen.DetectionResult.route) {
-            DetectionResultScreen(navController, detectionViewModel)
+            DetectionResultScreen(navController, activityDetectionViewModel())
         }
 
         composable(
@@ -76,7 +76,7 @@ fun SafeLinkNavGraph(
             val levelName = entry.arguments?.getString(Screen.ResponseGuide.ARG_RISK_LEVEL)
             val level = levelName?.let { runCatching { RiskLevel.valueOf(it) }.getOrNull() }
                 ?: RiskLevel.CAUTION
-            ResponseGuideScreen(navController, level, detectionViewModel)
+            ResponseGuideScreen(navController, level, activityDetectionViewModel())
         }
 
         composable(
@@ -111,4 +111,11 @@ fun SafeLinkNavGraph(
             MemoEditScreen(navController, recordId)
         }
     }
+}
+
+/** 무거운 분석 ViewModel은 스플래시가 끝난 뒤 필요한 화면에서만 Activity 범위로 생성한다. */
+@Composable
+private fun activityDetectionViewModel(): DetectionViewModel {
+    val activity = LocalContext.current as ComponentActivity
+    return viewModel(viewModelStoreOwner = activity)
 }

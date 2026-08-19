@@ -1,14 +1,14 @@
 {
   "_meta": {
-    "version": "v1.2",
-    "last_updated": "2026-08-07",
+    "version": "v1.4",
+    "last_updated": "2026-08-21",
     "source_documents": [
       "safelink_scenarios_v1.md",
       "safelink_keyword_categories_v1.md",
       "safelink_risk_scoring_v1.md",
       "신규_기법_문장_수집_v1.json (4주차 확장분)"
     ],
-    "note": "1차 초안입니다. weight는 임시값이며 실사용 데이터로 튜닝이 필요합니다. v1.1: 기법 라벨 체계(URGENCY/SECRECY/... 등 23개) 기반 4주차 확장 - 17개 중분류에서 26개로 확장 (RS 2-6~2-10, GL 3-7~3-9 신설). 신설 사유·매핑 근거는 주차별_결과물/4주차_결과물_신기훈/05번 문서 참고. v1.2: 5주차 - match_type에 regex-complex 신설(숫자 캡처그룹+임계값 조건, RS-2-9-003)로 NUMERIC_PATTERN 갭 1건 해소 + combo_bonus_rules에 repeat_pattern/long_session_pattern 신설(09번 문서) + numeric_ratio_pattern 신설(COMBO-RS-NUMERIC-RATIO, 두 숫자의 증가율 계산 - NUMERIC_REASONING 갭 스트레치 대응). 신설 사유는 주차별_결과물/5주차_결과물_신기훈/ 참고.",
+    "note": "1차 초안입니다. weight는 임시값이며 실사용 데이터로 튜닝이 필요합니다. v1.1: 기법 라벨 체계(URGENCY/SECRECY/... 등 23개) 기반 4주차 확장 - 17개 중분류에서 26개로 확장 (RS 2-6~2-10, GL 3-7~3-9 신설). 신설 사유·매핑 근거는 주차별_결과물/4주차_결과물_신기훈/05번 문서 참고. v1.2: 5주차 - match_type에 regex-complex 신설(숫자 캡처그룹+임계값 조건, RS-2-9-003)로 NUMERIC_PATTERN 갭 1건 해소 + combo_bonus_rules에 repeat_pattern/long_session_pattern 신설(09번 문서) + numeric_ratio_pattern 신설(COMBO-RS-NUMERIC-RATIO, 두 숫자의 증가율 계산 - NUMERIC_REASONING 갭 스트레치 대응). 신설 사유는 주차별_결과물/5주차_결과물_신기훈/ 참고. v1.3: 7주차 - 김우영 v8.2 UI 가이드 예시 문장 10건을 실제 엔진에 테스트해서 발견한 커버리지 공백(9/10 미탐지) 중 기존 subcategory로 해결 가능한 6건 대응 - VP-1-1(정부지원금/환급 대상), VP-1-2(계좌 정지/동결), VP-1-6(APK 설치, 특정 원격제어 앱 명칭, 쿠폰/당첨 미끼) 추가. '가족사칭'/콜드아웃리치 투자사기/경품사기 3건은 새 subcategory 설계가 필요해 보류(7주차 02번 문서 참고). v1.4: 7주차 수정 - 갭코퍼스 PARAPHRASE 4건(N-VP2-04/N-RS2-04/N-GL1-01/N-GL2-04) 문구변형 대응 규칙 추가(VP-1-4-014, RS-2-4-009/010, GL-3-2-007, GL-3-3-005) + 02번 문서 Category A 분류 후 구현 누락됐던 G05(계정탈취) 대응(VP-1-6-011) - 전부 기존 subcategory에 표현만 추가, 새 subcategory 없음.",
     "field_guide": {
       "id": "카테고리약어-중분류번호-일련번호 형식 (예: VP-1-1-001)",
       "category": "대분류 (보이스피싱 | 로맨스스캠 | 가스라이팅)",
@@ -161,6 +161,30 @@
       "source": "신규(4주차 시나리오-VP2)"
     },
     {
+      "id": "VP-1-1-012",
+      "category": "보이스피싱",
+      "subcategory_id": "1-1",
+      "subcategory": "기관사칭",
+      "match_type": "keyword",
+      "keyword": "정부지원금",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "정부지원금 사칭",
+      "source": "신규(7주차, 김우영 v8.2 가이드 예시 G10 대응)"
+    },
+    {
+      "id": "VP-1-1-013",
+      "category": "보이스피싱",
+      "subcategory_id": "1-1",
+      "subcategory": "기관사칭",
+      "match_type": "keyword",
+      "keyword": "환급 대상",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "환급 명목 기관 사칭",
+      "source": "신규(7주차, 김우영 v8.2 가이드 예시 G10 대응)"
+    },
+    {
       "id": "VP-1-2-001",
       "category": "보이스피싱",
       "subcategory_id": "1-2",
@@ -243,6 +267,18 @@
       "repeat_decay": true,
       "description": "공범 연루 경고",
       "source": "신규(4주차 시나리오-VP1)"
+    },
+    {
+      "id": "VP-1-2-008",
+      "category": "보이스피싱",
+      "subcategory_id": "1-2",
+      "subcategory": "명의도용/사건연루 경고",
+      "match_type": "regex-simple",
+      "pattern": "계좌.{0,5}(정지|동결|잠김)",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "계좌 정지/동결 협박 - 기존 '계좌가 범죄이용계좌로 의심'과 다른 프레임(사건연루 아닌 단순 동결 협박) 대응",
+      "source": "신규(7주차, 김우영 v8.2 가이드 예시 G01 대응)"
     },
     {
       "id": "VP-1-3-001",
@@ -462,6 +498,18 @@
       "source": "신규(4주차 시나리오-VP1)"
     },
     {
+      "id": "VP-1-4-014",
+      "category": "보이스피싱",
+      "subcategory_id": "1-4",
+      "subcategory": "긴급성 압박/법적 위협",
+      "match_type": "regex-simple",
+      "pattern": "(다른|타|주변).{0,6}(문의|알리|얘기|말)하지\\s?마",
+      "weight": 20,
+      "repeat_decay": true,
+      "description": "고립 유도 - 기존 VP-1-4-009/012(문구 고정)와 다른 표현 대응(예: '은행이나 다른 데 문의하지 마세요')",
+      "source": "신규(7주차 수정, 갭코퍼스 N-VP2-04 대응)"
+    },
+    {
       "id": "VP-1-5-001",
       "category": "보이스피싱",
       "subcategory_id": "1-5",
@@ -653,6 +701,66 @@
       "repeat_decay": true,
       "description": "악성 앱 설치 유도",
       "source": "공통"
+    },
+    {
+      "id": "VP-1-6-007",
+      "category": "보이스피싱",
+      "subcategory_id": "1-6",
+      "subcategory": "악성링크/스미싱",
+      "match_type": "regex-simple",
+      "pattern": "(APK|apk)\\s?(파일)?\\s?를?\\s?설치",
+      "weight": 25,
+      "repeat_decay": true,
+      "description": "악성 APK 설치 유도 - 기존 '앱 설치'(VP-1-6-005)와 다른 표현(APK 특화) 대응",
+      "source": "신규(7주차, 김우영 v8.2 가이드 예시 G03 대응)"
+    },
+    {
+      "id": "VP-1-6-008",
+      "category": "보이스피싱",
+      "subcategory_id": "1-6",
+      "subcategory": "악성링크/스미싱",
+      "match_type": "regex-simple",
+      "pattern": "AnyDesk|TeamViewer|팀뷰어|퀵서포트",
+      "weight": 25,
+      "repeat_decay": true,
+      "description": "특정 원격제어 앱 명칭 유도 - 기존 '원격제어 앱'(VP-1-6-006, 일반 표현)과 별개로 실제 앱 이름 직접 언급 대응",
+      "source": "신규(7주차, 김우영 v8.2 가이드 예시 G09 대응)"
+    },
+    {
+      "id": "VP-1-6-009",
+      "category": "보이스피싱",
+      "subcategory_id": "1-6",
+      "subcategory": "악성링크/스미싱",
+      "match_type": "keyword",
+      "keyword": "무료 쿠폰",
+      "weight": 25,
+      "repeat_decay": true,
+      "description": "스미싱 미끼 문구(쿠폰)",
+      "source": "신규(7주차, 김우영 v8.2 가이드 예시 G07 대응)"
+    },
+    {
+      "id": "VP-1-6-010",
+      "category": "보이스피싱",
+      "subcategory_id": "1-6",
+      "subcategory": "악성링크/스미싱",
+      "match_type": "keyword",
+      "keyword": "당첨을 축하합니다",
+      "weight": 25,
+      "repeat_decay": true,
+      "description": "스미싱/경품사기 미끼 문구(당첨)",
+      "source": "신규(7주차, 김우영 v8.2 가이드 예시 G08 대응)"
+    },
+    {
+      "id": "VP-1-6-011",
+      "category": "보이스피싱",
+      "subcategory_id": "1-6",
+      "subcategory": "악성링크/스미싱",
+      "match_type": "regex-simple",
+      "pattern": "계정.{0,5}(해킹|탈취|도용)",
+      "weight": 25,
+      "repeat_decay": true,
+      "description": "계정 해킹 프레이밍 - 기존 '명의도용'/'범죄연루' 프레임과 다른 스미싱형 계정탈취 문구 대응",
+      "source": "신규(7주차 수정, 김우영 v8.2 가이드 예시 G05 대응 - 02번 문서 Category A에 분류됐으나 최초 구현에서 누락됐던 항목)"
     },
     {
       "id": "RS-2-1-001",
@@ -881,6 +989,30 @@
       "repeat_decay": true,
       "description": "투자사기형 금전요구(INVEST_PITCH)",
       "source": "신규(4주차 시나리오-RS2)"
+    },
+    {
+      "id": "RS-2-4-009",
+      "category": "로맨스스캠",
+      "subcategory_id": "2-4",
+      "subcategory": "금전요구명목",
+      "match_type": "keyword",
+      "keyword": "VIP 등급",
+      "weight": 30,
+      "repeat_decay": true,
+      "description": "투자사기형 금전요구(INVEST_PITCH) - 등급제 미끼",
+      "source": "신규(7주차 수정, 갭코퍼스 N-RS2-04 대응)"
+    },
+    {
+      "id": "RS-2-4-010",
+      "category": "로맨스스캠",
+      "subcategory_id": "2-4",
+      "subcategory": "금전요구명목",
+      "match_type": "keyword",
+      "keyword": "자동 승격",
+      "weight": 30,
+      "repeat_decay": true,
+      "description": "투자사기형 금전요구(INVEST_PITCH) - 등급제 미끼",
+      "source": "신규(7주차 수정, 갭코퍼스 N-RS2-04 대응)"
     },
     {
       "id": "RS-2-5-001",
@@ -1185,6 +1317,18 @@
       "source": "신규(4주차 시나리오-GL1/GL2)"
     },
     {
+      "id": "GL-3-2-007",
+      "category": "가스라이팅",
+      "subcategory_id": "3-2",
+      "subcategory": "현실 왜곡",
+      "match_type": "regex-simple",
+      "pattern": "그런\\s?말?\\s?한?\\s?적\\s?없",
+      "weight": 12,
+      "repeat_decay": true,
+      "description": "기억 부정(DENY) - 기존 '그런 적 없어'(GL-3-2-002, 문구 고정)와 다른 표현(예: '그런 말 한 적 없는데') 대응",
+      "source": "신규(7주차 수정, 갭코퍼스 N-GL1-01 대응)"
+    },
+    {
       "id": "GL-3-3-001",
       "category": "가스라이팅",
       "subcategory_id": "3-3",
@@ -1231,6 +1375,18 @@
       "repeat_decay": true,
       "description": "관계 고립 유도 (직장형)",
       "source": "직장형 미니예시"
+    },
+    {
+      "id": "GL-3-3-005",
+      "category": "가스라이팅",
+      "subcategory_id": "3-3",
+      "subcategory": "관계 고립 유도",
+      "match_type": "regex-simple",
+      "pattern": "이런\\s?얘기.{0,10}(팀원|인사팀|사람|누구|어디).{0,10}하지\\s?마",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "비밀유지+고립 유도(SECRECY/ISOLATION) - 기존 GL-3-3-004(문구 고정)와 다른 대상(예: '인사팀 같은 데 가서 하지 마') 대응",
+      "source": "신규(7주차 수정, 갭코퍼스 N-GL2-04 대응)"
     },
     {
       "id": "GL-3-4-001",
@@ -2855,7 +3011,7 @@
       "id": "COMBO-VP-REPEAT-PRESSURE",
       "type": "repeat_pattern",
       "category": "보이스피싱",
-      "condition": "긴급성압박/법적위협(1-4) 매칭이 같은 세션에서 합산 2회 이상 감지 - 같은 협박·긴급 압박을 반복해 판단 시간을 뺏는 흐름(당초 1-1/1-3 포함 시 기관사칭 단순 반복·전화번호 안내에서 오탐하여 1-4로 한정, 신기훈 원안 대비 조정분)",
+      "condition": "긴급성압박(1-4) 표현이 한 세션에서 2회 이상 반복 - 반복 압박 자체가 보이스피싱 특유의 긴급성 조성 흐름. 기관사칭(1-1)/연락처(1-3) 단독 반복은 무해할 수 있어 제외(오탐방지).",
       "subcategory_ids": [
         "1-4"
       ],

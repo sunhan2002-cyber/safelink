@@ -4,4 +4,10 @@
         <item name="android:statusBarColor">@android:color/white</item>
         <item name="android:windowLightStatusBar">true</item>
     </style>
+
+    <style name="Theme.SafeLink.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#F3F7FF</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_background_icon</item>
+        <item name="postSplashScreenTheme">@style/Theme.SafeLink</item>
+    </style>
 </resources>

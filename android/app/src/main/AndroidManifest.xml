@@ -14,7 +14,7 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
-        android:theme="@style/Theme.SafeLink">
+        android:theme="@style/Theme.SafeLink.Starting">
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -30,6 +30,13 @@ import com.safelink.app.notification.RiskNotifier
  *
  * ※ 감지 대상 패키지([MONITORED_PACKAGES])와 "감지 후 어떤 화면으로 연결할지" 기준은
  *   기능확장 담당(김선한)과 협의해 확정한다. 라우팅 매핑은 [RiskNotifier.routeFor] 한 곳에 모아둠.
+ *
+ * ── 개인정보: 서버로 전송되지 않음 (7주차 확인) ─────────────────────────────
+ *   백그라운드 감지 경로는 [DetectionRepository.analyze]만 호출하고
+ *   [DetectionRepository.escalateToAI]는 호출하지 않는다 — 즉 이 경로로 읽은 화면 텍스트는
+ *   네트워크로 나갈 방법 자체가 없다(마스킹 이전에 애초에 전송 경로가 없음). 분석 결과도
+ *   [BackgroundDetectionState]에 원문이 아닌 매칭된 짧은 구간(`matchedText`)만, 디스크
+ *   저장 없이 메모리(StateFlow)에만 보관한다(CLAUDE.md 아키텍처 원칙 2 - 원문 미저장).
  */
 class MessageDetectionService : AccessibilityService() {
 
