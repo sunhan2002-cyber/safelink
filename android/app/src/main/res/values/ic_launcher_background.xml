@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- SafeLink 로고 배경과 동일한 연하늘색 (적응형 아이콘 배경 레이어) -->
+    <color name="ic_launcher_background">#DCE3F2</color>
+</resources>

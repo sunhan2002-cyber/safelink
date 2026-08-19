@@ -114,7 +114,7 @@ fun SupportDetailScreen(navController: NavHostController, institutionId: String)
                 IntentActions.dial(context, institution.phone)
             })
             SafeLinkOutlinedButton(text = "홈페이지 이동", onClick = {
-                // 실제 기관 URL 확보 전까지 임시(네이버). Institution.website 만 실제 주소로 채우면 됨
+                // 각 기관 공식 사이트(Institution.website, 2026-08 확인)로 이동
                 IntentActions.openWeb(context, institution.website)
             })
         }

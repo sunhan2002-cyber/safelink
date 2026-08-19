@@ -33,9 +33,8 @@ internal data class Institution(
     val phone: String,
     val hours: String,
     val target: String,
-    // 홈페이지 이동 대상 URL. 실제 기관 URL 확보 전까지 임시로 네이버.
-    // 나중에 각 기관 항목에 website = "https://실제주소" 만 채워 넣으면 된다.
-    val website: String = "https://www.naver.com"
+    // 홈페이지 이동 대상 URL. 각 기관 공식 사이트(2026-08 확인).
+    val website: String
 )
 
 internal val dummyInstitutions = listOf(
@@ -45,7 +44,8 @@ internal val dummyInstitutions = listOf(
         description = "경찰청 관할 피해 신고 및 즉시 조치",
         phone = "112",
         hours = "연중무휴 24시간",
-        target = "보이스피싱·금융사기 피해자"
+        target = "보이스피싱·금융사기 피해자",
+        website = "https://ecrm.police.go.kr"
     ),
     Institution(
         id = "118",
@@ -53,7 +53,8 @@ internal val dummyInstitutions = listOf(
         description = "스미싱 및 인터넷 침해사고 대응",
         phone = "118",
         hours = "연중무휴 24시간",
-        target = "스미싱·해킹·개인정보 침해 피해자"
+        target = "스미싱·해킹·개인정보 침해 피해자",
+        website = "https://www.boho.or.kr"
     ),
     Institution(
         id = "132",
@@ -61,7 +62,8 @@ internal val dummyInstitutions = listOf(
         description = "피해 회복을 위한 법률 상담 및 지원",
         phone = "132",
         hours = "평일 09:00~18:00",
-        target = "법률 상담이 필요한 피해자"
+        target = "법률 상담이 필요한 피해자",
+        website = "https://www.klac.or.kr"
     )
 )
 
