@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.model.RiskLevel
 import com.safelink.app.data.local.RecordSource
 import com.safelink.app.data.repository.DetectionRepository
@@ -33,6 +34,8 @@ import com.safelink.app.notification.RiskNotifier
  * ── 성능/중복 억제 ──────────────────────────────────────────────────────
  *   - 같은 화면에서 이벤트가 쏟아지므로 [MIN_INTERVAL_MS] 간격으로만 분석(디바운스).
  *   - 직전과 동일한 텍스트는 재분석/재알림하지 않는다.
+ *   - 같은 내용(앱+매칭 키워드 집합)의 반복 알림은 [isDuplicateAlert] 규칙으로 거른다 —
+ *     같은 화면 스크롤은 오래 묶고, 대화방을 나갔다 다시 들어오면 다시 알린다.
  *   - 노드 순회 길이를 [MAX_CHARS] 로 제한해 과도한 처리를 막는다.
  *
  * ※ 감지 대상 패키지([MONITORED_PACKAGES])와 "감지 후 어떤 화면으로 연결할지" 기준은
@@ -58,6 +61,12 @@ class MessageDetectionService : AccessibilityService() {
     private var lastText: String = ""
     private var lastAnalyzedAt: Long = 0L
 
+    /** 직전에 알림을 띄운 건의 식별값 — 앱 + 매칭된 키워드 id 집합 */
+    private var lastAlertSignature: String? = null
+    private var lastAlertAt: Long = 0L
+    /** 직전 알림이 발생한 창(화면) id — 화면이 바뀌면 새 확인 행동으로 본다 */
+    private var lastAlertWindowId: Int = -1
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
         val pkg = event.packageName?.toString() ?: return
@@ -80,6 +89,12 @@ class MessageDetectionService : AccessibilityService() {
         // (SAFE/CAUTION 등 일상 화면까지 상태·카운트에 반영하면 "오늘의 알림"이 부풀어 오르므로
         //  BackgroundDetectionState 는 실제 알림(경고 이상)만 기록한다)
         if (result.riskLevel.ordinal >= RiskLevel.WARNING.ordinal) {
+            if (isDuplicateAlert(pkg, result, event.windowId, now)) return
+
+            lastAlertSignature = signatureOf(pkg, result)
+            lastAlertAt = now
+            lastAlertWindowId = event.windowId
+
             BackgroundDetectionState.update(result, sourceApp = pkg)
             notifier.notifyRisk(
                 result.riskLevel,
@@ -91,6 +106,35 @@ class MessageDetectionService : AccessibilityService() {
             serviceScope.launch {
                 runCatching { recordRepository.saveDetection(result, RecordSource.BACKGROUND) }
             }
+        }
+    }
+
+    /** 앱 + 매칭된 키워드 id 집합 — 같은 내용을 다시 본 것인지 판단하는 기준 */
+    private fun signatureOf(pkg: String, result: DetectionResult): String =
+        pkg + "|" + result.matchedKeywords.map { it.keywordId }.distinct().sorted().joinToString(",")
+
+    /**
+     * 같은 내용을 반복해서 알리지 않도록 거르는 규칙.
+     *
+     *   - 같은 화면에서 스크롤만 하는 경우: 같은 키워드 집합이면 [SAME_SCREEN_MUTE_MS] 동안 생략
+     *   - 대화방을 나갔다가 다시 들어온 경우(창 id가 바뀜): 다시 알린다.
+     *     다만 목록 → 대화방처럼 몇 초 안에 이어지는 이동은 한 번의 확인 행동이므로
+     *     [SCREEN_CHANGE_MUTE_MS] 안에서는 생략한다.
+     *
+     * 다른 앱에서 같은 문구가 오면(문자·카톡 각각) 별개 사건이므로 서명에 패키지를 포함해 따로 알린다.
+     */
+    private fun isDuplicateAlert(
+        pkg: String,
+        result: DetectionResult,
+        windowId: Int,
+        now: Long
+    ): Boolean {
+        if (signatureOf(pkg, result) != lastAlertSignature) return false
+        val elapsed = now - lastAlertAt
+        return if (windowId == lastAlertWindowId) {
+            elapsed < SAME_SCREEN_MUTE_MS
+        } else {
+            elapsed < SCREEN_CHANGE_MUTE_MS
         }
     }
 
@@ -122,20 +166,42 @@ class MessageDetectionService : AccessibilityService() {
     }
 
     override fun onInterrupt() {
-        // 서비스 중단 시 상태 초기화 (다음 세션에서 이전 텍스트가 남지 않도록)
+        // 서비스 중단 시 상태 초기화 (다음 세션에서 이전 텍스트·알림 이력이 남지 않도록)
         lastText = ""
         lastAnalyzedAt = 0L
+        lastAlertSignature = null
+        lastAlertAt = 0L
+        lastAlertWindowId = -1
     }
 
     companion object {
-        /** 감지 대상 메신저 패키지 (팀 확정 후 확장) */
+        /**
+         * 감지 대상 패키지.
+         *
+         * 접근성 서비스 설정(accessibility_service_config.xml)에 packageNames 제한을 두지 않아
+         * 서비스는 모든 앱의 이벤트를 받는다. 실제 분석 대상은 이 목록으로만 걸러내므로,
+         * 대상을 넓히려면 패키지명만 추가하면 된다.
+         *
+         * 문자(SMS)는 기기 제조사별로 기본 앱이 달라 주요 앱을 함께 등록한다.
+         * 설치돼 있지 않은 패키지는 이벤트가 오지 않으므로 그냥 무시된다.
+         */
         private val MONITORED_PACKAGES = setOf(
-            "com.kakao.talk", // 카카오톡
-            // "com.samsung.android.messaging", // 삼성 메시지
+            "com.kakao.talk",                    // 카카오톡
+            "com.samsung.android.messaging",     // 삼성 메시지(갤럭시 기본 문자)
+            "com.google.android.apps.messaging", // Google 메시지(픽셀·다수 기기 기본 문자)
         )
 
         /** 연속 이벤트 디바운스 간격 */
         private const val MIN_INTERVAL_MS = 1500L
+
+        /** 같은 화면(대화방)에서 스크롤 등으로 같은 내용이 반복 감지될 때 알림을 쉬는 시간 */
+        private const val SAME_SCREEN_MUTE_MS = 30 * 60 * 1000L
+
+        /**
+         * 화면이 바뀐 뒤(대화방 재진입 등) 같은 내용이 다시 잡힐 때 알림을 쉬는 시간.
+         * 목록 → 대화방처럼 몇 초 안에 이어지는 이동을 한 번으로 묶기 위한 최소 간격.
+         */
+        private const val SCREEN_CHANGE_MUTE_MS = 60 * 1000L
 
         /** 노드 순회로 모을 최대 글자 수(성능 보호) */
         private const val MAX_CHARS = 5000
