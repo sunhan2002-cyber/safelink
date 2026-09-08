@@ -26,6 +26,8 @@ data class DetectionResult(
     val matchedKeywords: List<MatchedKeyword>,
     val recommendedInstitutions: List<RecommendedInstitutionUi>,
     val appliedComboIds: List<String> = emptyList(),   // 발동된 조합 보너스 규칙 id (설명용, 선택 표시)
+    // 키워드 매칭과 무관하게 문장 구조/상황 조합 자체로 발동한 1차 분석 규칙 id.
+    val appliedDirectRuleIds: List<String> = emptyList(),
     // 아래 2개는 2차 AI 보조 분석(DetectionRepository.escalateToAI)이 실행된 경우에만 채워짐.
     // 온디바이스 분석만 끝난 상태에서는 항상 null — 기존 더미데이터/화면 코드는 그대로 동작함.
     val aiSummary: String? = null,          // API 응답의 context_analysis_summary
@@ -38,8 +40,8 @@ data class DetectionResult(
     val sentenceRuleEvidences: List<AnalysisEvidence> = emptyList(),      // 문장 규칙 근거 (regex-complex, numeric_ratio_pattern)
     val situationalRuleEvidences: List<AnalysisEvidence> = emptyList()   // 상황 규칙 근거 (repeat_pattern, long_session_pattern)
 ) {
-    /** 위험 없음(SAFE, 매칭 0건) 여부 — "위험한 표현이 감지되지 않았습니다" 문구 표시 조건 */
-    val isSafeAndEmpty: Boolean get() = matchedKeywords.isEmpty()
+    /** 위험 없음(SAFE, 근거 없음) 여부 — 직접 문장 규칙으로 점수가 오른 결과도 안전으로 보이지 않게 한다. */
+    val isSafeAndEmpty: Boolean get() = score == 0 && matchedKeywords.isEmpty()
 }
 
 data class MatchedKeyword(
