@@ -223,6 +223,134 @@ class DetectionEngineTest {
         assertTrue(result.recommendedInstitutions.isEmpty())
     }
 
+    // ───────────── 1차 직접 규칙 보강 묶음 1: 보이스피싱 문장/상황 ─────────────
+
+    @Test
+    fun `직접규칙 - 기관 사칭과 주민등록번호 제출 요구는 점수와 문장 근거에 반영`() {
+        val result = engine.analyze("금융감독원 직원입니다. 본인 인증을 위해 주민등록번호를 알려주셔야 합니다.")
+        assertTrue(result.appliedDirectRuleIds.contains("DIRECT-VP-AUTH-IDENTITY-REQUEST"))
+        assertTrue(result.score >= 18)
+        assertTrue(result.sentenceRuleEvidences.any { it.label.contains("기관 사칭") })
+    }
+
+    @Test
+    fun `직접규칙 - 긴급 송금 요구는 상황 근거에 반영`() {
+        val result = engine.analyze("지금 당장 계좌로 입금해주셔야 사건 처리가 가능합니다.")
+        assertTrue(result.appliedDirectRuleIds.contains("DIRECT-VP-URGENT-TRANSFER"))
+        assertTrue(result.situationalRuleEvidences.any { it.label.contains("긴급성") })
+    }
+
+    @Test
+    fun `직접규칙 - 링크 설치 후 인증 유도는 문장 근거에 반영`() {
+        val result = engine.analyze("보안 확인을 위해 링크를 눌러 앱 설치해주세요. 설치 후 인증을 진행해주세요.")
+        assertTrue(result.appliedDirectRuleIds.contains("DIRECT-VP-LINK-INSTALL-VERIFY"))
+        assertTrue(result.sentenceRuleEvidences.any { it.label.contains("링크") })
+    }
+
+    @Test
+    fun `직접규칙 - 비밀 유지와 입금 요구는 상황 근거에 반영`() {
+        val result = engine.analyze("아무한테도 말하지 말고 지금 계좌로 송금해주셔야 합니다.")
+        assertTrue(result.appliedDirectRuleIds.contains("DIRECT-VP-SECRET-MONEY"))
+        assertTrue(result.situationalRuleEvidences.any { it.label.contains("비밀 유지") })
+    }
+
+    @Test
+    fun `직접규칙 - 기관 안내 기사에는 개인정보 제출 규칙이 발동하지 않는다`() {
+        val result = engine.analyze("금융감독원 보도자료에서 본인 인증 제도 안내가 나왔습니다.")
+        assertTrue(!result.appliedDirectRuleIds.contains("DIRECT-VP-AUTH-IDENTITY-REQUEST"))
+    }
+
+    @Test
+    fun `직접규칙 - 업무상 긴급 정산에는 긴급 송금 규칙이 발동하지 않는다`() {
+        val result = engine.analyze("오늘 안에 회의 자료를 보내주세요. 정산은 다음 주에 처리하겠습니다.")
+        assertTrue(!result.appliedDirectRuleIds.contains("DIRECT-VP-URGENT-TRANSFER"))
+    }
+
+    // ───────────── 1차 직접 규칙 보강 묶음 2: 가족사칭·로맨스스캠 상황 ─────────────
+
+    @Test
+    fun `직접규칙 - 새 번호 가족사칭과 통화 회피 금전 요구는 상황 근거에 반영`() {
+        val result = engine.analyze("엄마 나야. 폰이 고장 나서 새 번호로 연락해. 지금 통화가 안 돼서 계좌로 이체해줘.")
+        assertTrue(result.appliedDirectRuleIds.contains("DIRECT-FM-NEW-NUMBER-MONEY"))
+        assertTrue(result.category == "가족사칭" || result.matchedKeywords.any { it.keywordId.startsWith("FM-") })
+        assertTrue(result.situationalRuleEvidences.any { it.label.contains("가족 사칭") })
+    }
+
+    @Test
+    fun `직접규칙 - 친밀감 형성 뒤 병원비 송금 요구는 상황 근거에 반영`() {
+        val result = engine.analyze("자기야 사랑해. 우리 결혼하고 함께 살자. 그런데 사고가 나서 병원비가 급해, 계좌로 입금해줄 수 있어?")
+        assertTrue(result.appliedDirectRuleIds.contains("DIRECT-RS-TRUST-EMERGENCY-MONEY"))
+        assertTrue(result.situationalRuleEvidences.any { it.label.contains("관계 신뢰") })
+    }
+
+    @Test
+    fun `직접규칙 - 가족의 새 번호 공유만으로 가족사칭 금전 규칙은 발동하지 않는다`() {
+        val result = engine.analyze("엄마 새 번호가 바뀌었대. 나중에 전화해서 저장해둘게.")
+        assertTrue(!result.appliedDirectRuleIds.contains("DIRECT-FM-NEW-NUMBER-MONEY"))
+    }
+
+    @Test
+    fun `직접규칙 - 연인의 병원 방문 대화에는 로맨스스캠 금전 규칙이 발동하지 않는다`() {
+        val result = engine.analyze("자기야 병원비는 보험으로 처리됐어. 내일 병문안 갈게, 사랑해.")
+        assertTrue(!result.appliedDirectRuleIds.contains("DIRECT-RS-TRUST-EMERGENCY-MONEY"))
+    }
+
+    // ───────────── 1차 직접 규칙 보강 묶음 3: 투자사기·협박 갈취 상황 ─────────────
+
+    @Test
+    fun `직접규칙 - 원금 보장 투자와 입금 요구는 상황 근거에 반영`() {
+        val result = engine.analyze("원금 보장에 확정 수익이 나는 코인 투자입니다. 지금 계좌로 입금해주시면 VIP방에 초대할게요.")
+        assertTrue(result.appliedDirectRuleIds.contains("DIRECT-IV-GUARANTEED-RETURN-DEPOSIT"))
+        assertTrue(result.situationalRuleEvidences.any { it.label.contains("수익 보장") })
+    }
+
+    @Test
+    fun `직접규칙 - 유포 위협과 입금 요구는 상황 근거에 반영`() {
+        val result = engine.analyze("지금 입금하지 않으면 영상을 가족에게 공개하겠습니다. 계좌로 송금하세요.")
+        assertTrue(result.appliedDirectRuleIds.contains("DIRECT-TH-EXPOSURE-MONEY-DEMAND"))
+        assertTrue(result.situationalRuleEvidences.any { it.label.contains("유포 위협") })
+    }
+
+    @Test
+    fun `직접규칙 - 투자 공부 안내에는 수익 보장 입금 규칙이 발동하지 않는다`() {
+        val result = engine.analyze("주식 투자 공부를 시작했어. 손실 가능성도 있으니 소액으로 연습해보자.")
+        assertTrue(!result.appliedDirectRuleIds.contains("DIRECT-IV-GUARANTEED-RETURN-DEPOSIT"))
+    }
+
+    @Test
+    fun `직접규칙 - 유포 피해 예방 안내에는 협박 갈취 규칙이 발동하지 않는다`() {
+        val result = engine.analyze("영상 유포 협박을 받으면 돈을 보내지 말고 경찰에 신고해야 합니다.")
+        assertTrue(!result.appliedDirectRuleIds.contains("DIRECT-TH-EXPOSURE-MONEY-DEMAND"))
+    }
+
+    // ───────────── 1차 직접 규칙 보강 묶음 4: 가스라이팅 문장·상황 ─────────────
+
+    @Test
+    fun `직접규칙 - 기억 부정과 책임 전가는 문장 근거에 반영`() {
+        val result = engine.analyze("내가 언제 그랬어? 네가 잘못 기억한 거야. 다 너 때문에 일이 이렇게 된 거잖아.")
+        assertTrue(result.appliedDirectRuleIds.contains("DIRECT-GL-DENY-BLAME"))
+        assertTrue(result.sentenceRuleEvidences.any { it.label.contains("기억 부정") })
+    }
+
+    @Test
+    fun `직접규칙 - 관계 고립과 의존 강요는 상황 근거에 반영`() {
+        val result = engine.analyze("친구들이랑 연락하지 마. 너는 나 아니면 안 돼, 내 말만 들어.")
+        assertTrue(result.appliedDirectRuleIds.contains("DIRECT-GL-ISOLATION-CONTROL"))
+        assertTrue(result.situationalRuleEvidences.any { it.label.contains("관계 고립") })
+    }
+
+    @Test
+    fun `직접규칙 - 기억 차이를 확인하는 대화에는 책임 전가 규칙이 발동하지 않는다`() {
+        val result = engine.analyze("내가 잘못 기억했을 수도 있으니 서로 확인해보자. 네 탓이라고 말하려는 건 아니야.")
+        assertTrue(!result.appliedDirectRuleIds.contains("DIRECT-GL-DENY-BLAME"))
+    }
+
+    @Test
+    fun `직접규칙 - 친구 약속 조정만으로 관계 고립 규칙이 발동하지 않는다`() {
+        val result = engine.analyze("친구랑 약속이 있어서 오늘은 먼저 다녀올게. 내일 다시 연락하자.")
+        assertTrue(!result.appliedDirectRuleIds.contains("DIRECT-GL-ISOLATION-CONTROL"))
+    }
+
     // ───────────── 신규 상황 규칙 콤보(신기훈 8주차 반영) ─────────────
 
     @Test

@@ -37,6 +37,155 @@ class DetectionEngine(
     private val institutionsById = institutionData.institutions.associateBy { it.id }
     private val riskTypePriority: Map<String, List<InstitutionPriorityEntry>> = institutionData.riskTypePriority
 
+    private enum class DirectRuleKind { SENTENCE, SITUATION }
+
+    /**
+     * 키워드 id와 별개로 원문 구조를 직접 판정하는 1차 규칙.
+     * 단일 단어만으로는 발동하지 않도록 위험 주체·요구 행동·행동 대상이 함께 있어야 한다.
+     */
+    private data class DirectRiskRule(
+        val id: String,
+        val category: String,
+        val bonus: Int,
+        val kind: DirectRuleKind,
+        val label: String,
+        val detail: String,
+        val requiredPatterns: List<Regex>
+    )
+
+    // 1차 보강 묶음 1: 보이스피싱에서 자주 함께 나타나는 문장/상황 조합.
+    private val directRiskRules = listOf(
+        DirectRiskRule(
+            id = "DIRECT-VP-AUTH-IDENTITY-REQUEST",
+            category = "보이스피싱",
+            bonus = 18,
+            kind = DirectRuleKind.SENTENCE,
+            label = "기관 사칭 후 개인정보·인증정보 요구 감지",
+            detail = "기관/수사 주체, 인증·개인정보, 제출·전송 요청이 함께 확인되었습니다.",
+            requiredPatterns = listOf(
+                Regex("(?:금융감독원|금감원|검찰|경찰|수사관|은행\\s*직원|카드사\\s*직원)"),
+                Regex("(?:인증번호|보안카드|주민등록번호|신분증\\s*(?:사진)?|개인정보|본인\\s*인증|본인\\s*확인)"),
+                Regex("(?:알려(?:주세요|주셔야|줘)|입력(?:하세요|해(?:주세요|주셔야|줘))|제출(?:해주세요|하셔야|해)|전송(?:해주세요|하셔야|해))")
+            )
+        ),
+        DirectRiskRule(
+            id = "DIRECT-VP-URGENT-TRANSFER",
+            category = "보이스피싱",
+            bonus = 18,
+            kind = DirectRuleKind.SITUATION,
+            label = "긴급성 유도와 송금 요구 조합 감지",
+            detail = "즉시 처리 압박과 금전 이체 요청이 함께 확인되었습니다.",
+            requiredPatterns = listOf(
+                Regex("(?:지금\\s*(?:당장|바로)|오늘\\s*안(?:에|으로)|즉시|지체\\s*없이)"),
+                Regex("(?:송금|이체|입금|계좌(?:로|번호)|돈을?\\s*보내)"),
+                Regex("(?:해(?:주세요|주셔야|야|줘)|하세요|부탁(?:드립니다|해요)?|보내(?:주세요|주셔야|야|줘))")
+            )
+        ),
+        DirectRiskRule(
+            id = "DIRECT-VP-LINK-INSTALL-VERIFY",
+            category = "보이스피싱",
+            bonus = 20,
+            kind = DirectRuleKind.SENTENCE,
+            label = "링크·앱 설치를 통한 인증 유도 감지",
+            detail = "링크 또는 앱 설치 후 인증·확인을 진행하라는 요청이 확인되었습니다.",
+            requiredPatterns = listOf(
+                Regex("(?:링크|URL|앱\\s*설치|어플\\s*설치|APK|원격\\s*제어)", RegexOption.IGNORE_CASE),
+                Regex("(?:인증|본인\\s*확인|보안\\s*확인|확인\\s*절차)"),
+                Regex("(?:눌러|설치해|접속해|입력해|진행해)(?:주세요|주셔야|야|줘|하세요)?")
+            )
+        ),
+        DirectRiskRule(
+            id = "DIRECT-VP-SECRET-MONEY",
+            category = "보이스피싱",
+            bonus = 20,
+            kind = DirectRuleKind.SITUATION,
+            label = "비밀 유지와 금전 요구 조합 감지",
+            detail = "주변에 알리지 말라는 요구와 송금·입금 요청이 함께 확인되었습니다.",
+            requiredPatterns = listOf(
+                Regex("(?:아무(?:한테|에게)도\\s*말하지|비밀로|혼자만\\s*알고)"),
+                Regex("(?:송금|이체|입금|계좌(?:로|번호)|돈을?\\s*보내)"),
+                Regex("(?:해(?:주세요|주셔야|야|줘)|하세요|부탁(?:드립니다|해요)?|보내(?:주세요|주셔야|야|줘))")
+            )
+        ),
+        DirectRiskRule(
+            id = "DIRECT-FM-NEW-NUMBER-MONEY",
+            category = "가족사칭",
+            bonus = 20,
+            kind = DirectRuleKind.SITUATION,
+            label = "가족 사칭 후 연락 회피·금전 요구 감지",
+            detail = "가족 관계 사칭, 새 번호·기기 문제, 통화 회피, 금전 요청이 함께 확인되었습니다.",
+            requiredPatterns = listOf(
+                Regex("(?:엄마|아빠|아들|딸|누나|언니|오빠|형)\\s*(?:나야|인데)"),
+                Regex("(?:폰(?:이)?\\s*(?:고장|깨져|분실)|새\\s*번호|번호가\\s*바뀌)"),
+                Regex("(?:통화(?:가)?\\s*안\\s*돼|전화(?:가)?\\s*안\\s*돼)"),
+                Regex("(?:송금|이체|입금|계좌(?:로|번호)|돈을?\\s*보내)")
+            )
+        ),
+        DirectRiskRule(
+            id = "DIRECT-RS-TRUST-EMERGENCY-MONEY",
+            category = "로맨스스캠",
+            bonus = 20,
+            kind = DirectRuleKind.SITUATION,
+            label = "관계 신뢰 형성 뒤 긴급 금전 요구 감지",
+            detail = "친밀감·미래 약속 표현 뒤 경제적 위기와 금전 요청이 함께 확인되었습니다.",
+            requiredPatterns = listOf(
+                Regex("(?:사랑해|자기야|결혼(?:하고|하자|할까)|함께\\s*살|평생)"),
+                Regex("(?:사업\\s*자금|병원비|사고가\\s*났|급한\\s*돈|경제적으로\\s*힘들)"),
+                Regex("(?:송금|이체|입금|계좌(?:로|번호)|도와(?:줄|줘)|돈을?\\s*보내)")
+            )
+        ),
+        DirectRiskRule(
+            id = "DIRECT-IV-GUARANTEED-RETURN-DEPOSIT",
+            category = "투자사기",
+            bonus = 20,
+            kind = DirectRuleKind.SITUATION,
+            label = "수익 보장과 투자금 입금 유도 감지",
+            detail = "손실 없는 수익 약속, 투자 대상, 입금 요청이 함께 확인되었습니다.",
+            requiredPatterns = listOf(
+                Regex("(?:원금\\s*보장|확정\\s*수익|무조건\\s*수익|손실\\s*없)"),
+                Regex("(?:투자|코인|주식|VIP\\s*방)", RegexOption.IGNORE_CASE),
+                Regex("(?:송금|이체|입금|계좌(?:로|번호)|돈을?\\s*보내)")
+            )
+        ),
+        DirectRiskRule(
+            id = "DIRECT-TH-EXPOSURE-MONEY-DEMAND",
+            category = "협박·갈취",
+            bonus = 24,
+            kind = DirectRuleKind.SITUATION,
+            label = "유포 위협과 금전 요구 조합 감지",
+            detail = "개인 정보·영상 등의 유포 위협과 금전 요구가 함께 확인되었습니다.",
+            requiredPatterns = listOf(
+                Regex("(?:유포|뿌리|공개|가족에게\\s*알리|영상)"),
+                Regex("(?:송금|이체|입금|계좌(?:로|번호)|돈을?\\s*보내)"),
+                Regex("(?:안\\s*하면|않으면|전에|지금\\s*(?:당장|바로)|즉시)")
+            )
+        ),
+        DirectRiskRule(
+            id = "DIRECT-GL-DENY-BLAME",
+            category = "가스라이팅",
+            bonus = 16,
+            kind = DirectRuleKind.SENTENCE,
+            label = "기억 부정과 책임 전가 조합 감지",
+            detail = "상대의 기억·인식을 부정하면서 책임을 전가하는 표현이 함께 확인되었습니다.",
+            requiredPatterns = listOf(
+                Regex("(?:내가\\s*언제|그런\\s*적\\s*없|네가\\s*잘못\\s*기억)"),
+                Regex("(?:너\\s*(?:때문|탓)|네\\s*탓|과민반응|예민해서)")
+            )
+        ),
+        DirectRiskRule(
+            id = "DIRECT-GL-ISOLATION-CONTROL",
+            category = "가스라이팅",
+            bonus = 20,
+            kind = DirectRuleKind.SITUATION,
+            label = "관계 고립과 통제 조합 감지",
+            detail = "주변 관계를 끊게 하거나 상대 의존을 강요하는 표현이 함께 확인되었습니다.",
+            requiredPatterns = listOf(
+                Regex("(?:친구|가족|걔).{0,12}(?:만나지|연락하지|거리\\s*둬)"),
+                Regex("(?:나\\s*아니면\\s*안\\s*돼|내\\s*말만\\s*들어|내가\\s*없으면)")
+            )
+        )
+    )
+
     /** 원문 텍스트 1건을 분석해서 [DetectionResult]로 변환. 화면/ViewModel에서 사용하는 기본 진입점. */
     fun analyze(originalText: String): DetectionResult = analyze(listOf(originalText))
 
@@ -67,16 +216,24 @@ class DetectionEngine(
         val (baseScore, matchedKeywords) = scoreMatches(rawMatches, suppressed)
         val comboIds = evaluateComboRules(rawMatches, suppressed, turnCount = turns.size, originalText = originalText)
         val comboBonus = comboIds.sumOf { id -> keywordData.comboBonusRules.first { it.id == id }.bonus }
-        val totalScore = min(baseScore + comboBonus, 100.0)
+        val directRules = evaluateDirectRiskRules(originalText)
+        val directBonus = directRules.sumOf { it.bonus }
+        val totalScore = min(baseScore + comboBonus + directBonus, 100.0)
         val score = totalScore.toInt()
 
         val riskLevel = RiskLevel.fromScore(score)
         val category = rawMatches.groupBy { it.entry.category }
             .maxByOrNull { (_, group) -> group.sumOf { it.entry.weight } }
-            ?.key ?: ""
+            ?.key ?: directRules.firstOrNull()?.category.orEmpty()
 
         val recommendedInstitutions = resolveInstitutions(rawMatches, comboIds, score)
-        val (sentenceRuleEvidences, situationalRuleEvidences) = buildRuleEvidences(rawMatches, suppressed, comboIds)
+        val (existingSentenceEvidences, existingSituationalEvidences) = buildRuleEvidences(rawMatches, suppressed, comboIds)
+        val sentenceRuleEvidences = existingSentenceEvidences + directRules
+            .filter { it.kind == DirectRuleKind.SENTENCE }
+            .map { AnalysisEvidence(it.label, "${it.detail} (+${it.bonus}점)") }
+        val situationalRuleEvidences = existingSituationalEvidences + directRules
+            .filter { it.kind == DirectRuleKind.SITUATION }
+            .map { AnalysisEvidence(it.label, "${it.detail} (+${it.bonus}점)") }
 
         return DetectionResult(
             riskLevel = riskLevel,
@@ -86,10 +243,14 @@ class DetectionEngine(
             matchedKeywords = matchedKeywords,
             recommendedInstitutions = recommendedInstitutions,
             appliedComboIds = comboIds,
+            appliedDirectRuleIds = directRules.map { it.id },
             sentenceRuleEvidences = sentenceRuleEvidences,
             situationalRuleEvidences = situationalRuleEvidences
         )
     }
+
+    private fun evaluateDirectRiskRules(originalText: String): List<DirectRiskRule> =
+        directRiskRules.filter { rule -> rule.requiredPatterns.all { it.containsMatchIn(originalText) } }
 
     // ─────────────────────────────────────────────────────────────────
     // 1. 키워드 매칭 (요청 2번: 어떤 키워드를 어떤 규칙으로 잡을지)
