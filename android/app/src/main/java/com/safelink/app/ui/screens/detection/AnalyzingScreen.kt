@@ -71,7 +71,7 @@ fun AnalyzingScreen(
         val ok = analysisOk
         if (progress >= 1f && ok != null) {
             if (ok) {
-                navController.navigate(Screen.DetectionResult.route) {
+                navController.navigate(Screen.DetectionResult.createRoute()) {
                     popUpTo(Screen.Analyzing.route) { inclusive = true }
                 }
             } else {

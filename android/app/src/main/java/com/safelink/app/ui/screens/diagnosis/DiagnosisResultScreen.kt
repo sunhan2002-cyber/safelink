@@ -37,16 +37,20 @@ import com.safelink.app.ui.theme.BrandBlueLight
 import com.safelink.app.ui.theme.RiskCritical
 import com.safelink.app.ui.theme.SurfaceWhite
 
-/** 자가 진단 결과 (Figma 20:922) — 더미 데이터 UI 뼈대 (Task 4.8) */
+/**
+ * 자가 진단 결과 (Figma 20:922) — 점수·위험도·근거는 [DiagnosisViewModel.submit]이 산출한
+ * 실제 값을 사용한다(Task 4.9). 산출식은 Design.md 5.1 참고.
+ */
 @Composable
-fun DiagnosisResultScreen(navController: NavHostController) {
-    val level = RiskLevel.WARNING // TODO: DiagnosisViewModel에서 산출 결과 수신 (Task 4.9)
-    val score = 55
-    val reasons = listOf(
-        "급하게 돈을 보내라는 요구가 있었어요",
-        "수사기관을 사칭하는 연락이 있었어요",
-        "다른 사람에게 말하지 말라는 요구가 있었어요"
-    )
+fun DiagnosisResultScreen(
+    navController: NavHostController,
+    viewModel: DiagnosisViewModel
+) {
+    // 체크리스트를 거치지 않고 직접 진입한 경우(기록 재열람 등)는 빈 결과로 처리
+    val result = viewModel.result
+    val level = result?.level ?: RiskLevel.SAFE
+    val score = result?.score ?: 0
+    val reasons = result?.reasons.orEmpty()
 
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(
@@ -95,14 +99,14 @@ fun DiagnosisResultScreen(navController: NavHostController) {
                     RiskBadge(level = level)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "주의가 필요한 상황으로 보입니다",
+                        text = headlineFor(level),
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
             }
 
-            // 근거 섹션
-            SafeLinkCard {
+            // 근거 섹션 — 체크한 항목이 있을 때만 표시
+            if (reasons.isNotEmpty()) SafeLinkCard {
                 Text(text = "왜 이런 결과가 나왔나요?", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(12.dp))
                 reasons.forEach { reason ->
@@ -152,4 +156,12 @@ fun DiagnosisResultScreen(navController: NavHostController) {
             }
         }
     }
+}
+
+/** 위험도별 결과 요약 문구 — 단정적 표현 대신 완곡한 어투 사용(Design.md 7장 톤 기준) */
+private fun headlineFor(level: RiskLevel): String = when (level) {
+    RiskLevel.CRITICAL -> "지금 바로 확인이 필요한 상황으로 보입니다"
+    RiskLevel.WARNING -> "주의가 필요한 상황으로 보입니다"
+    RiskLevel.CAUTION -> "일부 신호가 확인되어 살펴볼 필요가 있습니다"
+    RiskLevel.SAFE -> "특별한 위험 신호는 확인되지 않았습니다"
 }

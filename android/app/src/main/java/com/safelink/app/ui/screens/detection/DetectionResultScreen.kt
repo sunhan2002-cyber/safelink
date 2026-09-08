@@ -27,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -76,10 +77,16 @@ import com.safelink.app.ui.theme.SafeLinkTheme
 @Composable
 fun DetectionResultScreen(
     navController: NavHostController,
-    viewModel: DetectionViewModel
+    viewModel: DetectionViewModel,
+    recordId: String? = null
 ) {
+    // 기록 탭에서 들어온 경우: 저장된 원문을 같은 엔진으로 재분석해 결과를 복원한다(Task 7.1).
+    LaunchedEffect(recordId) {
+        if (recordId != null) viewModel.loadRecord(recordId)
+    }
+
     // 실제 데이터 흐름 (김선한_02 문서): 공유 ViewModel의 분석 결과를 사용.
-    // 기록 화면 재열람 등 분석 없이 직접 진입한 경우에만 더미로 대체 (TODO: Room 연동 시 recordId 조회로 교체)
+    // 결과가 아직 없을 때만(복원 중이거나 직접 진입) 더미로 대체한다.
     val result: DetectionResult = viewModel.result ?: DetectionResultDummyData.vpCritical
 
     DetectionResultContent(

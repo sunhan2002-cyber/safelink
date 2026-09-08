@@ -1,0 +1,65 @@
+package com.safelink.app.data.local
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.TypeConverter
+import com.safelink.app.data.model.RiskLevel
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface DetectionRecordDao {
+
+    @Query("SELECT * FROM detection_records ORDER BY timestamp DESC")
+    fun observeAll(): Flow<List<DetectionRecordEntity>>
+
+    @Query("SELECT * FROM detection_records WHERE id = :id")
+    suspend fun findById(id: String): DetectionRecordEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(record: DetectionRecordEntity)
+
+    @Query("UPDATE detection_records SET memo = :memo WHERE id = :id")
+    suspend fun updateMemo(id: String, memo: String?)
+
+    @Query("DELETE FROM detection_records")
+    suspend fun deleteAll()
+}
+
+@Dao
+interface DiagnosisRecordDao {
+
+    @Query("SELECT * FROM diagnosis_records ORDER BY timestamp DESC")
+    fun observeAll(): Flow<List<DiagnosisRecordEntity>>
+
+    @Query("SELECT * FROM diagnosis_records WHERE id = :id")
+    suspend fun findById(id: String): DiagnosisRecordEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(record: DiagnosisRecordEntity)
+
+    @Query("UPDATE diagnosis_records SET memo = :memo WHERE id = :id")
+    suspend fun updateMemo(id: String, memo: String?)
+
+    @Query("DELETE FROM diagnosis_records")
+    suspend fun deleteAll()
+}
+
+/** enum 컬럼 변환기 — 이름 문자열로 저장해 순서 변경에 영향받지 않게 한다. */
+class RecordConverters {
+
+    @TypeConverter
+    fun riskLevelToString(level: RiskLevel): String = level.name
+
+    @TypeConverter
+    fun stringToRiskLevel(value: String): RiskLevel =
+        runCatching { RiskLevel.valueOf(value) }.getOrDefault(RiskLevel.SAFE)
+
+    @TypeConverter
+    fun sourceToString(source: RecordSource): String = source.name
+
+    @TypeConverter
+    fun stringToSource(value: String): RecordSource =
+        runCatching { RecordSource.valueOf(value) }.getOrDefault(RecordSource.TEXT_INPUT)
+}

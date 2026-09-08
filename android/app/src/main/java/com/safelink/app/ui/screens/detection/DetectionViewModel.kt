@@ -11,7 +11,9 @@ import com.safelink.app.background.BackgroundDetectionState
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.ocr.MlKitOcrService
 import com.safelink.app.data.ocr.OcrService
+import com.safelink.app.data.local.RecordSource
 import com.safelink.app.data.repository.DetectionRepository
+import com.safelink.app.data.repository.RecordRepository
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -25,7 +27,9 @@ import java.util.UUID
  * 신기훈 4주차 결과물, `주차별_결과물/4주차_결과물_신기훈/` 참고). Hilt를 아직 안 쓰는
  * ViewModel이라 생성자를 직접 호출한다.
  *
- * 원문(originalText)은 세션 메모리에만 유지하고 저장하지 않는다 (Design.md 최소 수집 원칙).
+ * 원문(originalText)은 서버로 전송되지 않는다. 다만 기록 화면에서 판정 근거를 다시 확인할 수
+ * 있어야 하므로, 분석 결과와 함께 기기 내 DB에만 저장한다([RecordRepository], Task 7.1).
+ * 사용자는 설정 > "데이터 모두 삭제"로 언제든 전부 지울 수 있다.
  */
 class DetectionViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -68,6 +72,7 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         private set
 
     private val repository: DetectionRepository by lazy { DetectionRepository(getApplication()) }
+    private val recordRepository: RecordRepository by lazy { RecordRepository(getApplication()) }
     // 실제 온디바이스 OCR. (OCR 없이 흐름만 볼 땐 StubOcrService() 로 교체)
     private val ocrService: OcrService = MlKitOcrService()
 
@@ -134,6 +139,27 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     /**
+     * 기록 탭에서 과거 기록을 다시 여는 경로.
+     *
+     * 기록에는 원문이 저장돼 있으므로, 같은 온디바이스 엔진으로 다시 분석해 결과 화면을 그대로
+     * 복원한다(근거·매칭 구간까지 동일하게 재현). 재분석이므로 새 기록은 남기지 않는다.
+     *
+     * @return 해당 기록을 찾아 복원했으면 true
+     */
+    suspend fun loadRecord(recordId: String): Boolean {
+        val record = recordRepository.findById(recordId) ?: return false
+        val text = record.originalText?.takeIf { it.isNotBlank() } ?: return false
+        originalText = text
+        result = repository.analyze(text)
+        lastAnalysisSource = when (record.sourceLabel) {
+            AnalysisSource.SCREENSHOT.label -> AnalysisSource.SCREENSHOT
+            AnalysisSource.BACKGROUND.label -> AnalysisSource.BACKGROUND
+            else -> AnalysisSource.TEXT
+        }
+        return true
+    }
+
+    /**
      * 분석 실행 — 스크린샷 모드면 먼저 OCR 로 사진에서 텍스트를 추출한 뒤 분석한다.
      * Analyzing 화면의 코루틴에서 호출한다(ML Kit 가 비동기라 suspend).
      *
@@ -165,6 +191,21 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         // 1차 온디바이스 분석 (항상 동기, 즉시 완료) — 결과를 먼저 반영
         val onDeviceResult = repository.analyze(originalText)
         result = onDeviceResult
+
+        // 검사 기록 저장 (Task 7.1) — 기기 내 DB에만 남으며 서버로 나가지 않는다.
+        // AI 보정 이전의 온디바이스 결과를 기준으로 저장한다(보정은 비동기라 시점이 늦음).
+        viewModelScope.launch {
+            runCatching {
+                recordRepository.saveDetection(
+                    result = onDeviceResult,
+                    source = if (lastAnalysisSource == AnalysisSource.SCREENSHOT) {
+                        RecordSource.SCREENSHOT
+                    } else {
+                        RecordSource.TEXT_INPUT
+                    }
+                )
+            }
+        }
 
         // 2차 AI 보조 분석: 조건 충족 시 비동기로 호출해 result 를 한 번 더 갱신(신기훈).
         // runAnalysis 는 온디바이스 결과가 나오면 바로 반환하고, AI 보정은 이후 자연스럽게 들어온다.

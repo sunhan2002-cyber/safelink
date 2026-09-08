@@ -108,7 +108,7 @@
 - [ ] Task 4.11 `[Android]` DiagnosisRepository 구현
 - [ ] Task 4.12 `[Android]` DiagnosisViewModel 구현 (체크 상태, 결과, 저장 흐름)
 - [ ] Task 4.13 `[Android]` 자가진단 완료 시 DiagnosisRecord 로컬 저장 구현
-  - 저장 항목: id, timestamp, riskLevel, score, checkedCount (원문 항목 저장 금지)
+  - 저장 항목: id, timestamp, riskLevel, score, checkedCount, reasons (서버로 전송되지 않고 이 기기에만 저장됩니다)
 
 ### 메인 화면
 
@@ -205,7 +205,7 @@
   - 위험 없음 시 안내 문구 표시
 - [ ] Task 6.11 `[Android]` DetectionViewModel + DetectionRepository 구현
 - [ ] Task 6.12 `[Android]` 감지 완료 후 DetectionRecord 로컬 저장
-  - 저장: id, timestamp, riskLevel, detectedKeywordCount, detectionCategories (원문 미저장)
+  - 저장: id, timestamp, riskLevel, score, category, sourceType, originalText, 매칭 요약 (서버로 전송되지 않고 이 기기에만 저장됩니다)
 
 ### Android 알림 (F-03)
 

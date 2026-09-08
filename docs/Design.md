@@ -81,8 +81,10 @@ data class DiagnosisRecord(
     val timestamp: Long,                 // 진단 일시 (Unix timestamp)
     val riskLevel: RiskLevel,            // CAUTION / WARNING / CRITICAL
     val score: Int,                      // 위험 점수 (0~100)
-    val checkedCount: Int                // 체크된 항목 수
-    // 원문 항목 내용은 저장하지 않음 (최소 수집 원칙)
+    val checkedCount: Int,               // 체크된 항목 수
+    val reasons: String,                 // 체크된 항목의 결과 문구 (줄바꿈 구분)
+    val memo: String? = null             // 사용자 메모
+    // 서버로 전송되지 않고 이 기기에만 저장됩니다 (설정 > 데이터 모두 삭제로 전체 삭제 가능)
 )
 ```
 
@@ -94,9 +96,14 @@ data class DetectionRecord(
     @PrimaryKey val id: String,          // UUID
     val timestamp: Long,                 // 감지 일시
     val riskLevel: RiskLevel,            // CAUTION / WARNING / CRITICAL
-    val detectedKeywordCount: Int,       // 탐지된 위험 키워드 수
-    val detectionCategories: String      // 감지 유형 (JSON 직렬화, 예: ["협박","통제"])
-    // 원문 텍스트는 저장하지 않음
+    val score: Int,                      // 위험 점수 (0~100)
+    val category: String,                // 감지 유형 (예: 보이스피싱)
+    val sourceType: RecordSource,        // 입력 경로 (텍스트 입력 / 스크린샷 / 백그라운드)
+    val originalText: String,            // 원문 — 기록 상세에서 판정 근거 재확인에 사용
+    val matchedSubcategories: String,    // 감지된 위험 요소(중분류명, 쉼표 구분)
+    val matchedKeywordCount: Int,        // 탐지된 위험 키워드 수
+    val memo: String? = null             // 사용자 메모
+    // 서버로 전송되지 않고 이 기기에만 저장됩니다 (설정 > 데이터 모두 삭제로 전체 삭제 가능)
 )
 ```
 

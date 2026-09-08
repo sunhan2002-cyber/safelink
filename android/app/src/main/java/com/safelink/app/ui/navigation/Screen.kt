@@ -27,7 +27,19 @@ sealed class Screen(val route: String) {
     // 대화 감지 (F-02, F-03)
     data object DetectionInput : Screen("detection_input")
     data object Analyzing : Screen("analyzing")
-    data object DetectionResult : Screen("detection_result")
+    /**
+     * 분석 결과 화면. 방금 분석한 결과는 공유 ViewModel로 전달되므로 인자가 없고,
+     * 기록 탭에서 과거 기록을 다시 열 때만 [ARG_RECORD_ID]로 어떤 기록인지 지정한다.
+     */
+    data object DetectionResult : Screen("detection_result?recordId={recordId}") {
+        const val ARG_RECORD_ID = "recordId"
+
+        /** 방금 분석한 결과 보기(기록 id 없음) */
+        fun createRoute() = "detection_result"
+
+        /** 기록 탭에서 과거 기록 열기 */
+        fun createRoute(recordId: String) = "detection_result?recordId=$recordId"
+    }
 
     // 대응·지원 (F-04, F-05, F-06)
     data object ResponseGuide : Screen("guide/{riskLevel}") {

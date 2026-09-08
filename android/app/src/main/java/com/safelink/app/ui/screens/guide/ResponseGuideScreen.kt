@@ -138,7 +138,7 @@ fun ResponseGuideScreen(
                     text = "분석 결과 자세히 보기",
                     onClick = {
                         if (detectionViewModel.loadBackgroundResult()) {
-                            navController.navigate(Screen.DetectionResult.route)
+                            navController.navigate(Screen.DetectionResult.createRoute())
                         }
                     }
                 )

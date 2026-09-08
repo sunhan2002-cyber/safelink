@@ -17,6 +17,7 @@ import com.safelink.app.ui.screens.detection.DetectionResultScreen
 import com.safelink.app.ui.screens.detection.DetectionViewModel
 import com.safelink.app.ui.screens.diagnosis.DiagnosisResultScreen
 import com.safelink.app.ui.screens.diagnosis.DiagnosisScreen
+import com.safelink.app.ui.screens.diagnosis.DiagnosisViewModel
 import com.safelink.app.ui.screens.emergency.EmergencyScreen
 import com.safelink.app.ui.screens.guide.ResponseGuideScreen
 import com.safelink.app.ui.screens.home.HomeScreen
@@ -25,6 +26,7 @@ import com.safelink.app.ui.screens.onboarding.OnboardingScreen
 import com.safelink.app.ui.screens.record.MemoEditScreen
 import com.safelink.app.ui.screens.settings.FeatureGuideScreen
 import com.safelink.app.ui.screens.record.RecordListScreen
+import com.safelink.app.ui.screens.record.RecordListViewModel
 import com.safelink.app.ui.screens.settings.SettingsScreen
 import com.safelink.app.ui.screens.splash.SplashScreen
 import com.safelink.app.ui.screens.support.ApplicationGuideScreen
@@ -49,13 +51,19 @@ fun SafeLinkNavGraph(
         composable(Screen.Home.route) {
             HomeScreen(navController, activityDetectionViewModel())
         }
-        composable(Screen.RecordList.route) { RecordListScreen(navController) }
+        composable(Screen.RecordList.route) {
+            RecordListScreen(navController, activityRecordListViewModel())
+        }
         composable(Screen.SupportMatch.route) { SupportMatchScreen(navController) }
         composable(Screen.Settings.route) { SettingsScreen(navController) }
         composable(Screen.FeatureGuide.route) { FeatureGuideScreen(navController) }
 
-        composable(Screen.Diagnosis.route) { DiagnosisScreen(navController) }
-        composable(Screen.DiagnosisResult.route) { DiagnosisResultScreen(navController) }
+        composable(Screen.Diagnosis.route) {
+            DiagnosisScreen(navController, activityDiagnosisViewModel())
+        }
+        composable(Screen.DiagnosisResult.route) {
+            DiagnosisResultScreen(navController, activityDiagnosisViewModel())
+        }
 
         composable(Screen.DetectionInput.route) {
             DetectionInputScreen(navController, activityDetectionViewModel())
@@ -63,8 +71,16 @@ fun SafeLinkNavGraph(
         composable(Screen.Analyzing.route) {
             AnalyzingScreen(navController, activityDetectionViewModel())
         }
-        composable(Screen.DetectionResult.route) {
-            DetectionResultScreen(navController, activityDetectionViewModel())
+        composable(
+            route = Screen.DetectionResult.route,
+            arguments = listOf(navArgument(Screen.DetectionResult.ARG_RECORD_ID) {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            })
+        ) { entry ->
+            val recordId = entry.arguments?.getString(Screen.DetectionResult.ARG_RECORD_ID)
+            DetectionResultScreen(navController, activityDetectionViewModel(), recordId)
         }
 
         composable(
@@ -108,7 +124,7 @@ fun SafeLinkNavGraph(
             })
         ) { entry ->
             val recordId = entry.arguments?.getString(Screen.MemoEdit.ARG_RECORD_ID).orEmpty()
-            MemoEditScreen(navController, recordId)
+            MemoEditScreen(navController, recordId, activityRecordListViewModel())
         }
     }
 }
@@ -116,6 +132,20 @@ fun SafeLinkNavGraph(
 /** 무거운 분석 ViewModel은 스플래시가 끝난 뒤 필요한 화면에서만 Activity 범위로 생성한다. */
 @Composable
 private fun activityDetectionViewModel(): DetectionViewModel {
+    val activity = LocalContext.current as ComponentActivity
+    return viewModel(viewModelStoreOwner = activity)
+}
+
+/** 기록 목록·메모 화면이 같은 DB 상태를 공유하도록 Activity 범위로 생성한다. */
+@Composable
+private fun activityRecordListViewModel(): RecordListViewModel {
+    val activity = LocalContext.current as ComponentActivity
+    return viewModel(viewModelStoreOwner = activity)
+}
+
+/** 자가진단 체크 상태·결과를 체크리스트 화면과 결과 화면이 공유해야 하므로 Activity 범위로 생성한다. */
+@Composable
+private fun activityDiagnosisViewModel(): DiagnosisViewModel {
     val activity = LocalContext.current as ComponentActivity
     return viewModel(viewModelStoreOwner = activity)
 }

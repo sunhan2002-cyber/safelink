@@ -5,7 +5,14 @@ import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.safelink.app.data.model.RiskLevel
+import com.safelink.app.data.local.RecordSource
 import com.safelink.app.data.repository.DetectionRepository
+import com.safelink.app.data.repository.RecordRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import com.safelink.app.notification.RiskNotifier
 
 /**
@@ -34,13 +41,18 @@ import com.safelink.app.notification.RiskNotifier
  * ── 개인정보: 서버로 전송되지 않음 (7주차 확인) ─────────────────────────────
  *   백그라운드 감지 경로는 [DetectionRepository.analyze]만 호출하고
  *   [DetectionRepository.escalateToAI]는 호출하지 않는다 — 즉 이 경로로 읽은 화면 텍스트는
- *   네트워크로 나갈 방법 자체가 없다(마스킹 이전에 애초에 전송 경로가 없음). 분석 결과도
- *   [BackgroundDetectionState]에 원문이 아닌 매칭된 짧은 구간(`matchedText`)만, 디스크
- *   저장 없이 메모리(StateFlow)에만 보관한다(CLAUDE.md 아키텍처 원칙 2 - 원문 미저장).
+ *   네트워크로 나갈 방법 자체가 없다(마스킹 이전에 애초에 전송 경로가 없음).
+ *   화면 표시용 [BackgroundDetectionState]에는 매칭된 짧은 구간(`matchedText`)만 메모리에 두고,
+ *   경고 이상으로 알림이 뜬 건은 [RecordRepository]를 통해 기기 내 DB에 기록으로 남긴다
+ *   (Task 7.1 — 기록 탭 재열람용. 서버 전송 없음, 설정에서 전체 삭제 가능).
  */
 class MessageDetectionService : AccessibilityService() {
 
     private val repository by lazy { DetectionRepository(applicationContext) }
+    private val recordRepository by lazy { RecordRepository(applicationContext) }
+
+    /** 기록 저장용 스코프 — 서비스 종료 시 함께 취소한다. */
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val notifier by lazy { RiskNotifier(applicationContext) }
 
     private var lastText: String = ""
@@ -74,6 +86,11 @@ class MessageDetectionService : AccessibilityService() {
                 result.category,
                 result.matchedKeywords.firstOrNull()?.matchedText
             )
+            // 검사 기록에도 남겨 "기록" 탭에서 나중에 다시 확인할 수 있게 한다 (Task 7.1).
+            // 알림이 뜬 건(경고 이상)만 저장 — 일상 화면까지 기록이 쌓이지 않도록.
+            serviceScope.launch {
+                runCatching { recordRepository.saveDetection(result, RecordSource.BACKGROUND) }
+            }
         }
     }
 
@@ -97,6 +114,11 @@ class MessageDetectionService : AccessibilityService() {
         for (i in 0 until node.childCount) {
             collectText(node.getChild(i), sb)
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        serviceScope.cancel()
     }
 
     override fun onInterrupt() {

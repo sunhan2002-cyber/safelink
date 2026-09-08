@@ -57,6 +57,11 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     debugImplementation(libs.androidx.ui.tooling)
     implementation(libs.gson)
+
+    // 검사 기록 로컬 저장 (Task 7.1) — 기기 내에만 저장, 서버 전송 없음
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
     // 스크린샷 분석용 온디바이스 OCR (한국어 텍스트 인식, 오프라인)
     implementation(libs.mlkit.text.recognition.korean)
     // 2차 AI 보조 분석 (네트워크)

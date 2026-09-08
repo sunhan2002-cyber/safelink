@@ -32,27 +32,13 @@ import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.BrandBlueLight
 import com.safelink.app.ui.theme.RiskWarning
 
-/** 자가진단 체크리스트 항목 — 확정 문항은 Task 3.6, 가중치는 Design.md 5.1 */
-private data class ChecklistItem(val text: String, val highRisk: Boolean)
-
-private val checklistItems = listOf(
-    ChecklistItem("상대방이 급하게 돈을 보내라고 요구했다", true),
-    ChecklistItem("가족이나 지인을 사칭하는 것 같은 연락을 받았다", true),
-    ChecklistItem("협박이나 위협적인 말을 들었다", true),
-    ChecklistItem("개인정보나 계좌번호를 요구받았다", true),
-    ChecklistItem("의심스러운 링크 클릭을 유도받았다", false),
-    ChecklistItem("수사기관·정부기관이라며 연락이 왔다", true),
-    ChecklistItem("높은 수익을 보장한다며 투자를 권유받았다", false),
-    ChecklistItem("이 일을 다른 사람에게 말하지 말라고 했다", true),
-    ChecklistItem("반복적으로 연락하며 재촉당하고 있다", false),
-    ChecklistItem("만남이나 연락을 통제당하는 느낌이 든다", true),
-    ChecklistItem("앱 설치나 원격 제어를 요구받았다", false),
-    ChecklistItem("확인하기 어려운 이야기로 불안하게 만들었다", false),
-)
-
+/** 문항·가중치 정의와 산출 로직은 [DiagnosisViewModel]에 있다(Task 4.9). */
 @Composable
-fun DiagnosisScreen(navController: NavHostController) {
-    val checked = remember { mutableStateListOf<Int>() }
+fun DiagnosisScreen(
+    navController: NavHostController,
+    viewModel: DiagnosisViewModel
+) {
+    val checked = viewModel.checkedIndices
 
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(title = "자가 진단", onBack = { navController.popBackStack() })
@@ -82,7 +68,7 @@ fun DiagnosisScreen(navController: NavHostController) {
                 val isChecked = index in checked
                 Card(
                     onClick = {
-                        if (isChecked) checked.remove(index) else checked.add(index)
+                        viewModel.toggle(index)
                     },
                     shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(
@@ -97,9 +83,7 @@ fun DiagnosisScreen(navController: NavHostController) {
                     ) {
                         Checkbox(
                             checked = isChecked,
-                            onCheckedChange = {
-                                if (isChecked) checked.remove(index) else checked.add(index)
-                            }
+                            onCheckedChange = { viewModel.toggle(index) }
                         )
                         Text(
                             text = item.text,
@@ -125,7 +109,7 @@ fun DiagnosisScreen(navController: NavHostController) {
                 text = "결과 확인하기",
                 enabled = checked.isNotEmpty(),
                 onClick = {
-                    // TODO: 가중치 합산 → RiskLevel 분류 → DiagnosisViewModel 공유 (Task 4.9)
+                    viewModel.submit()
                     navController.navigate(Screen.DiagnosisResult.route)
                 }
             )

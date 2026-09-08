@@ -30,6 +30,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -46,14 +47,20 @@ import com.safelink.app.background.MessageDetectionService
 import com.safelink.app.security.AppLockManager
 import com.safelink.app.settings.EmergencyContactStore
 import com.safelink.app.settings.FeatureToggleState
+import com.safelink.app.data.repository.RecordRepository
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkTopBar
+import kotlinx.coroutines.launch
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.RiskCritical
 
 /** 설정 (Figma 20:1061) — 토글은 로컬 상태. 실제 저장은 EncryptedSharedPreferences (Task 5.15) */
 @Composable
 fun SettingsScreen(navController: NavHostController) {
+    val deleteScope = rememberCoroutineScope()
+    val deleteContext = LocalContext.current
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var deletedMessage by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var appLock by remember { mutableStateOf(AppLockManager.isEnabled(context)) }
@@ -322,10 +329,41 @@ fun SettingsScreen(navController: NavHostController) {
                     color = RiskCritical,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { /* TODO: 삭제 확인 다이얼로그 */ }
+                        .clickable { showDeleteDialog = true }
                         .padding(vertical = 12.dp)
                 )
                 LinkRow(label = "개인정보 처리방침") { /* TODO */ }
+            }
+
+            if (showDeleteDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteDialog = false },
+                    title = { Text("데이터를 모두 삭제할까요?") },
+                    text = {
+                        Text("이 기기에 저장된 검사 기록과 메모가 모두 지워집니다. 삭제한 기록은 되돌릴 수 없습니다.")
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showDeleteDialog = false
+                            deleteScope.launch {
+                                runCatching { RecordRepository(deleteContext).deleteAll() }
+                                deletedMessage = "검사 기록을 모두 삭제했습니다."
+                            }
+                        }) { Text("삭제", color = RiskCritical) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteDialog = false }) { Text("취소") }
+                    }
+                )
+            }
+
+            deletedMessage?.let { message ->
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
             }
 
             Text(
