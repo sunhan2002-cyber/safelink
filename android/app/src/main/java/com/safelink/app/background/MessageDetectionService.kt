@@ -152,9 +152,19 @@ class MessageDetectionService : AccessibilityService() {
     private fun collectText(node: AccessibilityNodeInfo?, sb: StringBuilder) {
         node ?: return
         if (sb.length >= MAX_CHARS) return
-        node.text?.toString()?.let { t ->
-            if (t.isNotBlank()) sb.append(t).append('\n')
+
+        val text = node.text?.toString()?.takeIf { it.isNotBlank() }
+        if (text != null) {
+            sb.append(text).append('\n')
+        } else {
+            // 커스텀 렌더링을 쓰는 앱(인스타그램 DM 등)은 말풍선 내용이 text 대신
+            // contentDescription 에만 담기는 경우가 있다. 다만 "좋아요", "프로필 사진" 같은
+            // 버튼 라벨도 같은 자리에 오므로, 문장 길이 이상일 때만 대화 내용으로 본다.
+            node.contentDescription?.toString()
+                ?.takeIf { it.isNotBlank() && it.length >= MIN_DESCRIPTION_LENGTH }
+                ?.let { sb.append(it).append('\n') }
         }
+
         for (i in 0 until node.childCount) {
             collectText(node.getChild(i), sb)
         }
@@ -189,6 +199,8 @@ class MessageDetectionService : AccessibilityService() {
             "com.kakao.talk",                    // 카카오톡
             "com.samsung.android.messaging",     // 삼성 메시지(갤럭시 기본 문자)
             "com.google.android.apps.messaging", // Google 메시지(픽셀·다수 기기 기본 문자)
+            "com.instagram.android",             // 인스타그램 DM
+            "com.discord",                       // 디스코드
         )
 
         /** 연속 이벤트 디바운스 간격 */
@@ -205,5 +217,11 @@ class MessageDetectionService : AccessibilityService() {
 
         /** 노드 순회로 모을 최대 글자 수(성능 보호) */
         private const val MAX_CHARS = 5000
+
+        /**
+         * contentDescription 을 대화 내용으로 인정할 최소 길이.
+         * 이보다 짧으면 "좋아요", "전송" 같은 버튼 라벨일 가능성이 높다.
+         */
+        private const val MIN_DESCRIPTION_LENGTH = 10
     }
 }
