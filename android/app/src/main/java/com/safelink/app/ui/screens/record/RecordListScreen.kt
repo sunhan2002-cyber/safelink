@@ -1,5 +1,6 @@
 package com.safelink.app.ui.screens.record
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,9 +31,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.safelink.app.R
 import com.safelink.app.data.model.RiskLevel
 import com.safelink.app.data.repository.RecordItem
 import com.safelink.app.data.repository.RecordType
@@ -122,13 +125,24 @@ private fun EmptyRecords(isFiltered: Boolean) {
                 .fillMaxWidth()
                 .padding(vertical = 24.dp)
         ) {
-            // UI/UX 2순위 - 텍스트만 있던 빈 상태에 아이콘 추가 (휑해 보이던 문제 대응)
-            Icon(
-                imageVector = Icons.Filled.Inbox,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(48.dp)
-            )
+            // UI/UX 2순위 - 텍스트만 있던 빈 상태에 아이콘 추가 (휑해 보이던 문제 대응).
+            // UI/UX 1순위(AI스러운 인상 대응) - 진짜 "아직 기록 자체가 없는" 첫 상태는
+            // 스톡 아이콘 대신 브랜드 캐릭터로, 필터 결과가 없는 경우는 검색류 빈 상태라
+            // 캐릭터를 쓰면 어색해서 기존 아이콘 유지 (상황에 안 맞는 자산 남용 방지)
+            if (isFiltered) {
+                Icon(
+                    imageVector = Icons.Filled.Inbox,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(48.dp)
+                )
+            } else {
+                Image(
+                    painter = painterResource(R.drawable.safelink_handshake_mid),
+                    contentDescription = null,
+                    modifier = Modifier.size(72.dp)
+                )
+            }
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = if (isFiltered) "해당 위험도의 기록이 없습니다" else "아직 검사 기록이 없습니다",

@@ -1,7 +1,9 @@
 package com.safelink.app.ui.screens.onboarding
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,7 +16,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.WifiCalling3
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -22,10 +23,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.safelink.app.R
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.BrandBlueLight
@@ -40,18 +46,23 @@ fun OnboardingScreen(navController: NavHostController) {
     ) {
         Spacer(modifier = Modifier.weight(1f))
 
-        Column(
+        // 첫인상 화면에서까지 스톡 Material 아이콘(방패)만 쓰던 걸, 스플래시에서만 등장하고
+        // 나머지 화면엔 안 쓰이던 브랜드 캐릭터로 교체 - "어디서나 볼 수 있는 기본 아이콘"
+        // 인상 대신 이 앱만의 그림체가 첫 화면부터 보이게 함 (UI/UX 1순위)
+        Box(
             modifier = Modifier
                 .size(140.dp)
                 .background(BrandBlueLight, CircleShape),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+            contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Filled.Shield,
+            Image(
+                painter = painterResource(R.drawable.safelink_handshake_mid),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(72.dp)
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(140.dp)
+                    .clip(CircleShape)
+                    .scale(1.7f)
             )
         }
 
