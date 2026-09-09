@@ -22,8 +22,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Checklist
-import androidx.compose.material.icons.filled.ImageSearch
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
@@ -169,10 +169,13 @@ fun HomeScreen(
                 onClick = { navController.navigate(Screen.Diagnosis.route) },
                 modifier = Modifier.weight(1f)
             )
+            // "대화 분석"이 위 "대화 분석 시작" 버튼과 완전히 같은 동작(startAnalysis)이라
+            // 순수 중복이었음(사용자 지적) - 홈에서 접근 어려웠던 백그라운드 감지 설정
+            // 바로가기로 교체
             QuickActionCard(
-                title = "대화 분석",
-                icon = Icons.Filled.ImageSearch,
-                onClick = startAnalysis,
+                title = "백그라운드 감지",
+                icon = Icons.Filled.Visibility,
+                onClick = { navController.navigate(Screen.Settings.route) },
                 modifier = Modifier.weight(1f)
             )
         }
