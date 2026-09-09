@@ -113,7 +113,9 @@ fun AnalyzingScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
         Text(
-            text = "AI가 대화 내용을 분석하고 있습니다…",
+            // "AI가 분석"이 아니라 온디바이스 규칙 엔진(viewModel.runAnalysis())이 도는 화면 —
+            // CLAUDE.md 핵심 원칙("위험도 계산은 항상 온디바이스")과 맞게 문구 수정 (UI/UX 1순위)
+            text = "SafeLink가 위험 신호를 분석하고 있습니다…",
             style = MaterialTheme.typography.titleMedium
         )
         Spacer(modifier = Modifier.height(24.dp))

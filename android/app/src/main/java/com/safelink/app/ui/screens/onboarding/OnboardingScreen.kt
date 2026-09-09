@@ -63,7 +63,9 @@ fun OnboardingScreen(navController: NavHostController) {
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "AI가 보이스피싱, 스미싱, 로맨스 스캠을\n실시간으로 감지하고 대응 방법을 안내합니다.",
+            // "AI가"가 아니라 온디바이스 규칙 엔진이 핵심 감지를 담당 (CLAUDE.md 원칙,
+            // AnalyzingScreen과 동일한 문제 대응 - UI/UX 2순위)
+            text = "보이스피싱, 스미싱, 로맨스 스캠을\n실시간으로 감지하고 대응 방법을 안내합니다.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -76,7 +78,8 @@ fun OnboardingScreen(navController: NavHostController) {
         ) {
             FeatureItem(icon = Icons.Filled.WifiCalling3, label = "전화 감지")
             FeatureItem(icon = Icons.AutoMirrored.Filled.Message, label = "문자 탐지")
-            FeatureItem(icon = Icons.Filled.Psychology, label = "AI 분석")
+            // "AI 분석"이 아니라 온디바이스 위험 신호 분석이 핵심 (위 문구 수정과 동일 사유)
+            FeatureItem(icon = Icons.Filled.Psychology, label = "위험 신호 분석")
         }
 
         Spacer(modifier = Modifier.weight(1f))

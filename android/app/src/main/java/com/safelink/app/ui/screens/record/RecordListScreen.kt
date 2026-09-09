@@ -12,6 +12,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -114,6 +116,14 @@ private fun EmptyRecords(isFiltered: Boolean) {
                 .fillMaxWidth()
                 .padding(vertical = 24.dp)
         ) {
+            // UI/UX 2순위 - 텍스트만 있던 빈 상태에 아이콘 추가 (휑해 보이던 문제 대응)
+            Icon(
+                imageVector = Icons.Filled.Inbox,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(48.dp)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = if (isFiltered) "해당 위험도의 기록이 없습니다" else "아직 검사 기록이 없습니다",
                 style = MaterialTheme.typography.titleMedium
