@@ -1,11 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 백그라운드 위험 감지 서비스 설정 (MessageDetectionService)
      canRetrieveWindowContent: 화면 텍스트 읽기 위해 필요.
-     사용자가 [설정 > 접근성]에서 직접 켜야만 동작한다. -->
+     사용자가 [설정 > 접근성]에서 직접 켜야만 동작한다.
+
+     flagIncludeNotImportantViews:
+       기본값으로는 "접근성에 중요하지 않음"으로 표시된 뷰가 트리에서 아예 빠진다.
+       카카오톡·문자처럼 표준 TextView 를 쓰는 앱은 말풍선이 '중요함'이라 문제가 없지만,
+       인스타그램·디스코드처럼 자체 렌더링 비중이 높은 앱은 대화 내용이 '중요하지 않음'으로
+       들어가 통째로 안 보인다. 이 플래그를 켜야 그런 앱의 말풍선까지 읽을 수 있다.
+
+     flagRetrieveInteractiveWindows:
+       rootInActiveWindow 는 창 하나만 준다. 대화 화면이 여러 창으로 쪼개진 앱에서는
+       입력창만 잡히고 대화 내용은 다른 창에 남는 경우가 있어, 창 목록을 직접 훑을 수 있게 한다.
+       (MessageDetectionService.extractVisibleText 참고) -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeWindowContentChanged|typeWindowStateChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:accessibilityFlags="flagDefault"
+    android:accessibilityFlags="flagIncludeNotImportantViews|flagRetrieveInteractiveWindows"
     android:canRetrieveWindowContent="true"
     android:description="@string/accessibility_service_desc"
     android:notificationTimeout="300" />

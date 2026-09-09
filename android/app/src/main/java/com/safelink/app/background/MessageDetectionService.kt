@@ -1,6 +1,8 @@
 package com.safelink.app.background
 
 import android.accessibilityservice.AccessibilityService
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -14,6 +16,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import com.safelink.app.data.link.ExtractedLink
+import com.safelink.app.data.link.LinkExtractor
+import com.safelink.app.data.link.LinkRiskChecker
+import com.safelink.app.data.link.LinkRiskResult
+import com.safelink.app.data.link.LinkVerdict
 import com.safelink.app.notification.RiskNotifier
 
 /**
@@ -56,27 +63,64 @@ class MessageDetectionService : AccessibilityService() {
 
     /** 기록 저장용 스코프 — 서비스 종료 시 함께 취소한다. */
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /** 화면 전환 직후 재확인용 — 내용이 다 그려질 때까지 잠깐 기다렸다 한 번 더 읽는다. */
+    private val recheckHandler = Handler(Looper.getMainLooper())
     private val notifier by lazy { RiskNotifier(applicationContext) }
+
+    /**
+     * 링크 검사기. 검사할 주소를 외부로 보내지 않고 기기 안의 차단 목록과 대조한다
+     * ([LinkRiskChecker] KDoc 참고) — 백그라운드에서 돌아가는 경로라 이 성질이 특히 중요하다.
+     * 사용자가 인지하지 못한 채 화면의 링크가 밖으로 나가는 일은 없어야 한다.
+     */
+    private val linkRiskChecker by lazy { LinkRiskChecker(applicationContext) }
 
     private var lastText: String = ""
     private var lastAnalyzedAt: Long = 0L
 
-    /** 직전에 알림을 띄운 건의 식별값 — 앱 + 매칭된 키워드 id 집합 */
-    private var lastAlertSignature: String? = null
+    /** 직전에 알림을 띄운 건 — 앱과 매칭된 키워드 id 집합 */
+    private var lastAlertPkg: String? = null
+    private var lastAlertKeywords: Set<String>? = null
     private var lastAlertAt: Long = 0L
     /** 직전 알림이 발생한 창(화면) id — 화면이 바뀌면 새 확인 행동으로 본다 */
     private var lastAlertWindowId: Int = -1
+
+    /** 직전에 악성 링크로 알린 주소 — 같은 주소를 반복해서 알리지 않도록 */
+    private var lastLinkAlertUrl: String? = null
+    private var lastLinkAlertAt: Long = 0L
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
         val pkg = event.packageName?.toString() ?: return
         if (pkg !in MONITORED_PACKAGES) return
+        val windowId = event.windowId
 
+        // 화면이 막 바뀐 직후에는 대화 내용이 아직 안 그려져 있을 수 있다. 그 상태로 한 번
+        // 읽고 끝내면 "직전과 같은 텍스트" 규칙에 걸려 정작 내용이 채워진 뒤에는 다시 보지
+        // 않는다(대화방을 열었는데 아무 반응이 없는 원인이었다). 그래서 전환 직후에는
+        // 잠시 뒤 한 번 더 확인하도록 예약해 둔다.
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            recheckHandler.removeCallbacksAndMessages(null)
+            recheckHandler.postDelayed({ analyze(pkg, windowId, force = true) }, RECHECK_DELAY_MS)
+        }
+
+        analyze(pkg, windowId)
+    }
+
+    /**
+     * @param force 화면 전환 후 예약된 재확인인지 여부. 재확인은 "내용이 다 그려졌는지 다시
+     *   본다"는 의도된 한 번이므로 디바운스로 건너뛰면 안 된다(그러면 재확인이 항상 무시된다).
+     */
+    private fun analyze(pkg: String, windowId: Int, force: Boolean = false) {
         // 디바운스: 같은 화면 이벤트가 연속으로 오므로 일정 간격으로만 분석
         val now = SystemClock.elapsedRealtime()
-        if (now - lastAnalyzedAt < MIN_INTERVAL_MS) return
+        if (!force && now - lastAnalyzedAt < MIN_INTERVAL_MS) return
 
-        val text = extractVisibleText() ?: return
+        // 이벤트를 보낸 앱의 화면만 읽는다. 화면 전환 직후에는 아직 이전 화면(홈 등)이
+        // 잡히는 경우가 있는데, 그때 그 내용을 lastText 로 기억해 버리면 정작 대화 화면이
+        // 그려진 뒤에도 "직전과 같음"으로 걸러져 한 번도 분석하지 못한다.
+        // 대상 앱의 화면이 아니면 아무것도 기억하지 않고 다음 이벤트를 기다린다.
+        val text = extractVisibleText(pkg) ?: return
         if (text.isBlank() || text == lastText) return
 
         lastText = text
@@ -89,11 +133,12 @@ class MessageDetectionService : AccessibilityService() {
         // (SAFE/CAUTION 등 일상 화면까지 상태·카운트에 반영하면 "오늘의 알림"이 부풀어 오르므로
         //  BackgroundDetectionState 는 실제 알림(경고 이상)만 기록한다)
         if (result.riskLevel.ordinal >= RiskLevel.WARNING.ordinal) {
-            if (isDuplicateAlert(pkg, result, event.windowId, now)) return
+            if (isDuplicateAlert(pkg, result, windowId, now)) return
 
-            lastAlertSignature = signatureOf(pkg, result)
+            lastAlertPkg = pkg
+            lastAlertKeywords = keywordsOf(result)
             lastAlertAt = now
-            lastAlertWindowId = event.windowId
+            lastAlertWindowId = windowId
 
             BackgroundDetectionState.update(result, sourceApp = pkg)
             notifier.notifyRisk(
@@ -106,12 +151,88 @@ class MessageDetectionService : AccessibilityService() {
             serviceScope.launch {
                 runCatching { recordRepository.saveDetection(result, RecordSource.BACKGROUND) }
             }
+            return
+        }
+
+        // 여기까지 왔다는 건 키워드로는 위험이 안 잡혔다는 뜻이다.
+        // 그래도 화면에 링크가 있으면 링크 자체를 확인한다 — "긴급하니 눌러보세요" 같은 문구
+        // 없이 링크만 툭 던지는 수법이 실제로 흔해서, 키워드 판정만으로는 이런 건이 그대로 지나간다.
+        checkLinks(text, pkg, now)
+    }
+
+    /**
+     * 화면에 있는 링크가 알려진 악성 주소인지 확인하고, 맞으면 알린다.
+     *
+     * 검사는 비동기라 [onAccessibilityEvent] 를 붙잡지 않는다. 링크가 없으면 아무 일도 하지 않고,
+     * 검사에 실패해도 조용히 넘어간다 — 링크 검사 실패가 백그라운드 감지 전체를 멈추면 안 된다.
+     */
+    private fun checkLinks(text: String, pkg: String, now: Long) {
+        if (!linkRiskChecker.isConfigured) return
+        val links = LinkExtractor.extract(text)
+        if (links.isEmpty()) return
+
+        serviceScope.launch {
+            val dangerous = links.firstNotNullOfOrNull { link ->
+                runCatching { linkRiskChecker.check(link) }
+                    .getOrNull()
+                    ?.takeIf { it.verdict == LinkVerdict.DANGEROUS }
+            } ?: return@launch
+
+            if (isDuplicateLinkAlert(dangerous.link, now)) return@launch
+            lastLinkAlertUrl = dangerous.link.url
+            lastLinkAlertAt = now
+
+            alertDangerousLink(dangerous, text, pkg)
         }
     }
 
-    /** 앱 + 매칭된 키워드 id 집합 — 같은 내용을 다시 본 것인지 판단하는 기준 */
-    private fun signatureOf(pkg: String, result: DetectionResult): String =
-        pkg + "|" + result.matchedKeywords.map { it.keywordId }.distinct().sorted().joinToString(",")
+    /** 같은 주소는 [SAME_SCREEN_MUTE_MS] 동안 다시 알리지 않는다 — 스크롤·재진입 모두 같은 사건이다. */
+    private fun isDuplicateLinkAlert(link: ExtractedLink, now: Long): Boolean =
+        link.url == lastLinkAlertUrl && now - lastLinkAlertAt < SAME_SCREEN_MUTE_MS
+
+    /**
+     * 악성 링크 1건을 기존 알림·기록 흐름에 실어 보낸다.
+     *
+     * 키워드가 하나도 안 걸린 건이라 [DetectionResult] 를 여기서 직접 만든다. 차단 목록에
+     * 등재된 주소는 그 자체로 확정적인 위험이므로 [RiskLevel.CRITICAL] 로 둔다(키워드 점수처럼
+     * 정황을 추정한 값이 아니라 "구글이 악성으로 확인한 주소"라는 사실 판정이다).
+     *
+     * 결과 화면에서는 원문을 다시 검사해 어떤 링크가 왜 걸렸는지 그대로 보여준다
+     * ([com.safelink.app.ui.screens.detection.DetectionViewModel.loadBackgroundResult]).
+     */
+    private suspend fun alertDangerousLink(risk: LinkRiskResult, text: String, pkg: String) {
+        val result = DetectionResult(
+            riskLevel = RiskLevel.CRITICAL,
+            score = LINK_RISK_SCORE,
+            category = risk.threat?.label ?: "악성 링크",
+            originalText = text,
+            matchedKeywords = emptyList(),
+            recommendedInstitutions = emptyList()
+        )
+
+        BackgroundDetectionState.update(result, sourceApp = pkg)
+        notifier.notifyRisk(result.riskLevel, result.category, risk.link.displayText)
+        runCatching { recordRepository.saveDetection(result, RecordSource.BACKGROUND) }
+    }
+
+    /** 매칭된 키워드 id 집합 — 같은 내용을 다시 본 것인지 판단하는 기준 */
+    private fun keywordsOf(result: DetectionResult): Set<String> =
+        result.matchedKeywords.mapTo(mutableSetOf()) { it.keywordId }
+
+    /**
+     * 같은 사건인지 판정.
+     *
+     * 키워드 집합이 **정확히** 같을 때만 같은 사건으로 보면, 화면이 그려지는 도중에 읽은
+     * 것(일부만 보임)과 다 그려진 뒤 읽은 것(전부 보임)이 서로 다른 사건이 되어 같은 문자로
+     * 알림이 두 번 뜬다. 한쪽이 다른 쪽을 포함하기만 하면 같은 화면을 보고 있는 것이므로
+     * 같은 사건으로 취급한다.
+     */
+    private fun isSameEvent(pkg: String, keywords: Set<String>): Boolean {
+        if (pkg != lastAlertPkg) return false
+        val last = lastAlertKeywords ?: return false
+        if (keywords.isEmpty() || last.isEmpty()) return keywords == last
+        return keywords.containsAll(last) || last.containsAll(keywords)
+    }
 
     /**
      * 같은 내용을 반복해서 알리지 않도록 거르는 규칙.
@@ -129,7 +250,7 @@ class MessageDetectionService : AccessibilityService() {
         windowId: Int,
         now: Long
     ): Boolean {
-        if (signatureOf(pkg, result) != lastAlertSignature) return false
+        if (!isSameEvent(pkg, keywordsOf(result))) return false
         val elapsed = now - lastAlertAt
         return if (windowId == lastAlertWindowId) {
             elapsed < SAME_SCREEN_MUTE_MS
@@ -142,10 +263,28 @@ class MessageDetectionService : AccessibilityService() {
      * 현재 활성 창의 노드 트리를 순회하며 보이는 텍스트를 모은다.
      * 대화 앱 화면의 말풍선 텍스트가 이 경로로 수집된다.
      */
-    private fun extractVisibleText(): String? {
-        val root = rootInActiveWindow ?: return null
+    private fun extractVisibleText(pkg: String): String? {
         val sb = StringBuilder()
-        collectText(root, sb)
+
+        // 보통은 활성 창 하나면 충분하다 (카카오톡·문자가 이 경우).
+        val active = rootInActiveWindow
+        if (active != null && active.packageName?.toString() == pkg) {
+            collectText(active, sb)
+        }
+
+        // 대화 화면이 여러 창으로 쪼개진 앱에서는 활성 창에 입력창만 들어 있고 말풍선은
+        // 다른 창에 남는다. 같은 앱의 나머지 창도 훑어서 빠진 내용을 채운다.
+        // (flagRetrieveInteractiveWindows 가 있어야 windows 가 채워진다)
+        if (sb.length < MIN_MEANINGFUL_LENGTH) {
+            for (window in windows.orEmpty()) {
+                val root = window.root ?: continue
+                if (root.packageName?.toString() != pkg) continue
+                if (root == active) continue
+                collectText(root, sb)
+                if (sb.length >= MAX_CHARS) break
+            }
+        }
+
         return sb.toString().trim().takeIf { it.isNotEmpty() }
     }
 
@@ -171,6 +310,7 @@ class MessageDetectionService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        recheckHandler.removeCallbacksAndMessages(null)
         super.onDestroy()
         serviceScope.cancel()
     }
@@ -179,7 +319,8 @@ class MessageDetectionService : AccessibilityService() {
         // 서비스 중단 시 상태 초기화 (다음 세션에서 이전 텍스트·알림 이력이 남지 않도록)
         lastText = ""
         lastAnalyzedAt = 0L
-        lastAlertSignature = null
+        lastAlertPkg = null
+        lastAlertKeywords = null
         lastAlertAt = 0L
         lastAlertWindowId = -1
     }
@@ -195,12 +336,35 @@ class MessageDetectionService : AccessibilityService() {
          * 문자(SMS)는 기기 제조사별로 기본 앱이 달라 주요 앱을 함께 등록한다.
          * 설치돼 있지 않은 패키지는 이벤트가 오지 않으므로 그냥 무시된다.
          */
+        /**
+         * 악성 링크 1건이 확인됐을 때 부여하는 점수.
+         * 키워드 점수와 달리 추정이 아니라 확인된 사실이므로 CRITICAL 구간(66~100) 안에서 높게 둔다.
+         */
+        private const val LINK_RISK_SCORE = 90
+
+        /**
+         * 활성 창에서 이만큼도 못 읽었으면 대화 내용이 다른 창에 있다고 보고 나머지 창까지 훑는다.
+         * 입력창·툴바만 잡혔을 때가 대략 이 길이 아래다(예: "메시지 입력 / 이모티콘 / 음성메시지").
+         */
+        private const val MIN_MEANINGFUL_LENGTH = 120
+
+        /**
+         * 화면 전환 후 재확인까지 기다리는 시간. 대화 목록이 그려질 정도로는 충분하고,
+         * 사용자가 "느리다"고 느끼지 않을 만큼은 짧아야 해서 이 정도로 뒀다.
+         */
+        private const val RECHECK_DELAY_MS = 700L
+
         private val MONITORED_PACKAGES = setOf(
             "com.kakao.talk",                    // 카카오톡
             "com.samsung.android.messaging",     // 삼성 메시지(갤럭시 기본 문자)
             "com.google.android.apps.messaging", // Google 메시지(픽셀·다수 기기 기본 문자)
             "com.instagram.android",             // 인스타그램 DM
             "com.discord",                       // 디스코드
+            "org.telegram.messenger",            // 텔레그램 - 투자사기·리딩방 유입 경로
+            "com.nhn.android.band",              // 네이버 밴드 - 중장년층 사용률이 높아 투자·부업사기 유입
+            "jp.naver.line.android",             // 라인 - 로맨스스캠
+            "com.facebook.orca",                 // 페이스북 메신저 - 로맨스스캠
+            "com.tencent.mm",                    // 위챗 - 해외 기반 로맨스스캠
         )
 
         /** 연속 이벤트 디바운스 간격 */

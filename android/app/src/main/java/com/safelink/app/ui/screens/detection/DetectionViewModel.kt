@@ -8,6 +8,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.safelink.app.background.BackgroundDetectionState
+import com.safelink.app.data.link.LinkRiskChecker
+import com.safelink.app.data.link.LinkRiskResult
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.ocr.MlKitOcrService
 import com.safelink.app.data.ocr.OcrService
@@ -67,6 +69,19 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
     var ocrFeedbackMessage by mutableStateOf<String?>(null)
         private set
 
+    /**
+     * 원문에 섞여 있던 링크의 안전성 검사 결과.
+     *
+     * 키워드 분석과 **독립적으로** 채워진다 — 검사가 실패해도(키 미설정·목록 미준비 등)
+     * 위험도 판정은 그대로 나오고 이 목록만 비거나 "검사하지 못함"으로 남는다.
+     */
+    var linkResults by mutableStateOf<List<LinkRiskResult>>(emptyList())
+        private set
+
+    /** 링크 검사 진행 중 여부 */
+    var isCheckingLinks by mutableStateOf(false)
+        private set
+
     /** 2차 AI 보조 분석 호출 진행 중 여부 - 결과 화면에서 "정밀 분석 중" 같은 표시에 쓸 수 있음 */
     var isEscalatingToAI by mutableStateOf(false)
         private set
@@ -75,6 +90,8 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
     private val recordRepository: RecordRepository by lazy { RecordRepository(getApplication()) }
     // 실제 온디바이스 OCR. (OCR 없이 흐름만 볼 땐 StubOcrService() 로 교체)
     private val ocrService: OcrService = MlKitOcrService()
+    // 링크 검사 — 온디바이스 차단 목록 대조. 검사할 URL 이 외부로 나가지 않는다(LinkRiskChecker KDoc 참고)
+    private val linkRiskChecker: LinkRiskChecker by lazy { LinkRiskChecker(getApplication()) }
 
     /** 세션(대화방) 식별자 - ViewModel 생존 기간 동안 고정. 서버 호출 시 session_id로 사용. */
     private val sessionId: String = UUID.randomUUID().toString()
@@ -101,6 +118,7 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         inputMethod = "텍스트 입력"
         selectedImages = emptyList()
         result = null
+        linkResults = emptyList()
         ocrNoText = false
         ocrFeedbackMessage = null
         lastAnalysisSource = AnalysisSource.TEXT
@@ -116,6 +134,7 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         originalText = ""
         selectedImages = emptyList()
         result = null
+        linkResults = emptyList()
         ocrNoText = false
         ocrFeedbackMessage = null
     }
@@ -135,6 +154,7 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         result = bg
         originalText = bg.originalText
         lastAnalysisSource = AnalysisSource.BACKGROUND
+        checkLinks(bg.originalText)
         return true
     }
 
@@ -151,6 +171,7 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         val text = record.originalText?.takeIf { it.isNotBlank() } ?: return false
         originalText = text
         result = repository.analyze(text)
+        checkLinks(text)
         lastAnalysisSource = when (record.sourceLabel) {
             AnalysisSource.SCREENSHOT.label -> AnalysisSource.SCREENSHOT
             AnalysisSource.BACKGROUND.label -> AnalysisSource.BACKGROUND
@@ -192,6 +213,9 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         val onDeviceResult = repository.analyze(originalText)
         result = onDeviceResult
 
+        // 링크 안전성 검사 — 결과 화면을 붙잡지 않도록 비동기로 돌리고 끝나는 대로 반영한다.
+        checkLinks(originalText)
+
         // 검사 기록 저장 (Task 7.1) — 기기 내 DB에만 남으며 서버로 나가지 않는다.
         // AI 보정 이전의 온디바이스 결과를 기준으로 저장한다(보정은 비동기라 시점이 늦음).
         viewModelScope.launch {
@@ -228,6 +252,22 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
         return true
+    }
+
+    /**
+     * 원문에서 링크를 뽑아 안전성을 검사한다.
+     *
+     * 링크가 없으면 아무 일도 하지 않는다. 검사는 화면 전환을 막지 않도록 항상 비동기로 돌리고,
+     * 실패하면 조용히 빈 목록으로 둔다 — 링크 검사는 부가 정보이지 분석의 전제가 아니다.
+     */
+    private fun checkLinks(text: String) {
+        linkResults = emptyList()
+        if (!linkRiskChecker.isConfigured) return
+        viewModelScope.launch {
+            isCheckingLinks = true
+            linkResults = runCatching { linkRiskChecker.checkText(text) }.getOrDefault(emptyList())
+            isCheckingLinks = false
+        }
     }
 
     companion object {
