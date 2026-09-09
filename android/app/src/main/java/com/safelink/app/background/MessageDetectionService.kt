@@ -14,6 +14,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import com.safelink.app.data.link.ExtractedLink
+import com.safelink.app.data.link.LinkExtractor
+import com.safelink.app.data.link.LinkRiskChecker
+import com.safelink.app.data.link.LinkRiskResult
+import com.safelink.app.data.link.LinkVerdict
 import com.safelink.app.notification.RiskNotifier
 
 /**
@@ -58,6 +63,13 @@ class MessageDetectionService : AccessibilityService() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val notifier by lazy { RiskNotifier(applicationContext) }
 
+    /**
+     * 링크 검사기. 검사할 주소를 외부로 보내지 않고 기기 안의 차단 목록과 대조한다
+     * ([LinkRiskChecker] KDoc 참고) — 백그라운드에서 돌아가는 경로라 이 성질이 특히 중요하다.
+     * 사용자가 인지하지 못한 채 화면의 링크가 밖으로 나가는 일은 없어야 한다.
+     */
+    private val linkRiskChecker by lazy { LinkRiskChecker(applicationContext) }
+
     private var lastText: String = ""
     private var lastAnalyzedAt: Long = 0L
 
@@ -66,6 +78,10 @@ class MessageDetectionService : AccessibilityService() {
     private var lastAlertAt: Long = 0L
     /** 직전 알림이 발생한 창(화면) id — 화면이 바뀌면 새 확인 행동으로 본다 */
     private var lastAlertWindowId: Int = -1
+
+    /** 직전에 악성 링크로 알린 주소 — 같은 주소를 반복해서 알리지 않도록 */
+    private var lastLinkAlertUrl: String? = null
+    private var lastLinkAlertAt: Long = 0L
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
@@ -106,7 +122,68 @@ class MessageDetectionService : AccessibilityService() {
             serviceScope.launch {
                 runCatching { recordRepository.saveDetection(result, RecordSource.BACKGROUND) }
             }
+            return
         }
+
+        // 여기까지 왔다는 건 키워드로는 위험이 안 잡혔다는 뜻이다.
+        // 그래도 화면에 링크가 있으면 링크 자체를 확인한다 — "긴급하니 눌러보세요" 같은 문구
+        // 없이 링크만 툭 던지는 수법이 실제로 흔해서, 키워드 판정만으로는 이런 건이 그대로 지나간다.
+        checkLinks(text, pkg, now)
+    }
+
+    /**
+     * 화면에 있는 링크가 알려진 악성 주소인지 확인하고, 맞으면 알린다.
+     *
+     * 검사는 비동기라 [onAccessibilityEvent] 를 붙잡지 않는다. 링크가 없으면 아무 일도 하지 않고,
+     * 검사에 실패해도 조용히 넘어간다 — 링크 검사 실패가 백그라운드 감지 전체를 멈추면 안 된다.
+     */
+    private fun checkLinks(text: String, pkg: String, now: Long) {
+        if (!linkRiskChecker.isConfigured) return
+        val links = LinkExtractor.extract(text)
+        if (links.isEmpty()) return
+
+        serviceScope.launch {
+            val dangerous = links.firstNotNullOfOrNull { link ->
+                runCatching { linkRiskChecker.check(link) }
+                    .getOrNull()
+                    ?.takeIf { it.verdict == LinkVerdict.DANGEROUS }
+            } ?: return@launch
+
+            if (isDuplicateLinkAlert(dangerous.link, now)) return@launch
+            lastLinkAlertUrl = dangerous.link.url
+            lastLinkAlertAt = now
+
+            alertDangerousLink(dangerous, text, pkg)
+        }
+    }
+
+    /** 같은 주소는 [SAME_SCREEN_MUTE_MS] 동안 다시 알리지 않는다 — 스크롤·재진입 모두 같은 사건이다. */
+    private fun isDuplicateLinkAlert(link: ExtractedLink, now: Long): Boolean =
+        link.url == lastLinkAlertUrl && now - lastLinkAlertAt < SAME_SCREEN_MUTE_MS
+
+    /**
+     * 악성 링크 1건을 기존 알림·기록 흐름에 실어 보낸다.
+     *
+     * 키워드가 하나도 안 걸린 건이라 [DetectionResult] 를 여기서 직접 만든다. 차단 목록에
+     * 등재된 주소는 그 자체로 확정적인 위험이므로 [RiskLevel.CRITICAL] 로 둔다(키워드 점수처럼
+     * 정황을 추정한 값이 아니라 "구글이 악성으로 확인한 주소"라는 사실 판정이다).
+     *
+     * 결과 화면에서는 원문을 다시 검사해 어떤 링크가 왜 걸렸는지 그대로 보여준다
+     * ([com.safelink.app.ui.screens.detection.DetectionViewModel.loadBackgroundResult]).
+     */
+    private suspend fun alertDangerousLink(risk: LinkRiskResult, text: String, pkg: String) {
+        val result = DetectionResult(
+            riskLevel = RiskLevel.CRITICAL,
+            score = LINK_RISK_SCORE,
+            category = risk.threat?.label ?: "악성 링크",
+            originalText = text,
+            matchedKeywords = emptyList(),
+            recommendedInstitutions = emptyList()
+        )
+
+        BackgroundDetectionState.update(result, sourceApp = pkg)
+        notifier.notifyRisk(result.riskLevel, result.category, risk.link.displayText)
+        runCatching { recordRepository.saveDetection(result, RecordSource.BACKGROUND) }
     }
 
     /** 앱 + 매칭된 키워드 id 집합 — 같은 내용을 다시 본 것인지 판단하는 기준 */
@@ -195,6 +272,12 @@ class MessageDetectionService : AccessibilityService() {
          * 문자(SMS)는 기기 제조사별로 기본 앱이 달라 주요 앱을 함께 등록한다.
          * 설치돼 있지 않은 패키지는 이벤트가 오지 않으므로 그냥 무시된다.
          */
+        /**
+         * 악성 링크 1건이 확인됐을 때 부여하는 점수.
+         * 키워드 점수와 달리 추정이 아니라 확인된 사실이므로 CRITICAL 구간(66~100) 안에서 높게 둔다.
+         */
+        private const val LINK_RISK_SCORE = 90
+
         private val MONITORED_PACKAGES = setOf(
             "com.kakao.talk",                    // 카카오톡
             "com.samsung.android.messaging",     // 삼성 메시지(갤럭시 기본 문자)

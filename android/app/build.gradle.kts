@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +7,15 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
 }
+
+/**
+ * Safe Browsing API 키는 저장소에 커밋하지 않는다(local.properties, .gitignore 대상).
+ * 키가 없으면 빈 문자열이 들어가고, 링크 검사 기능만 "사용 불가"로 표시된 채 앱은 정상 동작한다.
+ */
+val safeBrowsingApiKey: String = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}.getProperty("SAFE_BROWSING_API_KEY", "")
 
 android {
     namespace = "com.safelink.app"
@@ -16,6 +27,8 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+
+        buildConfigField("String", "SAFE_BROWSING_API_KEY", "\"$safeBrowsingApiKey\"")
     }
 
     buildTypes {
@@ -36,6 +49,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -72,5 +86,7 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp.logging.interceptor)
     implementation(libs.kotlinx.coroutines.android)
+    // 링크 안전성 검사 — Google Play 서비스가 관리하는 온디바이스 차단 목록 조회(URL 미전송)
+    implementation(libs.play.services.safebrowsing)
     testImplementation(libs.junit)
 }
