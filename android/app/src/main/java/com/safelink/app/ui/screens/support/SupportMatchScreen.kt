@@ -80,9 +80,11 @@ fun SupportMatchScreen(navController: NavHostController) {
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // 화면 제목("추천 기관 목록")과 이 카드 제목이 똑같은 문구라 중복돼 보이던 문제
+            // 대응 (UI/UX 리뷰 중 발견) - 카드는 "어떤 기준으로 추천했는지" 설명으로 역할 분리
             SafeLinkCard(containerColor = BrandBlueLight) {
                 Text(
-                    text = "추천 기관 목록",
+                    text = "이런 기준으로 추천드려요",
                     style = MaterialTheme.typography.titleLarge
                 )
                 Text(

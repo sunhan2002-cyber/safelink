@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -87,6 +88,11 @@ fun RecordListScreen(
                 records.forEach { record ->
                     RecordCard(record = record, navController = navController)
                 }
+                // 기록이 적을 때 화면 아래쪽이 텅 빈 회색으로 남아 휑해 보이던 문제 대응
+                // (UI/UX 리뷰 중 발견) - 정기 검사를 유도하는 짧은 팁으로 채움
+                if (records.size < 3) {
+                    RegularCheckTip()
+                }
             }
             Spacer(modifier = Modifier.height(60.dp))
         }
@@ -138,6 +144,27 @@ private fun EmptyRecords(isFiltered: Boolean) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+/** 기록이 적을 때(3개 미만) 리스트 아래 빈 공간을 정기 검사 팁으로 채운다. */
+@Composable
+private fun RegularCheckTip() {
+    SafeLinkCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Filled.Lightbulb,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(modifier = Modifier.size(12.dp))
+            Text(
+                text = "의심스러운 대화를 받으면 바로 검사해보세요. 기록이 쌓일수록 반복되는 위험 패턴을 알아차리기 쉬워져요.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
