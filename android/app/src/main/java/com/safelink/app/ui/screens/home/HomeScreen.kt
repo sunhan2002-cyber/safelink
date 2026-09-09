@@ -1,5 +1,6 @@
 package com.safelink.app.ui.screens.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Checklist
@@ -21,12 +23,15 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.safelink.app.R
 import com.safelink.app.data.model.RiskLevel
 import com.safelink.app.ui.components.RiskBadge
 import com.safelink.app.ui.components.SafeLinkCard
@@ -69,6 +74,18 @@ fun HomeScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // 홈 화면 좌측 상단 브랜드 아이콘 (사용자 요청) — 실제 앱 런처 아이콘 재사용.
+        // ic_launcher(mipmap)는 API 26+에서 adaptive-icon XML로 해석되는데 Compose
+        // painterResource()가 그 XML을 못 읽어서 크래시 남 - ic_launcher_foreground는
+        // (anydpi-v26에 XML 오버라이드가 없어) 순수 PNG로만 해석되어 안전함.
+        Image(
+            painter = painterResource(R.mipmap.ic_launcher_foreground),
+            contentDescription = "SafeLink",
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+        )
+
         // 상태 카드 — 백그라운드 감지가 있으면 그 위험도로, 없으면 안전함. 감지 시 탭하면 대응 가이드로.
         SafeLinkCard(onClick = {
             snapshot?.let { navController.navigate(Screen.ResponseGuide.createRoute(statusLevel)) }
