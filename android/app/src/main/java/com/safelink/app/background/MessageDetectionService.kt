@@ -1,6 +1,8 @@
 package com.safelink.app.background
 
 import android.accessibilityservice.AccessibilityService
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -61,6 +63,9 @@ class MessageDetectionService : AccessibilityService() {
 
     /** 기록 저장용 스코프 — 서비스 종료 시 함께 취소한다. */
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /** 화면 전환 직후 재확인용 — 내용이 다 그려질 때까지 잠깐 기다렸다 한 번 더 읽는다. */
+    private val recheckHandler = Handler(Looper.getMainLooper())
     private val notifier by lazy { RiskNotifier(applicationContext) }
 
     /**
@@ -73,8 +78,9 @@ class MessageDetectionService : AccessibilityService() {
     private var lastText: String = ""
     private var lastAnalyzedAt: Long = 0L
 
-    /** 직전에 알림을 띄운 건의 식별값 — 앱 + 매칭된 키워드 id 집합 */
-    private var lastAlertSignature: String? = null
+    /** 직전에 알림을 띄운 건 — 앱과 매칭된 키워드 id 집합 */
+    private var lastAlertPkg: String? = null
+    private var lastAlertKeywords: Set<String>? = null
     private var lastAlertAt: Long = 0L
     /** 직전 알림이 발생한 창(화면) id — 화면이 바뀌면 새 확인 행동으로 본다 */
     private var lastAlertWindowId: Int = -1
@@ -87,12 +93,34 @@ class MessageDetectionService : AccessibilityService() {
         event ?: return
         val pkg = event.packageName?.toString() ?: return
         if (pkg !in MONITORED_PACKAGES) return
+        val windowId = event.windowId
 
+        // 화면이 막 바뀐 직후에는 대화 내용이 아직 안 그려져 있을 수 있다. 그 상태로 한 번
+        // 읽고 끝내면 "직전과 같은 텍스트" 규칙에 걸려 정작 내용이 채워진 뒤에는 다시 보지
+        // 않는다(대화방을 열었는데 아무 반응이 없는 원인이었다). 그래서 전환 직후에는
+        // 잠시 뒤 한 번 더 확인하도록 예약해 둔다.
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            recheckHandler.removeCallbacksAndMessages(null)
+            recheckHandler.postDelayed({ analyze(pkg, windowId, force = true) }, RECHECK_DELAY_MS)
+        }
+
+        analyze(pkg, windowId)
+    }
+
+    /**
+     * @param force 화면 전환 후 예약된 재확인인지 여부. 재확인은 "내용이 다 그려졌는지 다시
+     *   본다"는 의도된 한 번이므로 디바운스로 건너뛰면 안 된다(그러면 재확인이 항상 무시된다).
+     */
+    private fun analyze(pkg: String, windowId: Int, force: Boolean = false) {
         // 디바운스: 같은 화면 이벤트가 연속으로 오므로 일정 간격으로만 분석
         val now = SystemClock.elapsedRealtime()
-        if (now - lastAnalyzedAt < MIN_INTERVAL_MS) return
+        if (!force && now - lastAnalyzedAt < MIN_INTERVAL_MS) return
 
-        val text = extractVisibleText() ?: return
+        // 이벤트를 보낸 앱의 화면만 읽는다. 화면 전환 직후에는 아직 이전 화면(홈 등)이
+        // 잡히는 경우가 있는데, 그때 그 내용을 lastText 로 기억해 버리면 정작 대화 화면이
+        // 그려진 뒤에도 "직전과 같음"으로 걸러져 한 번도 분석하지 못한다.
+        // 대상 앱의 화면이 아니면 아무것도 기억하지 않고 다음 이벤트를 기다린다.
+        val text = extractVisibleText(pkg) ?: return
         if (text.isBlank() || text == lastText) return
 
         lastText = text
@@ -105,11 +133,12 @@ class MessageDetectionService : AccessibilityService() {
         // (SAFE/CAUTION 등 일상 화면까지 상태·카운트에 반영하면 "오늘의 알림"이 부풀어 오르므로
         //  BackgroundDetectionState 는 실제 알림(경고 이상)만 기록한다)
         if (result.riskLevel.ordinal >= RiskLevel.WARNING.ordinal) {
-            if (isDuplicateAlert(pkg, result, event.windowId, now)) return
+            if (isDuplicateAlert(pkg, result, windowId, now)) return
 
-            lastAlertSignature = signatureOf(pkg, result)
+            lastAlertPkg = pkg
+            lastAlertKeywords = keywordsOf(result)
             lastAlertAt = now
-            lastAlertWindowId = event.windowId
+            lastAlertWindowId = windowId
 
             BackgroundDetectionState.update(result, sourceApp = pkg)
             notifier.notifyRisk(
@@ -186,9 +215,24 @@ class MessageDetectionService : AccessibilityService() {
         runCatching { recordRepository.saveDetection(result, RecordSource.BACKGROUND) }
     }
 
-    /** 앱 + 매칭된 키워드 id 집합 — 같은 내용을 다시 본 것인지 판단하는 기준 */
-    private fun signatureOf(pkg: String, result: DetectionResult): String =
-        pkg + "|" + result.matchedKeywords.map { it.keywordId }.distinct().sorted().joinToString(",")
+    /** 매칭된 키워드 id 집합 — 같은 내용을 다시 본 것인지 판단하는 기준 */
+    private fun keywordsOf(result: DetectionResult): Set<String> =
+        result.matchedKeywords.mapTo(mutableSetOf()) { it.keywordId }
+
+    /**
+     * 같은 사건인지 판정.
+     *
+     * 키워드 집합이 **정확히** 같을 때만 같은 사건으로 보면, 화면이 그려지는 도중에 읽은
+     * 것(일부만 보임)과 다 그려진 뒤 읽은 것(전부 보임)이 서로 다른 사건이 되어 같은 문자로
+     * 알림이 두 번 뜬다. 한쪽이 다른 쪽을 포함하기만 하면 같은 화면을 보고 있는 것이므로
+     * 같은 사건으로 취급한다.
+     */
+    private fun isSameEvent(pkg: String, keywords: Set<String>): Boolean {
+        if (pkg != lastAlertPkg) return false
+        val last = lastAlertKeywords ?: return false
+        if (keywords.isEmpty() || last.isEmpty()) return keywords == last
+        return keywords.containsAll(last) || last.containsAll(keywords)
+    }
 
     /**
      * 같은 내용을 반복해서 알리지 않도록 거르는 규칙.
@@ -206,7 +250,7 @@ class MessageDetectionService : AccessibilityService() {
         windowId: Int,
         now: Long
     ): Boolean {
-        if (signatureOf(pkg, result) != lastAlertSignature) return false
+        if (!isSameEvent(pkg, keywordsOf(result))) return false
         val elapsed = now - lastAlertAt
         return if (windowId == lastAlertWindowId) {
             elapsed < SAME_SCREEN_MUTE_MS
@@ -219,10 +263,28 @@ class MessageDetectionService : AccessibilityService() {
      * 현재 활성 창의 노드 트리를 순회하며 보이는 텍스트를 모은다.
      * 대화 앱 화면의 말풍선 텍스트가 이 경로로 수집된다.
      */
-    private fun extractVisibleText(): String? {
-        val root = rootInActiveWindow ?: return null
+    private fun extractVisibleText(pkg: String): String? {
         val sb = StringBuilder()
-        collectText(root, sb)
+
+        // 보통은 활성 창 하나면 충분하다 (카카오톡·문자가 이 경우).
+        val active = rootInActiveWindow
+        if (active != null && active.packageName?.toString() == pkg) {
+            collectText(active, sb)
+        }
+
+        // 대화 화면이 여러 창으로 쪼개진 앱에서는 활성 창에 입력창만 들어 있고 말풍선은
+        // 다른 창에 남는다. 같은 앱의 나머지 창도 훑어서 빠진 내용을 채운다.
+        // (flagRetrieveInteractiveWindows 가 있어야 windows 가 채워진다)
+        if (sb.length < MIN_MEANINGFUL_LENGTH) {
+            for (window in windows.orEmpty()) {
+                val root = window.root ?: continue
+                if (root.packageName?.toString() != pkg) continue
+                if (root == active) continue
+                collectText(root, sb)
+                if (sb.length >= MAX_CHARS) break
+            }
+        }
+
         return sb.toString().trim().takeIf { it.isNotEmpty() }
     }
 
@@ -248,6 +310,7 @@ class MessageDetectionService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        recheckHandler.removeCallbacksAndMessages(null)
         super.onDestroy()
         serviceScope.cancel()
     }
@@ -256,7 +319,8 @@ class MessageDetectionService : AccessibilityService() {
         // 서비스 중단 시 상태 초기화 (다음 세션에서 이전 텍스트·알림 이력이 남지 않도록)
         lastText = ""
         lastAnalyzedAt = 0L
-        lastAlertSignature = null
+        lastAlertPkg = null
+        lastAlertKeywords = null
         lastAlertAt = 0L
         lastAlertWindowId = -1
     }
@@ -277,6 +341,18 @@ class MessageDetectionService : AccessibilityService() {
          * 키워드 점수와 달리 추정이 아니라 확인된 사실이므로 CRITICAL 구간(66~100) 안에서 높게 둔다.
          */
         private const val LINK_RISK_SCORE = 90
+
+        /**
+         * 활성 창에서 이만큼도 못 읽었으면 대화 내용이 다른 창에 있다고 보고 나머지 창까지 훑는다.
+         * 입력창·툴바만 잡혔을 때가 대략 이 길이 아래다(예: "메시지 입력 / 이모티콘 / 음성메시지").
+         */
+        private const val MIN_MEANINGFUL_LENGTH = 120
+
+        /**
+         * 화면 전환 후 재확인까지 기다리는 시간. 대화 목록이 그려질 정도로는 충분하고,
+         * 사용자가 "느리다"고 느끼지 않을 만큼은 짧아야 해서 이 정도로 뒀다.
+         */
+        private const val RECHECK_DELAY_MS = 700L
 
         private val MONITORED_PACKAGES = setOf(
             "com.kakao.talk",                    // 카카오톡
