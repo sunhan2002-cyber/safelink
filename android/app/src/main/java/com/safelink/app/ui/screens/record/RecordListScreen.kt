@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -88,8 +89,16 @@ fun RecordListScreen(
             if (records.isEmpty()) {
                 EmptyRecords(isFiltered = filter != null)
             } else {
-                records.forEach { record ->
-                    RecordCard(record = record, navController = navController)
+                // UI/UX 2순위(카드 남용 줄이기) - 기록마다 따로 흰 카드로 감싸 카드가
+                // 끝없이 반복되던 걸, 설정 화면과 같은 패턴(하나의 카드 안에 구분선으로
+                // 행 나누기)으로 바꿔 "전부 카드" 단조로움을 줄임
+                SafeLinkCard {
+                    records.forEachIndexed { index, record ->
+                        RecordRow(record = record, navController = navController)
+                        if (index != records.lastIndex) {
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                        }
+                    }
                 }
                 // 기록이 적을 때 화면 아래쪽이 텅 빈 회색으로 남아 휑해 보이던 문제 대응
                 // (UI/UX 리뷰 중 발견) - 정기 검사를 유도하는 짧은 팁으로 채움
@@ -184,9 +193,10 @@ private fun RegularCheckTip() {
     }
 }
 
+/** 기록 한 건 — 이제 개별 카드가 아니라 [SafeLinkCard] 안의 한 행(구분선으로 다음 행과 분리). */
 @Composable
-private fun RecordCard(record: RecordItem, navController: NavHostController) {
-    SafeLinkCard {
+private fun RecordRow(record: RecordItem, navController: NavHostController) {
+    Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = formatTimestamp(record.timestamp),

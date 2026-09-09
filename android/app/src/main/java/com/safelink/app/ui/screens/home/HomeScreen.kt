@@ -28,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.scale
@@ -151,10 +152,20 @@ fun HomeScreen(
             }
         }
 
-        // 활동 요약 — 오늘의 알림 = 백그라운드 감지 건수, 정밀 검사 = 사용자가 직접 실행한 분석 건수
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SummaryTile(label = "오늘의 알림", count = todayAlertCount, modifier = Modifier.weight(1f))
-            SummaryTile(label = "정밀 검사", count = todayScanCount, modifier = Modifier.weight(1f))
+        // 활동 요약 — 오늘의 알림 = 백그라운드 감지 건수, 정밀 검사 = 사용자가 직접 실행한 분석 건수.
+        // UI/UX 2순위(카드 남용 줄이기) - 단순 숫자 표시까지 흰 카드 2개로 감싸던 걸,
+        // 배경에 바로 얹은 한 줄 통계 + 구분선으로 바꿔 "전부 카드"인 단조로움을 깸.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            SummaryStat(label = "오늘의 알림", count = todayAlertCount, modifier = Modifier.weight(1f))
+            VerticalDivider(
+                modifier = Modifier
+                    .height(40.dp)
+                    .align(Alignment.CenterVertically)
+            )
+            SummaryStat(label = "정밀 검사", count = todayScanCount, modifier = Modifier.weight(1f))
         }
 
         // 퀵 액션 — 앱의 핵심 기능이라 홈에서만 기본(56dp)보다 크게 강조 (사용자 요청).
@@ -247,8 +258,8 @@ private fun homeStatusTitle(level: RiskLevel): String = when (level) {
 }
 
 @Composable
-private fun SummaryTile(label: String, count: Int, modifier: Modifier = Modifier) {
-    SafeLinkCard(modifier = modifier) {
+private fun SummaryStat(label: String, count: Int, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = count.toString(),
             style = MaterialTheme.typography.headlineMedium,
