@@ -27,11 +27,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.R
+import com.safelink.app.settings.OnboardingManager
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.BrandBlueLight
@@ -94,7 +96,10 @@ fun OnboardingScreen(navController: NavHostController) {
         }
 
         Spacer(modifier = Modifier.weight(1f))
+        val context = LocalContext.current
         SafeLinkPrimaryButton(text = "시작하기 →", onClick = {
+            // 다음 실행부터는 온보딩을 건너뛰도록 완료 표시 (사용자 요청 - 최초 1회만 노출)
+            OnboardingManager.markCompleted(context)
             navController.navigate(Screen.Home.route) {
                 popUpTo(Screen.Onboarding.route) { inclusive = true }
             }

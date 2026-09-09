@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.security.AppLockManager
+import com.safelink.app.settings.OnboardingManager
 import com.safelink.app.ui.navigation.Screen
 import kotlinx.coroutines.delay
 
@@ -62,7 +63,12 @@ fun SplashScreen(navController: NavHostController) {
         )
 
         delay(350)
-        val destination = if (AppLockManager.isEnabled(context)) Screen.Lock.route else Screen.Home.route
+        // 온보딩은 최초 1회만 - 이미 봤으면 기존 그대로 잠금/홈으로 (사용자 요청)
+        val destination = when {
+            !OnboardingManager.hasCompleted(context) -> Screen.Onboarding.route
+            AppLockManager.isEnabled(context) -> Screen.Lock.route
+            else -> Screen.Home.route
+        }
         navController.navigate(destination) {
             popUpTo(Screen.Splash.route) { inclusive = true }
         }
