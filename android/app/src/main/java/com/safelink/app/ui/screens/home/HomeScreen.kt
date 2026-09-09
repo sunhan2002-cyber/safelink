@@ -157,10 +157,13 @@ fun HomeScreen(
             SummaryTile(label = "정밀 검사", count = todayScanCount, modifier = Modifier.weight(1f))
         }
 
-        // 퀵 액션
+        // 퀵 액션 — 앱의 핵심 기능이라 홈에서만 기본(56dp)보다 크게 강조 (사용자 요청).
+        // 높이만 키우면 글자 주변 여백만 늘어나 보여서, 글자 크기도 같이 키워 비례감을 맞춤.
         SafeLinkPrimaryButton(
             text = "대화 분석 시작",
-            onClick = startAnalysis
+            onClick = startAnalysis,
+            height = 68.dp,
+            textStyle = MaterialTheme.typography.titleMedium
         )
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             QuickActionCard(
