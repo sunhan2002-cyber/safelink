@@ -1,7 +1,14 @@
 package com.safelink.app.ui.screens.home
 
-import androidx.compose.foundation.Image
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,7 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Checklist
@@ -23,15 +30,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.safelink.app.R
 import com.safelink.app.data.model.RiskLevel
 import com.safelink.app.ui.components.RiskBadge
 import com.safelink.app.ui.components.SafeLinkCard
@@ -42,6 +47,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import com.safelink.app.background.BackgroundDetectionState
 import com.safelink.app.ui.components.color
+import com.safelink.app.ui.components.containerColor
 import com.safelink.app.data.repository.RecordRepository
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.screens.detection.DetectionViewModel
@@ -74,29 +80,60 @@ fun HomeScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 홈 화면 좌측 상단 브랜드 아이콘 (사용자 요청) — 실제 앱 런처 아이콘 재사용.
-        // ic_launcher(mipmap)는 API 26+에서 adaptive-icon XML로 해석되는데 Compose
-        // painterResource()가 그 XML을 못 읽어서 크래시 남 - ic_launcher_foreground는
-        // (anydpi-v26에 XML 오버라이드가 없어) 순수 PNG로만 해석되어 안전함.
-        Image(
-            painter = painterResource(R.mipmap.ic_launcher_foreground),
-            contentDescription = "SafeLink",
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(10.dp))
+        // 홈 화면 좌측 상단 브랜드 워드마크 (사용자 요청 - 아이콘 그래픽 시도 몇 차례 후
+        // 이미지 없이 텍스트만 쓰는 걸로 정리)
+        Text(
+            text = "SafeLink",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.primary
         )
 
         // 상태 카드 — 백그라운드 감지가 있으면 그 위험도로, 없으면 안전함. 감지 시 탭하면 대응 가이드로.
-        SafeLinkCard(onClick = {
-            snapshot?.let { navController.navigate(Screen.ResponseGuide.createRoute(statusLevel)) }
-        }) {
+        // 디자인 개선: 흰 카드에 아이콘만 떠있던 것 -> 상태색으로 카드 배경을 옅게 물들이고,
+        // 아이콘은 원형 배지 안에 넣어서 더 눈에 띄게 함. 감지된 게 없을 때(평상시 감시 중)만
+        // 은은하게 숨쉬는 펄스 애니메이션을 줘서 "실시간으로 계속 지켜보고 있다"는 인상을 줌 —
+        // 실제 위험이 감지된 상태에서까지 애니메이션이 돌면 오히려 산만하니 그때는 정지.
+        val pulse = rememberInfiniteTransition(label = "status-pulse")
+        val pulseScale by pulse.animateFloat(
+            initialValue = 1f,
+            targetValue = if (snapshot == null) 1.18f else 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1400, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "pulse-scale"
+        )
+
+        SafeLinkCard(
+            containerColor = statusLevel.containerColor(),
+            onClick = {
+                snapshot?.let { navController.navigate(Screen.ResponseGuide.createRoute(statusLevel)) }
+            }
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Filled.Shield,
-                    contentDescription = null,
-                    tint = statusLevel.color(),
-                    modifier = Modifier.size(48.dp)
-                )
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.size(56.dp)) {
+                    // 은은한 숨쉬는 배경 원 (평상시에만 펄스)
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .scale(pulseScale)
+                            .background(statusLevel.color().copy(alpha = 0.18f), CircleShape)
+                    )
+                    // 아이콘 원형 배지
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(MaterialTheme.colorScheme.surface, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Shield,
+                            contentDescription = null,
+                            tint = statusLevel.color(),
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.size(16.dp))
                 Column {
                     Text(
