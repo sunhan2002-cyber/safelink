@@ -1,6 +1,7 @@
 package com.safelink.app.ui.screens.detection
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -41,6 +42,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.data.link.LinkRiskResult
@@ -480,7 +482,25 @@ private fun LinkRiskSection(results: List<LinkRiskResult>, isChecking: Boolean) 
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
+
+    // 구글 Safe Browsing 데이터로 판정한 건이 하나라도 있으면 출처를 밝힌다.
+    // 표기 문구와 안내 페이지 링크는 Safe Browsing 이용 조건상 **의무 사항**이라 임의로
+    // 번역하거나 생략하지 않는다(검사 자체가 실패해 UNCHECKED 뿐이면 구글 데이터를 쓴 게
+    // 아니므로 표기하지 않는다).
+    if (results.any { it.verdict != LinkVerdict.UNCHECKED }) {
+        val uriHandler = LocalUriHandler.current
+        Text(
+            text = "Advisory provided by Google",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+            textDecoration = TextDecoration.Underline,
+            modifier = Modifier.clickable { uriHandler.openUri(SAFE_BROWSING_ADVISORY_URL) }
+        )
+    }
 }
+
+/** Safe Browsing 안내 페이지 — 위 출처 표기에서 링크해야 하는 주소. */
+private const val SAFE_BROWSING_ADVISORY_URL = "https://developers.google.com/safe-browsing/v4/advisory"
 
 @Composable
 private fun LinkRiskCard(item: LinkRiskResult) {
