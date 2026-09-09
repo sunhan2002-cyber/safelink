@@ -44,7 +44,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import com.safelink.app.background.MessageDetectionService
+import com.safelink.app.settings.NotificationTextStore
 import com.safelink.app.security.AppLockManager
+import com.safelink.app.security.BiometricAuth
 import com.safelink.app.settings.EmergencyContactStore
 import com.safelink.app.settings.FeatureToggleState
 import com.safelink.app.data.repository.RecordRepository
@@ -66,7 +68,11 @@ fun SettingsScreen(navController: NavHostController) {
     var appLock by remember { mutableStateOf(AppLockManager.isEnabled(context)) }
     var showPinDialog by remember { mutableStateOf(false) }
     var pinInput by remember { mutableStateOf("") }
-    var biometric by remember { mutableStateOf(false) }
+    var biometric by remember { mutableStateOf(AppLockManager.isBiometricEnabled(context)) }
+    var showNotifTextDialog by remember { mutableStateOf(false) }
+    var notifCustomEnabled by remember { mutableStateOf(NotificationTextStore.isCustomEnabled(context)) }
+    var notifTitleInput by remember { mutableStateOf(NotificationTextStore.title(context)) }
+    var notifBodyInput by remember { mutableStateOf(NotificationTextStore.body(context)) }
     // 긴급 연락처 + 긴급 문자 본문 (긴급 화면 SMS 에 실제 사용)
     var contact by remember { mutableStateOf(EmergencyContactStore.getContact(context)) }
     var emergencyMessage by remember { mutableStateOf(EmergencyContactStore.getMessage(context)) }
@@ -253,9 +259,18 @@ fun SettingsScreen(navController: NavHostController) {
                 )
                 ToggleRow(
                     label = "생체인증 사용",
-                    caption = "지문 또는 얼굴 인식으로 잠금 해제",
+                    caption = when {
+                        !appLock -> "앱 잠금을 먼저 켜 주세요"
+                        !BiometricAuth.isAvailable(context) -> "이 기기에 등록된 지문·얼굴이 없습니다"
+                        else -> "지문 또는 얼굴 인식으로 잠금 해제"
+                    },
                     checked = biometric,
-                    onChange = { biometric = it }
+                    onChange = { enabled ->
+                        // 앱 잠금이 꺼져 있거나 등록된 생체정보가 없으면 켤 수 없다
+                        if (enabled && (!appLock || !BiometricAuth.isAvailable(context))) return@ToggleRow
+                        AppLockManager.setBiometricEnabled(context, enabled)
+                        biometric = AppLockManager.isBiometricEnabled(context)
+                    }
                 )
                 LinkRow(
                     label = "PIN 변경",
@@ -283,8 +298,18 @@ fun SettingsScreen(navController: NavHostController) {
 
             SectionLabel("알림")
             SafeLinkCard {
-                LinkRow(label = "알림 문구 설정", caption = "알림에 표시되는 문구를 바꿀 수 있어요") {
-                    // TODO: 중립적 알림 문구 수정 (Task 5.15, Design.md 7장)
+                LinkRow(
+                    label = "알림 문구 설정",
+                    caption = if (notifCustomEnabled) {
+                        "현재: \"${NotificationTextStore.title(context)}\" — 위험 내용을 감춘 문구로 표시됩니다"
+                    } else {
+                        "알림에 표시되는 문구를 바꿀 수 있어요"
+                    }
+                ) {
+                    notifCustomEnabled = NotificationTextStore.isCustomEnabled(context)
+                    notifTitleInput = NotificationTextStore.title(context)
+                    notifBodyInput = NotificationTextStore.body(context)
+                    showNotifTextDialog = true
                 }
             }
 
@@ -333,6 +358,59 @@ fun SettingsScreen(navController: NavHostController) {
                         .padding(vertical = 12.dp)
                 )
                 LinkRow(label = "개인정보 처리방침") { /* TODO */ }
+            }
+
+            if (showNotifTextDialog) {
+                AlertDialog(
+                    onDismissRequest = { showNotifTextDialog = false },
+                    title = { Text("알림 문구 설정") },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(
+                                text = "다른 사람이 화면을 함께 볼 수 있는 상황이라면, 위험 내용을 드러내지 않는 문구로 바꿀 수 있습니다.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            ToggleRow(
+                                label = "중립 문구 사용",
+                                caption = "끄면 감지된 표현이 알림에 그대로 표시됩니다",
+                                checked = notifCustomEnabled,
+                                onChange = { notifCustomEnabled = it }
+                            )
+                            OutlinedTextField(
+                                value = notifTitleInput,
+                                onValueChange = { notifTitleInput = it },
+                                label = { Text("알림 제목") },
+                                singleLine = true,
+                                enabled = notifCustomEnabled,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = notifBodyInput,
+                                onValueChange = { notifBodyInput = it },
+                                label = { Text("알림 내용") },
+                                singleLine = true,
+                                enabled = notifCustomEnabled,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            NotificationTextStore.save(
+                                context,
+                                enabled = notifCustomEnabled,
+                                title = notifTitleInput,
+                                body = notifBodyInput
+                            )
+                            notifCustomEnabled = NotificationTextStore.isCustomEnabled(context)
+                            showNotifTextDialog = false
+                        }) { Text("저장") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showNotifTextDialog = false }) { Text("취소") }
+                    }
+                )
             }
 
             if (showDeleteDialog) {

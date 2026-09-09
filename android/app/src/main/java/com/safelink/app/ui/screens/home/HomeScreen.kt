@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -29,9 +30,11 @@ import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkOutlinedButton
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import com.safelink.app.background.BackgroundDetectionState
 import com.safelink.app.ui.components.color
+import com.safelink.app.data.repository.RecordRepository
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.screens.detection.DetectionViewModel
 
@@ -46,9 +49,14 @@ fun HomeScreen(
         detectionViewModel.reset()
         navController.navigate(Screen.DetectionInput.route)
     }
-    // 백그라운드 감지 상태를 홈 대시보드에 반영 (감지가 있으면 상태 카드/알림 수가 살아난다)
+    // 백그라운드 감지 상태를 홈 대시보드에 반영 (감지가 있으면 상태 카드가 살아난다)
     val snapshot by BackgroundDetectionState.latestSnapshot.collectAsState()
-    val detectionCount by BackgroundDetectionState.detectionCount.collectAsState()
+
+    // 카운터는 기록 DB에서 오늘 0시 기준으로 센다 — 앱을 껐다 켜도 유지되고 날짜가 바뀌면 0부터 (Task 4.14)
+    val context = LocalContext.current
+    val recordRepository = remember { RecordRepository(context) }
+    val todayAlertCount by recordRepository.observeTodayBackgroundCount().collectAsState(initial = 0)
+    val todayScanCount by recordRepository.observeTodayManualCount().collectAsState(initial = 0)
     val statusLevel = snapshot?.riskLevel ?: RiskLevel.SAFE
     Column(
         modifier = Modifier
@@ -85,10 +93,10 @@ fun HomeScreen(
             }
         }
 
-        // 활동 요약 — 오늘의 알림 = 백그라운드 감지 누적 횟수
+        // 활동 요약 — 오늘의 알림 = 백그라운드 감지 건수, 정밀 검사 = 사용자가 직접 실행한 분석 건수
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SummaryTile(label = "오늘의 알림", count = detectionCount, modifier = Modifier.weight(1f))
-            SummaryTile(label = "정밀 검사", count = 0, modifier = Modifier.weight(1f))
+            SummaryTile(label = "오늘의 알림", count = todayAlertCount, modifier = Modifier.weight(1f))
+            SummaryTile(label = "정밀 검사", count = todayScanCount, modifier = Modifier.weight(1f))
         }
 
         // 퀵 액션

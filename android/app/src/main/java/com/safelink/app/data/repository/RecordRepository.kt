@@ -9,6 +9,7 @@ import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.model.RiskLevel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import java.util.Calendar
 import java.util.UUID
 
 /** 기록 종류 — 목록에서 분석/진단을 구분한다. */
@@ -50,6 +51,27 @@ class RecordRepository(context: Context) {
             (detections.map { it.toItem() } + diagnoses.map { it.toItem() })
                 .sortedByDescending { it.timestamp }
         }
+
+    /**
+     * 홈 대시보드 카운터 (오늘 0시 기준).
+     *
+     * - [observeTodayBackgroundCount] : 백그라운드 감지로 알림이 뜬 건수 → "오늘의 알림"
+     * - [observeTodayManualCount]     : 사용자가 직접 실행한 분석 건수 → "정밀 검사"
+     *
+     * DB에서 세므로 앱을 껐다 켜도 값이 유지되고, 날짜가 바뀌면 자연히 0부터 다시 센다.
+     */
+    fun observeTodayBackgroundCount(): Flow<Int> =
+        detectionDao.observeBackgroundCountSince(startOfToday())
+
+    fun observeTodayManualCount(): Flow<Int> =
+        detectionDao.observeManualCountSince(startOfToday())
+
+    private fun startOfToday(): Long = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
 
     suspend fun findById(id: String, type: RecordType): RecordItem? = when (type) {
         RecordType.DETECTION -> detectionDao.findById(id)?.toItem()

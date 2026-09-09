@@ -23,6 +23,14 @@ interface DetectionRecordDao {
     @Query("UPDATE detection_records SET memo = :memo WHERE id = :id")
     suspend fun updateMemo(id: String, memo: String?)
 
+    /** 오늘 백그라운드 감지로 알림이 뜬 건수 — 홈 "오늘의 알림" */
+    @Query("SELECT COUNT(*) FROM detection_records WHERE sourceType = 'BACKGROUND' AND timestamp >= :since")
+    fun observeBackgroundCountSince(since: Long): Flow<Int>
+
+    /** 오늘 사용자가 직접 실행한 분석 건수(텍스트·스크린샷) — 홈 "정밀 검사" */
+    @Query("SELECT COUNT(*) FROM detection_records WHERE sourceType != 'BACKGROUND' AND timestamp >= :since")
+    fun observeManualCountSince(since: Long): Flow<Int>
+
     @Query("DELETE FROM detection_records")
     suspend fun deleteAll()
 }

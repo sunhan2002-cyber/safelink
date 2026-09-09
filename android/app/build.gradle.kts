@@ -58,6 +58,9 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     implementation(libs.gson)
 
+    // 생체인증 잠금 해제 (Task 5.13)
+    implementation(libs.androidx.biometric)
+
     // 검사 기록 로컬 저장 (Task 7.1) — 기기 내에만 저장, 서버 전송 없음
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

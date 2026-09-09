@@ -22,6 +22,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -29,11 +30,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavHostController
 import com.safelink.app.security.AppLockManager
+import com.safelink.app.security.BiometricAuth
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.BrandBlueLight
 import com.safelink.app.ui.theme.RiskCritical
+import kotlinx.coroutines.delay
 
 /** PIN 입력 잠금 화면 — 저장된 PIN(SHA-256)과 비교해 일치할 때만 홈으로 진입. */
 @Composable
@@ -41,17 +45,45 @@ fun LockScreen(navController: NavHostController) {
     val context = LocalContext.current
     var pin by remember { mutableStateOf("") }
     var error by remember { mutableStateOf(false) }
+    var biometricMessage by remember { mutableStateOf<String?>(null) }
+    // 남은 입력 차단 시간(ms). 0보다 크면 키패드를 막고 남은 초를 보여준다.
+    var lockoutRemaining by remember { mutableLongStateOf(AppLockManager.remainingLockoutMs(context)) }
+
+    val unlock: () -> Unit = {
+        navController.navigate(Screen.Home.route) {
+            popUpTo(Screen.Lock.route) { inclusive = true }
+        }
+    }
+
+    // 차단 중이면 1초 간격으로 남은 시간을 갱신한다(Design.md 5.4 — 5회 실패 시 30초 차단)
+    LaunchedEffect(lockoutRemaining > 0) {
+        while (lockoutRemaining > 0) {
+            delay(1000)
+            lockoutRemaining = AppLockManager.remainingLockoutMs(context)
+        }
+    }
+
+    // 생체인증이 켜져 있으면 화면 진입과 동시에 한 번 시도한다(사용자가 취소하면 PIN 입력으로)
+    LaunchedEffect(Unit) {
+        val activity = context as? FragmentActivity ?: return@LaunchedEffect
+        if (AppLockManager.isBiometricEnabled(context) && AppLockManager.remainingLockoutMs(context) == 0L) {
+            BiometricAuth.authenticate(
+                activity = activity,
+                onSuccess = unlock,
+                onFailed = { message -> biometricMessage = message }
+            )
+        }
+    }
 
     // 4자리가 모이면 저장된 PIN과 대조 — 일치 시 홈, 불일치 시 오류 표시 후 초기화
     LaunchedEffect(pin) {
         if (pin.length == 4) {
             if (AppLockManager.verify(context, pin)) {
-                navController.navigate(Screen.Home.route) {
-                    popUpTo(Screen.Lock.route) { inclusive = true }
-                }
+                unlock()
             } else {
                 error = true
                 pin = ""
+                lockoutRemaining = AppLockManager.remainingLockoutMs(context)
             }
         } else if (pin.isNotEmpty()) {
             error = false
@@ -88,15 +120,30 @@ fun LockScreen(navController: NavHostController) {
                 )
             }
         }
-        if (error) {
+        if (lockoutRemaining > 0) {
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "PIN이 일치하지 않습니다. 다시 입력해 주세요.",
+                text = "PIN을 여러 번 잘못 입력해 잠시 제한되었습니다. ${(lockoutRemaining + 999) / 1000}초 후 다시 시도해 주세요.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = RiskCritical
+            )
+        } else if (error) {
+            val remainingTries = AppLockManager.MAX_FAIL_COUNT - AppLockManager.failCount(context)
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "PIN이 일치하지 않습니다. ${remainingTries}번 더 틀리면 잠시 입력이 제한됩니다.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = RiskCritical
             )
         }
-        // TODO: 5회 오류 시 30초 차단(Task 5.12)
+        biometricMessage?.let { message ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
 
         Spacer(modifier = Modifier.weight(1f))
 
@@ -111,7 +158,17 @@ fun LockScreen(navController: NavHostController) {
                 row.forEach { key ->
                     when (key) {
                         "bio" -> IconButton(
-                            onClick = { /* TODO: BiometricPrompt (Task 5.13) */ },
+                            onClick = {
+                                val activity = context as? FragmentActivity
+                                if (activity != null) {
+                                    BiometricAuth.authenticate(
+                                        activity = activity,
+                                        onSuccess = unlock,
+                                        onFailed = { message -> biometricMessage = message }
+                                    )
+                                }
+                            },
+                            enabled = lockoutRemaining == 0L && AppLockManager.isBiometricEnabled(context),
                             modifier = Modifier.size(72.dp)
                         ) {
                             Icon(
@@ -124,6 +181,7 @@ fun LockScreen(navController: NavHostController) {
 
                         "back" -> IconButton(
                             onClick = { pin = pin.dropLast(1) },
+                            enabled = lockoutRemaining == 0L,
                             modifier = Modifier.size(72.dp)
                         ) {
                             Icon(
@@ -134,6 +192,7 @@ fun LockScreen(navController: NavHostController) {
 
                         else -> TextButton(
                             onClick = { if (pin.length < 4) pin += key },
+                            enabled = lockoutRemaining == 0L,
                             modifier = Modifier.size(72.dp)
                         ) {
                             Text(text = key, style = MaterialTheme.typography.headlineMedium)

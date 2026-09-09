@@ -26,10 +26,13 @@ import com.safelink.app.ui.components.SosFab
 import com.safelink.app.ui.navigation.SafeLinkNavGraph
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.SafeLinkTheme
+import androidx.fragment.app.FragmentActivity
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+// BiometricPrompt(생체인증, Task 5.13)가 FragmentActivity를 요구해 상속을 넓혔다.
+// FragmentActivity는 ComponentActivity의 하위 클래스라 기존 Compose/ViewModel 코드는 그대로 동작한다.
+class MainActivity : FragmentActivity() {
 
     // 알림 탭으로 전달된 딥링크 라우트 (감지 알림 → 대응 가이드/긴급 화면)
     private val pendingRoute = mutableStateOf<String?>(null)

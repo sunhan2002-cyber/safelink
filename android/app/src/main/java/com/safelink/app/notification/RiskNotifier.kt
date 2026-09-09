@@ -9,6 +9,7 @@ import androidx.core.app.NotificationCompat
 import com.safelink.app.MainActivity
 import com.safelink.app.R
 import com.safelink.app.data.model.RiskLevel
+import com.safelink.app.settings.NotificationTextStore
 import com.safelink.app.ui.navigation.Screen
 
 class RiskNotifier(private val context: Context) {
@@ -33,6 +34,21 @@ class RiskNotifier(private val context: Context) {
             intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
+
+        // 사용자가 중립 문구를 켜 두었으면 위험도·감지 내용을 드러내지 않는 문구로 대체한다
+        // (가해자와 화면을 공유하는 상황 대비 — Design.md 7장)
+        if (NotificationTextStore.isCustomEnabled(context)) {
+            val neutral = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_stat_warning)
+                .setContentTitle(NotificationTextStore.title(context))
+                .setContentText(NotificationTextStore.body(context))
+                .setPriority(priorityOf(level))
+                .setAutoCancel(true)
+                .setContentIntent(pending)
+                .build()
+            runCatching { manager().notify(NOTIF_ID, neutral) }
+            return
+        }
 
         val contentText = detectedPhrase
             ?.takeIf { it.isNotBlank() }

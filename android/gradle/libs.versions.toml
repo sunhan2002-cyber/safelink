@@ -12,6 +12,7 @@ composeBom = "2024.10.01"
 navigationCompose = "2.8.4"
 gson = "2.11.0"
 room = "2.6.1"
+biometric = "1.1.0"
 mlkitTextKorean = "16.0.1"
 junit = "4.13.2"
 retrofit = "2.11.0"
@@ -36,6 +37,7 @@ hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }

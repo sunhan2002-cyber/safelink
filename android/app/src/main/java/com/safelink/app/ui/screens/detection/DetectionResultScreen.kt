@@ -34,6 +34,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.data.model.AnalysisEvidence
@@ -220,6 +225,17 @@ private fun DetectionResultContent(
                                 RiskBadge(level = result.riskLevel)
                             }
                         }
+                    }
+                }
+
+                // 원문에서 어느 구간이 걸렸는지 그대로 보여준다 — 목록만으로는 문맥이 안 보이므로
+                if (result.originalText.isNotBlank()) {
+                    Text(text = "분석한 내용", style = MaterialTheme.typography.titleMedium)
+                    SafeLinkCard {
+                        Text(
+                            text = highlightMatches(result),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
                     }
                 }
 
@@ -535,5 +551,39 @@ private fun DetectionResultPreviewSafe() {
             sourceLabel = "텍스트 입력",
             onBack = {}, onGuideClick = {}, onSupportClick = {}
         )
+    }
+}
+
+/**
+ * 원문에서 매칭된 구간에 배경색과 밑줄을 입힌 문자열을 만든다.
+ *
+ * [com.safelink.app.data.model.MatchedKeyword]의 startIndex/endIndex 를 그대로 쓰며,
+ * 구간이 겹치거나 범위를 벗어난 값은 건너뛴다(엔진이 바뀌어도 화면이 깨지지 않도록).
+ */
+private fun highlightMatches(result: DetectionResult): AnnotatedString {
+    val text = result.originalText
+    val spans = result.matchedKeywords
+        .filter { it.startIndex in 0..text.length && it.endIndex in it.startIndex..text.length }
+        .sortedBy { it.startIndex }
+
+    return buildAnnotatedString {
+        var cursor = 0
+        spans.forEach { kw ->
+            // 앞선 구간과 겹치면 건너뛴다(같은 자리를 두 번 칠하지 않도록)
+            if (kw.startIndex < cursor) return@forEach
+            append(text.substring(cursor, kw.startIndex))
+            withStyle(
+                SpanStyle(
+                    background = result.riskLevel.color().copy(alpha = 0.18f),
+                    color = result.riskLevel.color(),
+                    fontWeight = FontWeight.Bold,
+                    textDecoration = TextDecoration.Underline
+                )
+            ) {
+                append(text.substring(kw.startIndex, kw.endIndex))
+            }
+            cursor = kw.endIndex
+        }
+        append(text.substring(cursor))
     }
 }

@@ -16,6 +16,15 @@ object AppLockManager {
     private const val PREFS = "safelink_security"
     private const val KEY_ENABLED = "app_lock_enabled"
     private const val KEY_PIN_HASH = "app_lock_pin_hash"
+    private const val KEY_FAIL_COUNT = "pin_fail_count"
+    private const val KEY_LOCK_UNTIL = "pin_lock_until"
+    private const val KEY_BIOMETRIC = "biometric_enabled"
+
+    /** 연속 실패 허용 횟수 — 초과 시 [LOCKOUT_MS] 동안 입력 차단 (Design.md 5.4) */
+    const val MAX_FAIL_COUNT = 5
+
+    /** 입력 차단 시간 */
+    const val LOCKOUT_MS = 30_000L
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -34,17 +43,64 @@ object AppLockManager {
             .apply()
     }
 
-    /** 입력 PIN 이 저장된 PIN 과 일치하는지. */
+    /**
+     * 입력 PIN 검증 (Design.md 5.4).
+     *
+     * 성공하면 실패 횟수를 0으로 되돌리고, 실패하면 횟수를 올린다.
+     * [MAX_FAIL_COUNT]회 연속 실패하면 [LOCKOUT_MS] 동안 입력을 막는다.
+     */
     fun verify(context: Context, pin: String): Boolean {
         val saved = prefs(context).getString(KEY_PIN_HASH, null) ?: return false
-        return saved == hash(pin)
+        val matched = saved == hash(pin)
+        if (matched) resetFailState(context) else recordFailure(context)
+        return matched
     }
 
-    /** 앱 잠금 해제(설정 + PIN 제거). */
+    /** 남은 입력 차단 시간(ms). 0이면 차단 중이 아니다. */
+    fun remainingLockoutMs(context: Context): Long {
+        val until = prefs(context).getLong(KEY_LOCK_UNTIL, 0L)
+        val remaining = until - System.currentTimeMillis()
+        return if (remaining > 0) remaining else 0L
+    }
+
+    /** 현재까지 연속 실패한 횟수 */
+    fun failCount(context: Context): Int = prefs(context).getInt(KEY_FAIL_COUNT, 0)
+
+    private fun recordFailure(context: Context) {
+        val p = prefs(context)
+        val count = p.getInt(KEY_FAIL_COUNT, 0) + 1
+        val editor = p.edit().putInt(KEY_FAIL_COUNT, count)
+        if (count >= MAX_FAIL_COUNT) {
+            // 차단 시작 — 다음 입력은 차단이 풀린 뒤부터 다시 셈한다
+            editor.putLong(KEY_LOCK_UNTIL, System.currentTimeMillis() + LOCKOUT_MS)
+                .putInt(KEY_FAIL_COUNT, 0)
+        }
+        editor.apply()
+    }
+
+    private fun resetFailState(context: Context) {
+        prefs(context).edit()
+            .putInt(KEY_FAIL_COUNT, 0)
+            .putLong(KEY_LOCK_UNTIL, 0L)
+            .apply()
+    }
+
+    /** 생체인증 사용 여부 — 앱 잠금이 켜져 있을 때만 의미가 있다. */
+    fun isBiometricEnabled(context: Context): Boolean =
+        isEnabled(context) && prefs(context).getBoolean(KEY_BIOMETRIC, false)
+
+    fun setBiometricEnabled(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_BIOMETRIC, enabled).apply()
+    }
+
+    /** 앱 잠금 해제(설정 + PIN + 실패 이력 제거). */
     fun disable(context: Context) {
         prefs(context).edit()
             .putBoolean(KEY_ENABLED, false)
             .remove(KEY_PIN_HASH)
+            .putBoolean(KEY_BIOMETRIC, false)
+            .putInt(KEY_FAIL_COUNT, 0)
+            .putLong(KEY_LOCK_UNTIL, 0L)
             .apply()
     }
 
