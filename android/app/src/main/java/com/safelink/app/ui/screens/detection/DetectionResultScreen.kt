@@ -144,22 +144,30 @@ private fun DetectionResultContent(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 상태 헤더 카드 — 위험도별 고정 제목/설명 (category 결합 금지, 최종 가이드 v1.0)
+            // 상태 헤더 카드 — 위험도별 고정 제목/설명 (category 결합 금지, 최종 가이드 v1.0).
+            // UI/UX 4순위(여백·타이포 강약) - 이 화면에서 가장 중요한 정보(위험도)가 다른
+            // 텍스트들과 같은 titleMedium 크기로 묻혀있던 문제 - 아이콘·제목을 확실히 키우고
+            // 카드 안쪽 여백도 넉넉하게 줘서 "지금 이게 제일 중요하다"는 게 보이게 함
             SafeLinkCard {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                ) {
                     Icon(
                         imageVector = Icons.Filled.Warning,
                         contentDescription = null,
                         tint = result.riskLevel.color(),
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.size(56.dp)
                     )
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
                     Column {
                         Text(
                             text = riskLevelHeadline(result.riskLevel),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
                             color = result.riskLevel.color()
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = riskLevelDescription(result.riskLevel),
                             style = MaterialTheme.typography.bodyMedium,
