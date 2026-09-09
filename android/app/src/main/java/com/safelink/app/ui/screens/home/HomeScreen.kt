@@ -17,15 +17,18 @@ import androidx.compose.material.icons.filled.ImageSearch
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.data.model.RiskLevel
+import com.safelink.app.ui.components.RiskBadge
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkOutlinedButton
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
@@ -57,6 +60,7 @@ fun HomeScreen(
     val recordRepository = remember { RecordRepository(context) }
     val todayAlertCount by recordRepository.observeTodayBackgroundCount().collectAsState(initial = 0)
     val todayScanCount by recordRepository.observeTodayManualCount().collectAsState(initial = 0)
+    val recentRecords by recordRepository.observeRecords().collectAsState(initial = emptyList())
     val statusLevel = snapshot?.riskLevel ?: RiskLevel.SAFE
     Column(
         modifier = Modifier
@@ -134,10 +138,45 @@ fun HomeScreen(
             onClick = { navController.navigate(Screen.SupportMatch.route) }
         )
 
-        // TODO: 최근 기록 2~3개 요약 (Room DB 연동 후, Task 4.14)
+        // 최근 검사 기록 요약 (Task 4.14) — 기록이 있을 때만 보여준다
+        if (recentRecords.isNotEmpty()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "최근 검사 기록",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(onClick = { navController.navigate(Screen.RecordList.route) }) {
+                    Text("전체 보기")
+                }
+            }
+            recentRecords.take(MAX_RECENT_RECORDS).forEach { record ->
+                SafeLinkCard(onClick = { navController.navigate(Screen.RecordList.route) }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = record.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        RiskBadge(level = record.riskLevel)
+                    }
+                    Text(
+                        text = record.summary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(72.dp)) // SOS FAB 가림 방지
     }
 }
+
+/** 홈에 보여줄 최근 기록 개수 — 너무 많으면 홈이 기록 화면과 구분되지 않는다 */
+private const val MAX_RECENT_RECORDS = 3
 
 /** 홈 상태 카드 제목 — 백그라운드 감지 위험도별 (없으면 SAFE) */
 private fun homeStatusTitle(level: RiskLevel): String = when (level) {
