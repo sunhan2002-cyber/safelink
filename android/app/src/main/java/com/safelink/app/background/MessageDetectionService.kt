@@ -201,6 +201,11 @@ class MessageDetectionService : AccessibilityService() {
             "com.google.android.apps.messaging", // Google 메시지(픽셀·다수 기기 기본 문자)
             "com.instagram.android",             // 인스타그램 DM
             "com.discord",                       // 디스코드
+            "org.telegram.messenger",            // 텔레그램 - 투자사기·리딩방 유입 경로
+            "com.nhn.android.band",              // 네이버 밴드 - 중장년층 사용률이 높아 투자·부업사기 유입
+            "jp.naver.line.android",             // 라인 - 로맨스스캠
+            "com.facebook.orca",                 // 페이스북 메신저 - 로맨스스캠
+            "com.tencent.mm",                    // 위챗 - 해외 기반 로맨스스캠
         )
 
         /** 연속 이벤트 디바운스 간격 */
