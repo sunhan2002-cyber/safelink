@@ -29,20 +29,32 @@ object BackgroundDetectionState {
     private val _detectionCount = MutableStateFlow(0)
     val detectionCount: StateFlow<Int> = _detectionCount.asStateFlow()
 
-    fun update(result: DetectionResult, sourceApp: String) {
-        val phrases = result.matchedKeywords
-            .map { it.matchedText.trim() }
-            .filter { it.isNotBlank() }
-            .distinct()
-            .take(5)
+    /**
+     * 이미 알린 건의 결과만 갈아끼운다 — AI 보조 분석이 뒤늦게 도착했을 때 쓴다.
+     *
+     * [update] 를 다시 부르면 감지 횟수가 한 번 더 올라가 "오늘의 알림"이 부풀기 때문에
+     * 별도 함수로 뒀다. 새 사건이 아니라 같은 사건의 결과가 갱신된 것뿐이다.
+     */
+    fun refine(result: DetectionResult, sourceApp: String) {
+        if (_latestResult.value == null) return
+        _latestSnapshot.value = snapshotOf(result, sourceApp)
+        _latestResult.value = result
+    }
 
-        _latestSnapshot.value = BackgroundDetectionSnapshot(
-            riskLevel = result.riskLevel,
-            category = result.category,
-            detectedPhrases = phrases,
-            sourceApp = sourceApp
-        )
+    fun update(result: DetectionResult, sourceApp: String) {
+        _latestSnapshot.value = snapshotOf(result, sourceApp)
         _latestResult.value = result
         _detectionCount.value += 1
     }
+
+    private fun snapshotOf(result: DetectionResult, sourceApp: String) = BackgroundDetectionSnapshot(
+        riskLevel = result.riskLevel,
+        category = result.category,
+        detectedPhrases = result.matchedKeywords
+            .map { it.matchedText.trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .take(5),
+        sourceApp = sourceApp
+    )
 }

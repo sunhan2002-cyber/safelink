@@ -44,6 +44,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import com.safelink.app.background.MessageDetectionService
+import com.safelink.app.settings.AiConsentStore
 import com.safelink.app.settings.NotificationTextStore
 import com.safelink.app.security.AppLockManager
 import com.safelink.app.security.BiometricAuth
@@ -86,6 +87,10 @@ fun SettingsScreen(navController: NavHostController) {
     var backgroundDetection by remember { mutableStateOf(isBackgroundDetectionEnabled(context)) }
     // 백그라운드 감지 켜기 전 동의·권한 안내 다이얼로그 (최종 가이드 v1.0)
     var showBackgroundConsent by remember { mutableStateOf(false) }
+
+    // 백그라운드 AI 정밀 분석 동의 — 기본 꺼짐, 켤 때 무엇이 전송되는지 보여주고 동의를 받는다
+    var aiConsent by remember { mutableStateOf(AiConsentStore.isEnabled(context)) }
+    var showAiConsentDialog by remember { mutableStateOf(false) }
 
     DisposableEffect(context, lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -233,6 +238,25 @@ fun SettingsScreen(navController: NavHostController) {
         )
     }
 
+    if (showAiConsentDialog) {
+        AlertDialog(
+            onDismissRequest = { showAiConsentDialog = false },
+            title = { Text(AiConsentStore.CONSENT_TITLE) },
+            text = { Text(AiConsentStore.CONSENT_BODY) },
+            confirmButton = {
+                TextButton(onClick = {
+                    AiConsentStore.agree(context)
+                    aiConsent = true
+                    showAiConsentDialog = false
+                }) { Text("동의하고 사용") }
+            },
+            dismissButton = {
+                // 동의하지 않고 닫으면 꺼진 상태 그대로 둔다 (기본값이 꺼짐)
+                TextButton(onClick = { showAiConsentDialog = false }) { Text("사용 안 함") }
+            }
+        )
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(title = "설정")
 
@@ -335,6 +359,20 @@ fun SettingsScreen(navController: NavHostController) {
                             }
                         } else {
                             backgroundDetection = false
+                        }
+                    }
+                )
+                ToggleRow(
+                    label = "백그라운드 AI 정밀 분석",
+                    caption = "켜면 판단이 애매한 경우 대화 내용이 분석 서버로 전송됩니다. 끄면 기기 안에서만 판단합니다.",
+                    checked = aiConsent,
+                    onChange = { on ->
+                        // 켤 때만 동의 화면을 띄운다. 끄는 건 즉시 반영(동의 철회에 확인을 요구하지 않는다).
+                        if (on) {
+                            showAiConsentDialog = true
+                        } else {
+                            AiConsentStore.revoke(context)
+                            aiConsent = false
                         }
                     }
                 )
