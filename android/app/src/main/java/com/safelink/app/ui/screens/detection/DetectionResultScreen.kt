@@ -47,6 +47,7 @@ import androidx.navigation.NavHostController
 import com.safelink.app.data.link.LinkRiskResult
 import com.safelink.app.data.link.LinkVerdict
 import com.safelink.app.data.model.DetectionResult
+import com.safelink.app.data.model.EvidenceText
 import com.safelink.app.data.model.DetectionResultDummyData
 import com.safelink.app.data.model.RecommendedInstitutionUi
 import com.safelink.app.data.model.RiskLevel
@@ -103,6 +104,8 @@ fun DetectionResultScreen(
         isEscalatingToAI = viewModel.isEscalatingToAI,
         linkResults = viewModel.linkResults,
         isCheckingLinks = viewModel.isCheckingLinks,
+        manualAiMessage = viewModel.manualAiMessage,
+        onRequestAi = { viewModel.requestManualAi() },
         onBack = { navController.popBackStack() },
         onGuideClick = { navController.navigate(Screen.ResponseGuide.createRoute(result.riskLevel)) },
         onSupportClick = { navController.navigate(Screen.SupportMatch.route) },
@@ -125,6 +128,8 @@ private fun DetectionResultContent(
     isEscalatingToAI: Boolean = false,
     linkResults: List<LinkRiskResult> = emptyList(),
     isCheckingLinks: Boolean = false,
+    manualAiMessage: String? = null,
+    onRequestAi: () -> Unit = {},
     onBack: () -> Unit,
     onGuideClick: () -> Unit,
     onSupportClick: () -> Unit,
@@ -248,6 +253,22 @@ private fun DetectionResultContent(
             // (Figma 리디자인 검토 중 발견) 대응. 색 라벨(문장=청록/상황=보라/AI=남색, 7주차
             // 색 그대로)로 구분은 유지한 채 하나의 리스트로 통합.
             UnifiedReasonList(result = result, isEscalatingToAI = isEscalatingToAI)
+
+            // 수동 AI 보조분석 요청 (보고서 4장 "수동 신고") — AI 가 아직 반영되지 않은 결과에서만 보인다.
+            // 온디바이스 판정이 AI 호출 조건에 걸리지 않았어도, 사용자가 애매하다고 느끼면 직접 요청할 수 있다.
+            // (김재겸 병합) UnifiedReasonList가 문장/상황/AI 근거를 이미 하나로 합쳐 보여주므로,
+            // 이 버튼은 그 아래에 이어 붙인다 — 자동 표시(위)와 수동 요청(아래)이 한 흐름으로 읽히게.
+            if (!isEscalatingToAI && result.aiSummary == null && result.aiDetectedPattern == null) {
+                ResultSecondaryLink(text = "AI 보조분석 요청", onClick = onRequestAi)
+                Text(
+                    text = "판단이 애매하다고 느껴질 때 눌러주세요. 누르면 대화 내용이 AI 제공사(Anthropic)로 전송됩니다.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                manualAiMessage?.let { message ->
+                    Text(text = message, style = MaterialTheme.typography.bodySmall, color = RiskCritical)
+                }
+            }
 
             // 추천 기관 — 1순위 기관만 인라인으로 보여주고 나머지는 지원 탭에서(정보는 그대로,
             // 화면에 한 번에 몰아넣지 않음 - Figma 리디자인 구조 반영)
@@ -488,12 +509,19 @@ private data class UnifiedReason(
  */
 @Composable
 private fun UnifiedReasonList(result: DetectionResult, isEscalatingToAI: Boolean) {
+    // label/detail에 내부 개발 메모(기법 코드·규칙 id)가 섞여 있어 화면에 보일 때만 걸러낸다
+    // (EvidenceText 참고, 김재겸 병합) — detail은 매칭된 원문도 담고 있어 개발 메모 자르기는
+    // 건너뛰고 코드·규칙 id만 걷어낸다.
     val reasons = buildList {
         result.sentenceRuleEvidences.forEach {
-            add(UnifiedReason("문장", RuleSentenceAccent, RuleSentenceContainer, "${it.label} — ${it.detail}"))
+            val label = EvidenceText.forUser(it.label).ifBlank { it.label }
+            val detail = EvidenceText.forUser(it.detail, cutDeveloperNote = false)
+            add(UnifiedReason("문장", RuleSentenceAccent, RuleSentenceContainer, "$label — $detail"))
         }
         result.situationalRuleEvidences.forEach {
-            add(UnifiedReason("상황", RuleSituationalAccent, RuleSituationalContainer, "${it.label} — ${it.detail}"))
+            val label = EvidenceText.forUser(it.label).ifBlank { it.label }
+            val detail = EvidenceText.forUser(it.detail, cutDeveloperNote = false)
+            add(UnifiedReason("상황", RuleSituationalAccent, RuleSituationalContainer, "$label — $detail"))
         }
         val aiText = result.aiDetectedPattern?.takeIf { it.isNotBlank() }
             ?: result.aiSummary?.takeIf { it.isNotBlank() }

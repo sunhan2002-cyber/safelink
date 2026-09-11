@@ -23,6 +23,10 @@ interface DetectionRecordDao {
     @Query("UPDATE detection_records SET memo = :memo WHERE id = :id")
     suspend fun updateMemo(id: String, memo: String?)
 
+    /** AI 보조분석이 반영되면 같은 기록을 최종 판정으로 갱신한다. */
+    @Query("UPDATE detection_records SET riskLevel = :riskLevel, score = :score, aiSummary = :aiSummary, aiDetectedPattern = :aiDetectedPattern WHERE id = :id")
+    suspend fun updateAiResult(id: String, riskLevel: RiskLevel, score: Int, aiSummary: String?, aiDetectedPattern: String?)
+
     /** 오늘 백그라운드 감지로 알림이 뜬 건수 — 홈 "오늘의 알림" */
     @Query("SELECT COUNT(*) FROM detection_records WHERE sourceType = 'BACKGROUND' AND timestamp >= :since")
     fun observeBackgroundCountSince(since: Long): Flow<Int>

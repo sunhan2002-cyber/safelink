@@ -10,6 +10,7 @@ import com.anthropic.models.messages.MessageCreateParams
 import com.anthropic.models.messages.OutputConfig
 import com.anthropic.models.messages.StopReason
 import com.anthropic.models.messages.ThinkingConfigAdaptive
+import com.anthropic.models.messages.ThinkingConfigDisabled
 import com.safelink.app.BuildConfig
 import com.safelink.app.data.remote.dto.AnalyzeRequestDto
 import com.safelink.app.data.remote.dto.AnalyzeResponseDto
@@ -144,8 +145,9 @@ class ClaudeDirectAnalyzer {
         /**
          * 첫 AI 분석이 SDK 준비 때문에 느려지지 않도록 미리 준비한다. 앱 시작 시 백그라운드 스레드에서 부른다.
          *
-         * 클라이언트와 요청 설정을 만들어 JSON 라이브러리를 초기화하고, 모델 정보 조회(무료, 과금 없음)를
-         * 한 번 보내 서버 연결까지 열어 둔다. 대화 내용은 보내지 않는다. 실패해도 조용히 넘어간다 —
+         * 클라이언트와 요청 설정을 만들어 JSON 라이브러리를 초기화하고, 실제 분석과 같은 경로로 아주 작은
+         * 요청("ping", 출력 1토큰)을 한 번 보내 연결과 응답 처리까지 준비해 둔다. 앱을 켤 때마다 1원 미만이
+         * 과금된다. 대화 내용은 보내지 않는다. 실패해도 조용히 넘어간다 —
          * 준비가 안 됐으면 첫 분석이 조금 느릴 뿐 동작에는 영향이 없다.
          */
         fun warmUp() {
@@ -153,12 +155,16 @@ class ClaudeDirectAnalyzer {
             val startedAt = SystemClock.elapsedRealtime()
             try {
                 outputConfig
-                MessageCreateParams.builder()
-                    .model(ClaudeAnalysisRules.MODEL)
-                    .maxTokens(1L)
-                    .addUserMessage("warmup")
-                    .build()
-                client.models().retrieve(ClaudeAnalysisRules.MODEL)
+                // 실제 분석과 같은 messages 경로로 아주 작은 요청(출력 1토큰, 생각 끔)을 보낸다.
+                // 모델 정보 조회만으로는 요청·응답 변환 코드가 준비되지 않아 첫 분석이 여전히 느렸다(6.3초).
+                client.messages().create(
+                    MessageCreateParams.builder()
+                        .model(ClaudeAnalysisRules.MODEL)
+                        .maxTokens(1L)
+                        .thinking(ThinkingConfigDisabled.builder().build())
+                        .addUserMessage("ping")
+                        .build()
+                )
                 Log.d(TAG, "AI 분석 준비 완료 (${SystemClock.elapsedRealtime() - startedAt}ms)")
             } catch (e: Exception) {
                 Log.w(TAG, "AI 분석 준비 실패: ${e.javaClass.simpleName}")
