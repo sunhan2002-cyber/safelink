@@ -12,11 +12,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Message
-import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.WifiCalling3
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -34,8 +32,10 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.R
 import com.safelink.app.settings.OnboardingManager
+import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
 import com.safelink.app.ui.navigation.Screen
+import com.safelink.app.ui.theme.BrandBlue
 import com.safelink.app.ui.theme.BrandBlueLight
 
 @Composable
@@ -70,29 +70,27 @@ fun OnboardingScreen(navController: NavHostController) {
 
         Spacer(modifier = Modifier.height(32.dp))
         Text(
-            text = "위험한 대화로부터\n나를 보호하세요",
+            text = "불안한 순간에도,\n해야 할 일은 선명하게",
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            // "AI가"가 아니라 온디바이스 규칙 엔진이 핵심 감지를 담당 (CLAUDE.md 원칙,
-            // AnalyzingScreen과 동일한 문제 대응 - UI/UX 2순위)
-            text = "보이스피싱, 스미싱, 로맨스 스캠을\n실시간으로 감지하고 대응 방법을 안내합니다.",
+            text = "의심스러운 대화와 링크를 확인하고\n지금 필요한 행동을 바로 안내해요.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
 
         Spacer(modifier = Modifier.height(32.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            FeatureItem(icon = Icons.Filled.WifiCalling3, label = "전화 감지")
-            FeatureItem(icon = Icons.AutoMirrored.Filled.Message, label = "문자 탐지")
-            // "AI 분석"이 아니라 온디바이스 위험 신호 분석이 핵심 (위 문구 수정과 동일 사유)
-            FeatureItem(icon = Icons.Filled.Psychology, label = "위험 신호 분석")
+        // 채널별(전화·문자) 라벨 대신 실제로 하는 일을 그대로 설명 (Figma B01) — 기존 "전화
+        // 감지"는 앱에 없는 기능(통화 감시 없음)을 약속하는 문구였어서 함께 바로잡음
+        SafeLinkCard {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                OnboardingCheckItem("대화와 링크의 위험 신호 분석")
+                OnboardingCheckItem("지금 필요한 행동을 순서대로 안내")
+                OnboardingCheckItem("기록은 내 기기에서 안전하게 관리")
+            }
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -114,15 +112,15 @@ fun OnboardingScreen(navController: NavHostController) {
 }
 
 @Composable
-private fun FeatureItem(icon: ImageVector, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun OnboardingCheckItem(text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
-            imageVector = icon,
+            imageVector = Icons.Filled.CheckCircle,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(32.dp)
+            tint = BrandBlue,
+            modifier = Modifier.size(20.dp)
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = label, style = MaterialTheme.typography.bodyMedium)
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(text = text, style = MaterialTheme.typography.bodyLarge)
     }
 }
