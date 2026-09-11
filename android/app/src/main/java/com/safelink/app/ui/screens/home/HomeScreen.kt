@@ -140,7 +140,7 @@ fun HomeScreen(
                             ?: homeStatusHeadline(statusLevel),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = statusLevel.color()
+                        color = TextPrimary
                     )
                     Spacer(modifier = Modifier.height(18.dp))
                     Text(
@@ -283,7 +283,7 @@ fun HomeScreen(
 
 /** 홈 상태 카드 제목 — 백그라운드 감지 위험도별 (없으면 SAFE) */
 private fun homeStatusHeadline(level: RiskLevel): String = when (level) {
-    RiskLevel.SAFE -> "오늘도 안전하게 살펴보고 있어요"
+    RiskLevel.SAFE -> "오늘도 안전하게\n살펴보고 있어요"
     RiskLevel.CAUTION -> "주의가 필요해요"
     RiskLevel.WARNING -> "확인이 필요해요"
     RiskLevel.CRITICAL -> "위험 신호가 있어요"
