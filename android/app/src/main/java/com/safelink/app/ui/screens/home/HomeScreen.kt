@@ -24,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Icon
@@ -50,6 +51,7 @@ import com.safelink.app.ui.components.containerColor
 import com.safelink.app.data.repository.RecordRepository
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.screens.detection.DetectionViewModel
+import com.safelink.app.ui.theme.TextPrimary
 
 /** 홈 대시보드 (Task 4.14) — 기능 진입점 + 최근 기록 요약 */
 @Composable
@@ -84,7 +86,7 @@ fun HomeScreen(
         Text(
             text = "SafeLink",
             style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.primary
+            color = TextPrimary
         )
 
         // 상태 카드 — 백그라운드 감지가 있으면 그 위험도로, 없으면 안전함. 감지 시 탭하면 대응 가이드로.
@@ -169,16 +171,24 @@ fun HomeScreen(
             }
         }
 
-        // 퀵 액션 — Figma는 대화분석/링크검사/자가진단 3개인데, "링크 검사"는 독립 입력화면이
-        // 따로 없고(분석 흐름 안에서 자동으로 함께 검사됨) 없는 기능을 있는 것처럼 만들지 않기
-        // 위해 2개만 둠. 기존 "대화 분석 시작" 큰 버튼은 제거하고 이 타일이 그 역할을 겸함
+        // 퀵 액션 — Figma는 대화분석/링크검사/자가진단 3개. "링크 검사"는 독립 입력화면이 따로
+        // 없고 대화 분석 흐름 안에서 링크가 있으면 자동으로 같이 검사되는 구조라(LinkRiskChecker,
+        // DetectionViewModel.checkLinks), 이 타일도 대화 분석과 같은 입력 화면으로 보낸다 —
+        // 없는 화면을 새로 만드는 대신, 실제로 동작하는 기능으로 연결(사용자 확인 후 추가).
+        // 기존 "대화 분석 시작" 큰 버튼은 제거하고 이 타일이 그 역할을 겸함
         // (Figma에 별도 대형 버튼이 없음 - 퀵액션 3개가 곧 메인 진입점).
         // "백그라운드 감지" 바로가기는 Figma에 없는 항목이라 홈에서는 빠지고, 설정 탭에서는
         // 그대로 이용 가능(기능 삭제 아님, 위치만 이동).
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             QuickActionCard(
                 title = "대화 분석",
                 icon = Icons.Filled.Search,
+                onClick = startAnalysis,
+                modifier = Modifier.weight(1f)
+            )
+            QuickActionCard(
+                title = "링크 검사",
+                icon = Icons.Filled.Link,
                 onClick = startAnalysis,
                 modifier = Modifier.weight(1f)
             )
