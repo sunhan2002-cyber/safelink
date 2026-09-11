@@ -1,5 +1,11 @@
 package com.safelink.app.ui.screens.emergency
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,8 +28,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -43,6 +51,27 @@ import com.safelink.app.util.IntentActions
 @Composable
 fun EmergencyScreen(navController: NavHostController) {
     val context = LocalContext.current
+    // 긴급 배지가 계속 반짝이며 퍼지는 느낌을 주는 펄스 링 — 이 화면은 항상 긴급 상태를
+    // 보여주는 화면이라(홈과 달리 조건부 아님) 계속 반복 재생(사용자 요청).
+    val pulse = rememberInfiniteTransition(label = "emergency-pulse")
+    val pulseScale by pulse.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.35f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "pulse-scale"
+    )
+    val pulseAlpha by pulse.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "pulse-alpha"
+    )
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(
             title = "긴급 도움 요청",
@@ -60,19 +89,31 @@ fun EmergencyScreen(navController: NavHostController) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {
-                // 라이트 테마는 유지하되 원·글씨를 한층 더 키움(사용자 요청, 2차 확대)
+                // 라이트 테마는 유지하되 원·글씨를 한층 더 키움(사용자 요청, 2차 확대) +
+                // 빨간 원 밖으로 계속 반짝이며 퍼지는 펄스 링을 더해 위급함을 강조(3차 요청)
                 Box(
-                    modifier = Modifier
-                        .size(128.dp)
-                        .background(RiskCritical, CircleShape),
+                    modifier = Modifier.size(176.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.PriorityHigh,
-                        contentDescription = null,
-                        tint = SurfaceWhite,
-                        modifier = Modifier.size(72.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(128.dp)
+                            .scale(pulseScale)
+                            .background(RiskCritical.copy(alpha = pulseAlpha), CircleShape)
                     )
+                    Box(
+                        modifier = Modifier
+                            .size(128.dp)
+                            .background(RiskCritical, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.PriorityHigh,
+                            contentDescription = null,
+                            tint = SurfaceWhite,
+                            modifier = Modifier.size(72.dp)
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.size(16.dp))
                 Text(
