@@ -66,6 +66,7 @@ import com.safelink.app.ui.theme.BrandBlue
 import com.safelink.app.ui.theme.BrandBlueLight
 import com.safelink.app.ui.theme.RiskCritical
 import com.safelink.app.ui.theme.SurfaceWhite
+import com.safelink.app.ui.theme.TextPrimary
 
 /** 설정 (Figma 20:1061) — 토글은 로컬 상태. 실제 저장은 EncryptedSharedPreferences (Task 5.15) */
 @Composable
@@ -212,7 +213,7 @@ fun SettingsScreen(navController: NavHostController) {
                             showContactDialog = false
                         }) { Text("삭제", color = RiskCritical) }
                     }
-                    TextButton(onClick = { showContactDialog = false }) { Text("취소") }
+                    TextButton(onClick = { showContactDialog = false }) { Text("취소", color = TextPrimary) }
                 }
             }
         )
@@ -243,7 +244,7 @@ fun SettingsScreen(navController: NavHostController) {
                 ) { Text("저장") }
             },
             dismissButton = {
-                TextButton(onClick = { showMessageDialog = false }) { Text("취소") }
+                TextButton(onClick = { showMessageDialog = false }) { Text("취소", color = TextPrimary) }
             }
         )
     }
