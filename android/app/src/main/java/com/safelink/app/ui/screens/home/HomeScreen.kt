@@ -144,19 +144,20 @@ fun HomeScreen(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .size(56.dp)
+                        .size(76.dp)
                 ) {
                     // 은은한 숨쉬는 배경 원 (평상시에만 펄스)
                     Box(
                         modifier = Modifier
-                            .size(56.dp)
+                            .size(76.dp)
                             .scale(pulseScale)
                             .background(statusLevel.color().copy(alpha = 0.18f), CircleShape)
                     )
-                    // 아이콘 원형 배지 — Figma는 상태색 원 안에 흰색 아이콘(SAFE는 체크)
+                    // 아이콘 원형 배지 — Figma는 상태색 원 안에 흰색 아이콘(SAFE는 체크),
+                    // 카드 대비 원 크기도 더 큼(사용자 확인 후 44dp -> 64dp로 확대)
                     Box(
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(64.dp)
                             .background(statusLevel.color(), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
@@ -164,7 +165,7 @@ fun HomeScreen(
                             imageVector = if (statusLevel == RiskLevel.SAFE) Icons.Filled.Check else Icons.Filled.Warning,
                             contentDescription = null,
                             tint = SurfaceWhite,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(32.dp)
                         )
                     }
                 }
