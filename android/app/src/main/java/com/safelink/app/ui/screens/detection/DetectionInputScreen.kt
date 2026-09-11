@@ -109,7 +109,17 @@ fun DetectionInputScreen(
         else viewModel.selectedImages.isNotEmpty()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        SafeLinkTopBar(title = "대화 분석", onBack = { navController.popBackStack() })
+        // 9주차 - Figma "Concept B" B03(Analyze) 제목을 그대로: "대화 분석"보다 사용자가
+        // 지금 뭘 하는 건지 바로 이해되는 질문형 제목으로. 공용 SafeLinkTopBar는 부제를
+        // 지원 안 해서(다른 화면들도 같이 쓰는 컴포넌트라 안 건드림), 부제는 이 화면
+        // 안에서 별도 Text로 추가.
+        SafeLinkTopBar(title = "무엇을 확인할까요?", onBack = { navController.popBackStack() })
+        Text(
+            text = "받은 내용을 그대로 넣어도 괜찮아요. 전화번호와 링크는 서버로 보내기 전 자동으로 가려집니다.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+        )
 
         Column(
             modifier = Modifier
@@ -118,19 +128,21 @@ fun DetectionInputScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 스크린샷 분석 사용 시에만 입력 방식 선택 탭 노출 (off 면 텍스트 입력 전용)
+            // 스크린샷 분석 사용 시에만 입력 방식 선택 탭 노출 (off 면 텍스트 입력 전용).
+            // 순서를 텍스트 입력 먼저로 스왑(Figma는 "대화 붙여넣기"가 왼쪽) - 대부분의
+            // 사용자가 텍스트를 그대로 붙여넣는 경우가 많아 기본으로 더 가까이 두는 편이 자연스러움.
             if (screenshotEnabled) {
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     SegmentedButton(
-                        selected = !isTextMode,
-                        onClick = { viewModel.switchMode("스크린샷 업로드") },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-                    ) { Text("스크린샷") }
-                    SegmentedButton(
                         selected = isTextMode,
                         onClick = { viewModel.switchMode("텍스트 입력") },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
                     ) { Text("텍스트 입력") }
+                    SegmentedButton(
+                        selected = !isTextMode,
+                        onClick = { viewModel.switchMode("스크린샷 업로드") },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                    ) { Text("스크린샷") }
                 }
             }
 
@@ -199,7 +211,7 @@ fun DetectionInputScreen(
                 )
             }
             SafeLinkPrimaryButton(
-                text = "결과 확인하기",
+                text = "위험 신호 확인하기",
                 enabled = canAnalyze,
                 onClick = {
                     // 스크린샷 모드면 Analyzing 화면에서 OCR 후 분석까지 수행한다
@@ -250,6 +262,7 @@ private fun TextInputArea(
     onSample: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(text = "받은 대화 내용", style = MaterialTheme.typography.titleMedium)
         OutlinedTextField(
             value = text,
             onValueChange = onTextChange,
