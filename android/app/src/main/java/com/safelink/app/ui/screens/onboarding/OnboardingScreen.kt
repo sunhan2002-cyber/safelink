@@ -69,13 +69,13 @@ fun OnboardingScreen(navController: NavHostController) {
 
         Spacer(modifier = Modifier.height(32.dp))
         Text(
-            text = "불안한 순간에도,\n해야 할 일은 선명하게",
+            text = "위험한 대화로부터\n나를 보호하세요",
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "의심스러운 대화와 링크를 확인하고\n지금 필요한 행동을 바로 안내해요.",
+            text = "보이스피싱, 스미싱, 로맨스스캠을\n실시간으로 감지하고 대응 방법을 안내합니다.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
