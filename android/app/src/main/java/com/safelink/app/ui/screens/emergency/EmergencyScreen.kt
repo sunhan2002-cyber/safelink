@@ -35,7 +35,6 @@ import com.safelink.app.ui.components.SafeLinkTopBar
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.BrandBlueDark
 import com.safelink.app.ui.theme.RiskCritical
-import com.safelink.app.ui.theme.RiskCriticalContainer
 import com.safelink.app.ui.theme.SurfaceWhite
 import com.safelink.app.util.IntentActions
 
@@ -60,17 +59,19 @@ fun EmergencyScreen(navController: NavHostController) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {
+                // 더 위급하게 느껴지도록 배지를 키우고, 옅은 배경+색 아이콘 대신 꽉 찬 빨간
+                // 원+흰 느낌표로 시각적 무게를 확 올림(사용자 요청)
                 Box(
                     modifier = Modifier
-                        .size(64.dp)
-                        .background(RiskCriticalContainer, CircleShape),
+                        .size(96.dp)
+                        .background(RiskCritical, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Filled.PriorityHigh,
                         contentDescription = null,
-                        tint = RiskCritical,
-                        modifier = Modifier.size(32.dp)
+                        tint = SurfaceWhite,
+                        modifier = Modifier.size(56.dp)
                     )
                 }
                 Spacer(modifier = Modifier.size(12.dp))
