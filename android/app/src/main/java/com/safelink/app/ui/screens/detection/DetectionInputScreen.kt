@@ -35,7 +35,6 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -51,7 +50,6 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -73,11 +71,6 @@ import kotlinx.coroutines.withContext
 
 private const val MAX_CHARS = 5000
 
-/** 시연·테스트용 예시 대화 (DetectionResultDummyData.vpCritical 원문과 동일) */
-private const val SAMPLE_CONVERSATION =
-    "택배기사인데요, 배송 중 확인 차 연락드렸습니다. 그럼 명의 도용 우려가 있어서 " +
-        "확인이 필요합니다. 지금 당장 확인 안 하시면 계좌가 압류될 수 있습니다."
-
 /**
  * 대화 분석 입력 화면(DetectionInput).
  * - 텍스트 입력: 원문을 직접 입력/붙여넣기
@@ -89,7 +82,6 @@ fun DetectionInputScreen(
     navController: NavHostController,
     viewModel: DetectionViewModel
 ) {
-    val clipboard = LocalClipboardManager.current
     // 스크린샷 분석 사용 토글(설정) — off 면 스크린샷 탭을 숨기고 텍스트 입력만 사용
     val screenshotEnabled by FeatureToggleState.screenshotAnalysisEnabled.collectAsState()
     val isTextMode = viewModel.inputMethod == "텍스트 입력" || !screenshotEnabled
@@ -139,7 +131,7 @@ fun DetectionInputScreen(
                         selected = isTextMode,
                         onClick = { viewModel.switchMode("텍스트 입력") },
                         shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-                    ) { Text("텍스트 입력") }
+                    ) { Text("대화 붙여넣기") }
                     SegmentedButton(
                         selected = !isTextMode,
                         onClick = { viewModel.switchMode("스크린샷 업로드") },
@@ -151,13 +143,7 @@ fun DetectionInputScreen(
             if (isTextMode) {
                 TextInputArea(
                     text = viewModel.originalText,
-                    onTextChange = { if (it.length <= MAX_CHARS) viewModel.originalText = it },
-                    onPaste = {
-                        clipboard.getText()?.text
-                            ?.takeIf { it.isNotBlank() }
-                            ?.let { viewModel.originalText = it.take(MAX_CHARS) }
-                    },
-                    onSample = { viewModel.originalText = SAMPLE_CONVERSATION }
+                    onTextChange = { if (it.length <= MAX_CHARS) viewModel.originalText = it }
                 )
             } else {
                 if (viewModel.ocrNoText) {
@@ -261,10 +247,10 @@ private fun ScreenshotAnalysisGuideCard() {
 @Composable
 private fun TextInputArea(
     text: String,
-    onTextChange: (String) -> Unit,
-    onPaste: () -> Unit,
-    onSample: () -> Unit
+    onTextChange: (String) -> Unit
 ) {
+    // Figma B03: 클립보드 붙여넣기 버튼·예시 대화 링크 없이 라벨 + 입력창 + 글자수만
+    // (사용자 요청 - 붙여넣기는 텍스트 필드 길게 눌러 붙여넣기로 충분, 예시 대화는 데모용이라 제거)
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(text = "받은 대화 내용", style = MaterialTheme.typography.titleMedium)
         OutlinedTextField(
@@ -282,10 +268,6 @@ private fun TextInputArea(
             textAlign = TextAlign.End,
             modifier = Modifier.fillMaxWidth()
         )
-        SafeLinkOutlinedButton(text = "📋 클립보드에서 붙여넣기", onClick = onPaste)
-        TextButton(onClick = onSample, modifier = Modifier.fillMaxWidth()) {
-            Text("예시 대화로 테스트하기")
-        }
     }
 }
 
