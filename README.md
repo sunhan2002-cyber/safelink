@@ -1,17 +1,15 @@
 ![SafeLink README Banner](docs/assets/safelink_readme_banner.png)
 
-<h1 align="center">SafeLink</h1>
+## SafeLink
 
-<p align="center">
-  <strong>대화 속 위험 신호를 감지하고 대응까지 연결하는 Android 기반 디지털 안전 지원 앱</strong>
-</p>
+> 대화 속 위험 신호를 감지하고, 분석 근거와 대응 방법까지 연결하는 Android 기반 디지털 안전 지원 앱입니다.
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin" />
-  <img src="https://img.shields.io/badge/Jetpack%20Compose-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white" alt="Jetpack Compose" />
-  <img src="https://img.shields.io/badge/ML%20Kit%20OCR-34A853?style=for-the-badge&logo=google&logoColor=white" alt="ML Kit OCR" />
-  <img src="https://img.shields.io/badge/AccessibilityService-1A73E8?style=for-the-badge&logo=android&logoColor=white" alt="AccessibilityService" />
-</p>
+| 구분 | 내용 |
+|---|---|
+| 핵심 목적 | 보이스피싱, 가족 사칭, 로맨스스캠, 투자 사기, 관계 통제·가스라이팅 등 대화 기반 위험 상황 조기 감지 |
+| 주요 기능 | 텍스트 분석, 스크린샷 OCR 분석, 백그라운드 감지, 대응 가이드, 기관 연결 |
+| 분석 방식 | 키워드·정규식 + 문장 규칙 + 상황 규칙 + 필요 시 AI 보조분석 |
+| 기술 키워드 | `Kotlin`, `Jetpack Compose`, `ML Kit OCR`, `AccessibilityService`, `Room`, `Retrofit` |
 
 SafeLink는 보이스피싱, 가족 사칭, 로맨스스캠, 투자 사기, 관계 통제·가스라이팅처럼 대화 안에서 시작되는 위험 상황을 사용자가 더 빠르게 인지하도록 돕는 것을 목표로 합니다. 단순히 “위험합니다”라고 알려주는 데서 끝나지 않고, 분석 결과와 근거를 보여준 뒤 실제 대응 방법까지 이어주는 구조로 설계했습니다.
 
