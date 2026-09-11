@@ -4,8 +4,10 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,10 +15,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
@@ -55,7 +61,11 @@ import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkTopBar
 import kotlinx.coroutines.launch
 import com.safelink.app.ui.navigation.Screen
+import com.safelink.app.ui.theme.BackgroundGray
+import com.safelink.app.ui.theme.BrandBlue
+import com.safelink.app.ui.theme.BrandBlueLight
 import com.safelink.app.ui.theme.RiskCritical
+import com.safelink.app.ui.theme.SurfaceWhite
 
 /** 설정 (Figma 20:1061) — 토글은 로컬 상태. 실제 저장은 EncryptedSharedPreferences (Task 5.15) */
 @Composable
@@ -266,6 +276,45 @@ fun SettingsScreen(navController: NavHostController) {
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // 보호 상태 요약 카드 (Figma B10) — 여러 독립 토글 중 앱의 핵심 가치(메신저 실시간
+            // 감지)와 가장 직결되는 백그라운드 감지 여부를 기준으로 표시
+            SafeLinkCard(containerColor = if (backgroundDetection) BrandBlueLight else BackgroundGray) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(
+                                if (backgroundDetection) BrandBlue else MaterialTheme.colorScheme.onSurfaceVariant,
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Shield,
+                            contentDescription = null,
+                            tint = SurfaceWhite,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
+                        Text(
+                            text = if (backgroundDetection) "실시간 보호가 켜져 있어요" else "실시간 보호가 꺼져 있어요",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = if (backgroundDetection) {
+                                "메신저 대화를 백그라운드에서 감지하고 있어요"
+                            } else {
+                                "수동으로 대화를 분석할 수 있어요. 아래에서 백그라운드 감지를 켜면 자동으로 감지돼요."
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             SectionLabel("보안")
             SafeLinkCard {
                 ToggleRow(
