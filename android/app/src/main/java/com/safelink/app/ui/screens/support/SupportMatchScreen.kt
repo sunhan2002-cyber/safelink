@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -108,9 +110,13 @@ fun SupportMatchScreen(navController: NavHostController) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Row {
                         Column(modifier = Modifier.weight(1f)) {
-                            SafeLinkPrimaryButton(text = "전화하기", onClick = {
-                                IntentActions.dial(context, institution.phone)
-                            })
+                            // 전화 아이콘 추가 (Figma 리디자인 시안 검토 중 - 번호는 그대로 두고
+                            // 옆에 작은 아이콘만 더해 "누르면 전화 연결"임을 보강)
+                            SafeLinkPrimaryButton(
+                                text = "전화하기",
+                                onClick = { IntentActions.dial(context, institution.phone) },
+                                leadingIcon = Icons.Filled.Call
+                            )
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
