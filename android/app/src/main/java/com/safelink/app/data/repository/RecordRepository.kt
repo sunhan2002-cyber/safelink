@@ -136,6 +136,12 @@ class RecordRepository(context: Context) {
         detectionDao.deleteAll()
         diagnosisDao.deleteAll()
     }
+
+    /** 기록 한 건 삭제 — 어느 테이블인지 모르므로 양쪽에 시도한다(존재하는 쪽만 삭제됨). */
+    suspend fun delete(id: String) {
+        detectionDao.deleteById(id)
+        diagnosisDao.deleteById(id)
+    }
 }
 
 private fun DetectionRecordEntity.toItem(): RecordItem {

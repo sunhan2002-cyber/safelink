@@ -1,7 +1,9 @@
 package com.safelink.app.ui.screens.record
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,12 +12,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -43,7 +49,9 @@ import com.safelink.app.data.repository.RecordType
 import com.safelink.app.ui.components.RiskBadge
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkTopBar
+import com.safelink.app.ui.components.color
 import com.safelink.app.ui.navigation.Screen
+import com.safelink.app.ui.theme.BrandBlueLight
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -61,6 +69,7 @@ fun RecordListScreen(
     val records by viewModel.records.collectAsState()
     val filter by viewModel.filter.collectAsState()
     var menuOpen by remember { mutableStateOf(false) }
+    var recordPendingDelete by remember { mutableStateOf<RecordItem?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(title = "검사 기록", actions = {
@@ -94,7 +103,11 @@ fun RecordListScreen(
                 // 행 나누기)으로 바꿔 "전부 카드" 단조로움을 줄임
                 SafeLinkCard {
                     records.forEachIndexed { index, record ->
-                        RecordRow(record = record, navController = navController)
+                        RecordRow(
+                            record = record,
+                            navController = navController,
+                            onDeleteClick = { recordPendingDelete = record }
+                        )
                         if (index != records.lastIndex) {
                             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                         }
@@ -105,9 +118,51 @@ fun RecordListScreen(
                 if (records.size < 3) {
                     RegularCheckTip()
                 }
+                // 기록 데이터가 기기 밖으로 나가지 않는다는 걸 알려주는 신뢰 카드 (Figma B08) —
+                // CLAUDE.md 원문 비저장 원칙과도 맞물려 "삭제 가능"이 사실이어야 하므로
+                // 개별 삭제(아래 RecordRow 휴지통 아이콘) 기능을 함께 구현했다.
+                SafeLinkCard(containerColor = BrandBlueLight) {
+                    Row(verticalAlignment = Alignment.Top) {
+                        Icon(
+                            imageVector = Icons.Filled.Shield,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.size(10.dp))
+                        Column {
+                            Text(
+                                text = "기록은 이 기기에만 저장돼요",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = "언제든 개별 삭제하거나 설정에서 전체 삭제할 수 있어요.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
             }
             Spacer(modifier = Modifier.height(60.dp))
         }
+    }
+
+    recordPendingDelete?.let { record ->
+        AlertDialog(
+            onDismissRequest = { recordPendingDelete = null },
+            title = { Text("이 기록을 삭제할까요?") },
+            text = { Text("${record.title} 기록이 기기에서 완전히 삭제됩니다. 이 작업은 되돌릴 수 없어요.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.delete(record.id)
+                    recordPendingDelete = null
+                }) { Text("삭제") }
+            },
+            dismissButton = {
+                TextButton(onClick = { recordPendingDelete = null }) { Text("취소") }
+            }
+        )
     }
 }
 
@@ -195,9 +250,19 @@ private fun RegularCheckTip() {
 
 /** 기록 한 건 — 이제 개별 카드가 아니라 [SafeLinkCard] 안의 한 행(구분선으로 다음 행과 분리). */
 @Composable
-private fun RecordRow(record: RecordItem, navController: NavHostController) {
+private fun RecordRow(
+    record: RecordItem,
+    navController: NavHostController,
+    onDeleteClick: () -> Unit
+) {
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(record.riskLevel.color(), CircleShape)
+            )
+            Spacer(modifier = Modifier.size(8.dp))
             Text(
                 text = formatTimestamp(record.timestamp),
                 style = MaterialTheme.typography.bodyMedium,
@@ -205,6 +270,14 @@ private fun RecordRow(record: RecordItem, navController: NavHostController) {
                 modifier = Modifier.weight(1f)
             )
             RiskBadge(level = record.riskLevel)
+            IconButton(onClick = onDeleteClick, modifier = Modifier.size(36.dp)) {
+                Icon(
+                    imageVector = Icons.Filled.DeleteOutline,
+                    contentDescription = "기록 삭제",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(text = record.title, style = MaterialTheme.typography.titleMedium)

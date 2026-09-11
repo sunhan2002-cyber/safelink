@@ -48,4 +48,8 @@ class RecordListViewModel(application: Application) : AndroidViewModel(applicati
     fun deleteAll() {
         viewModelScope.launch { runCatching { repository.deleteAll() } }
     }
+
+    fun delete(id: String) {
+        viewModelScope.launch { runCatching { repository.delete(id) } }
+    }
 }

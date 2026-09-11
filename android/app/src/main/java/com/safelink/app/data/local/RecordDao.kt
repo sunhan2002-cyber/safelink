@@ -33,6 +33,9 @@ interface DetectionRecordDao {
 
     @Query("DELETE FROM detection_records")
     suspend fun deleteAll()
+
+    @Query("DELETE FROM detection_records WHERE id = :id")
+    suspend fun deleteById(id: String)
 }
 
 @Dao
@@ -52,6 +55,9 @@ interface DiagnosisRecordDao {
 
     @Query("DELETE FROM diagnosis_records")
     suspend fun deleteAll()
+
+    @Query("DELETE FROM diagnosis_records WHERE id = :id")
+    suspend fun deleteById(id: String)
 }
 
 /** enum 컬럼 변환기 — 이름 문자열로 저장해 순서 변경에 영향받지 않게 한다. */
