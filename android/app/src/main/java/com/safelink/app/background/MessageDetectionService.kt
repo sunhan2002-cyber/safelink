@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import com.safelink.app.data.link.ExtractedLink
 import com.safelink.app.data.link.LinkExtractor
 import com.safelink.app.data.link.LinkRiskChecker
+import com.safelink.app.data.link.LinkRiskPolicy
 import com.safelink.app.data.link.LinkRiskResult
 import com.safelink.app.data.link.LinkVerdict
 import com.safelink.app.notification.RiskNotifier
@@ -212,7 +213,7 @@ class MessageDetectionService : AccessibilityService() {
     private suspend fun alertDangerousLink(risk: LinkRiskResult, text: String, pkg: String) {
         val result = DetectionResult(
             riskLevel = RiskLevel.CRITICAL,
-            score = LINK_RISK_SCORE,
+            score = LinkRiskPolicy.DANGEROUS_LINK_SCORE,
             category = risk.threat?.label ?: "악성 링크",
             originalText = text,
             matchedKeywords = emptyList(),
@@ -261,7 +262,7 @@ class MessageDetectionService : AccessibilityService() {
         // 실패하면 escalateToAI 가 원본을 그대로 돌려준다 — 그때는 갈아끼울 게 없다.
         if (refined !== result) {
             BackgroundDetectionState.refine(refined, sourceApp = pkg)
-            recordId?.let { id -> runCatching { recordRepository.updateAiResult(id, refined) } }
+            recordId?.let { id -> runCatching { recordRepository.updateVerdict(id, refined) } }
         }
     }
 
@@ -386,12 +387,6 @@ class MessageDetectionService : AccessibilityService() {
          * 문자(SMS)는 기기 제조사별로 기본 앱이 달라 주요 앱을 함께 등록한다.
          * 설치돼 있지 않은 패키지는 이벤트가 오지 않으므로 그냥 무시된다.
          */
-        /**
-         * 악성 링크 1건이 확인됐을 때 부여하는 점수.
-         * 키워드 점수와 달리 추정이 아니라 확인된 사실이므로 CRITICAL 구간(66~100) 안에서 높게 둔다.
-         */
-        private const val LINK_RISK_SCORE = 90
-
         /**
          * 활성 창에서 이만큼도 못 읽었으면 대화 내용이 다른 창에 있다고 보고 나머지 창까지 훑는다.
          * 입력창·툴바만 잡혔을 때가 대략 이 길이 아래다(예: "메시지 입력 / 이모티콘 / 음성메시지").

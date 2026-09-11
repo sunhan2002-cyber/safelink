@@ -149,16 +149,17 @@ class RecordRepository(context: Context) {
     }
 
     /**
-     * AI 보조분석이 반영된 최종 판정으로 기록을 갱신한다.
-     * 온디바이스 결과를 먼저 저장하고, AI 결과가 나중에 도착하면 이 함수로 같은 기록을 맞춘다.
+     * 최종 판정으로 기록을 갱신한다 — AI 보조분석이 반영됐거나 위험 링크가 확인돼 판정이 바뀐 경우.
+     * 온디바이스 결과를 먼저 저장하고, 나중에 도착한 결과를 이 함수로 같은 기록에 맞춘다.
      */
-    suspend fun updateAiResult(id: String, refined: DetectionResult) {
-        detectionDao.updateAiResult(
+    suspend fun updateVerdict(id: String, verdict: DetectionResult) {
+        detectionDao.updateVerdict(
             id = id,
-            riskLevel = refined.riskLevel,
-            score = refined.score,
-            aiSummary = refined.aiSummary,
-            aiDetectedPattern = refined.aiDetectedPattern
+            riskLevel = verdict.riskLevel,
+            score = verdict.score,
+            category = verdict.category,
+            aiSummary = verdict.aiSummary,
+            aiDetectedPattern = verdict.aiDetectedPattern
         )
     }
 
