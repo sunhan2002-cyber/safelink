@@ -31,9 +31,6 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,12 +42,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -64,6 +63,8 @@ import com.safelink.app.ui.theme.BrandBlue
 import com.safelink.app.ui.theme.BrandBlueLight
 import com.safelink.app.ui.theme.RiskCritical
 import com.safelink.app.ui.theme.SurfaceWhite
+import com.safelink.app.ui.theme.TextSecondary
+import com.safelink.app.ui.theme.BrandBlueDark
 import com.safelink.app.ui.theme.TipBlue
 import com.safelink.app.ui.theme.TipBlueContainer
 import kotlinx.coroutines.Dispatchers
@@ -126,18 +127,11 @@ fun DetectionInputScreen(
             // 순서를 텍스트 입력 먼저로 스왑(Figma는 "대화 붙여넣기"가 왼쪽) - 대부분의
             // 사용자가 텍스트를 그대로 붙여넣는 경우가 많아 기본으로 더 가까이 두는 편이 자연스러움.
             if (screenshotEnabled) {
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    SegmentedButton(
-                        selected = isTextMode,
-                        onClick = { viewModel.switchMode("텍스트 입력") },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-                    ) { Text("대화 붙여넣기") }
-                    SegmentedButton(
-                        selected = !isTextMode,
-                        onClick = { viewModel.switchMode("스크린샷 업로드") },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-                    ) { Text("스크린샷") }
-                }
+                ModeTabRow(
+                    isTextMode = isTextMode,
+                    onSelectText = { viewModel.switchMode("텍스트 입력") },
+                    onSelectScreenshot = { viewModel.switchMode("스크린샷 업로드") }
+                )
             }
 
             if (isTextMode) {
@@ -241,6 +235,58 @@ private fun ScreenshotAnalysisGuideCard() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+}
+
+/**
+ * 입력 방식 선택 탭 — 테두리 없이, 선택된 쪽만 연한 민트 배경 + 굵은 그린 글자로 강조
+ * (사용자 요청, 스크린샷 비교 확인. 점선 테두리 시안은 반려됨).
+ */
+@Composable
+private fun ModeTabRow(
+    isTextMode: Boolean,
+    onSelectText: () -> Unit,
+    onSelectScreenshot: () -> Unit
+) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        ModeTab(
+            label = "대화 붙여넣기",
+            selected = isTextMode,
+            onClick = onSelectText,
+            modifier = Modifier.weight(1f)
+        )
+        ModeTab(
+            label = "스크린샷",
+            selected = !isTextMode,
+            onClick = onSelectScreenshot,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun ModeTab(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .background(
+                if (selected) BrandBlueLight else Color.Transparent,
+                RoundedCornerShape(10.dp)
+            )
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            color = if (selected) BrandBlueDark else TextSecondary
+        )
     }
 }
 
