@@ -303,31 +303,21 @@ private fun TextInputArea(
         OutlinedTextField(
             value = text,
             onValueChange = onTextChange,
-            // Figma B03: 빈 칸일 때 실제 위험 문구 예시를 보여줘 "이런 걸 붙여넣으면 된다"를
-            // 바로 이해시킴 + 기기 내 분석이라는 안심 문구를 작게 덧붙임. 둘 다 연한 회색
-            // 톤으로 통일(사용자 확인 - 실제 입력값처럼 보이면 노인/취약계층이 혼동할 수 있어
-            // Figma의 진한 검정 예시 문구는 채택 안 함).
+            // 기기 내 분석이라는 안심 문구만 남김(사용자 요청 - 예시 대화 문구는 삭제)
             placeholder = {
-                Column {
-                    Text(
-                        text = "\"지금 바로 이 계좌로 보내줘.\n다른 사람에게는 말하지 마\"",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "붙여넣은 내용은 기기에서 먼저 분석합니다.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = "붙여넣은 내용은 기기에서 먼저 분석합니다.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             },
+            shape = RoundedCornerShape(24.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 unfocusedBorderColor = TextSecondary.copy(alpha = 0.3f)
             ),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
+                .height(320.dp)
         )
         Text(
             text = "${"%,d".format(text.length)} / ${"%,d".format(MAX_CHARS)}",
