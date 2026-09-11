@@ -80,14 +80,6 @@
       "contact": "정부24.kr"
     },
     {
-      "id": "PUB-KOSAF",
-      "name": "한국장학재단",
-      "tier": "공공기관",
-      "group": "공공지원",
-      "role": "학자금 대출, 장학금, 생활비 지원",
-      "contact": "koasf.kr"
-    },
-    {
       "id": "PUB-WORK24",
       "name": "고용24 (고용노동부)",
       "tier": "공공기관",
