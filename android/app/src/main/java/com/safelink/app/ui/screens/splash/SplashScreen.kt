@@ -19,7 +19,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,6 +26,8 @@ import androidx.navigation.NavHostController
 import com.safelink.app.security.AppLockManager
 import com.safelink.app.settings.OnboardingManager
 import com.safelink.app.ui.navigation.Screen
+import com.safelink.app.ui.theme.BrandBlueDark
+import com.safelink.app.ui.theme.BrandBlueLight
 import kotlinx.coroutines.delay
 
 @Composable
@@ -77,7 +78,9 @@ fun SplashScreen(navController: NavHostController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF3F7FF)),
+            // 9주차 색상 개편(브랜드 블루->그린) 이후에도 이 화면만 예전 파란 톤 그대로
+            // 남아 있던 것을 브랜드 팔레트로 맞춤
+            .background(BrandBlueLight),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -91,7 +94,7 @@ fun SplashScreen(navController: NavHostController) {
         Text(
             text = "안전한 연결, 곁에서 함께",
             style = MaterialTheme.typography.bodyLarge,
-            color = Color(0xFF1E347A),
+            color = BrandBlueDark,
             fontWeight = FontWeight.Medium
         )
     }

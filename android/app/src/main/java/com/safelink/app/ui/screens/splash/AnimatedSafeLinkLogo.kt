@@ -15,9 +15,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.safelink.app.R
+import com.safelink.app.ui.theme.BrandBlue
 import kotlin.math.min
 
-private val SafeGreen = Color(0xFF22A866)
+// 9주차 색상 개편(브랜드 블루->그린) 이후 브랜드 그린(BrandBlue)과 통일
+private val SafeGreen = BrandBlue
 
 /** 몸통은 고정하고 팔의 굽힘만 다른 이미지 프레임으로 악수를 표현한다. */
 @Composable
