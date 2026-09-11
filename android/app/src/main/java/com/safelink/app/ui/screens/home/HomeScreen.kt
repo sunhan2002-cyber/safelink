@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -116,24 +117,32 @@ fun HomeScreen(
                 snapshot?.let { navController.navigate(Screen.ResponseGuide.createRoute(statusLevel)) }
             }
         ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
+            // Figma 카드는 화면 세로 비율의 약 29%를 차지하는데 기존 구현은 12%밖에 안 돼
+            // 훨씬 작아 보였음(사용자 지적) — 기본 카드 패딩(16dp) 위에 여유 패딩을 더하고
+            // 헤드라인 글자 크기도 키워서 카드 전체 크기를 Figma 비율에 맞춤
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp)
+            ) {
                 Column(modifier = Modifier.fillMaxWidth(0.78f)) {
                     Text(
                         text = if (snapshot == null) "실시간 보호 중" else "위험 신호 감지됨",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyLarge,
                         color = statusLevel.color()
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     // Figma B02: 짧은 상태 단어("안전함") 없이 이 문장 자체가 굵은 큰 헤드라인 —
                     // homeStatusTitle()의 짧은 단어와 이 설명 문장을 굳이 나눠 두 줄로 보여주던 걸
                     // Figma대로 한 줄(헤드라인)로 합침
                     Text(
                         text = snapshot?.let { "최근 감지된 표현이 있어요 · ${it.category}" }
                             ?: homeStatusHeadline(statusLevel),
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
                         color = statusLevel.color()
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
                     Text(
                         text = "최근 위험 신호 ${todayAlertCount}건",
                         style = MaterialTheme.typography.bodyMedium,
