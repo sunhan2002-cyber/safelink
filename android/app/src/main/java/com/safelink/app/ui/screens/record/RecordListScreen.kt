@@ -19,11 +19,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -307,6 +311,15 @@ private fun RecordRow(
                         .size(dotSize)
                         .background(record.riskLevel.color(), CircleShape)
                 )
+                Spacer(modifier = Modifier.size(6.dp))
+                // 색만으로 위험도를 구분하면 색맹 사용자는 알아보기 어려움(4순위, 사용자 요청) —
+                // 위험도별로 모양이 다른 아이콘을 점 옆에 나란히 표시해 색 없이도 구분되게 함
+                Icon(
+                    imageVector = riskLevelIcon(record.riskLevel),
+                    contentDescription = null,
+                    tint = record.riskLevel.color(),
+                    modifier = Modifier.size(16.dp)
+                )
                 Spacer(modifier = Modifier.size(8.dp))
                 Text(
                     text = formatTimestamp(record.timestamp),
@@ -363,3 +376,11 @@ private fun RecordRow(
 private val recordDateFormat = SimpleDateFormat("yyyy년 M월 d일 · a h:mm", Locale.KOREA)
 
 private fun formatTimestamp(timestamp: Long): String = recordDateFormat.format(Date(timestamp))
+
+/** 위험도별 모양이 다른 아이콘 — 색맹 사용자도 색 없이 모양만으로 구분 가능하게(4순위) */
+private fun riskLevelIcon(level: RiskLevel) = when (level) {
+    RiskLevel.SAFE -> Icons.Filled.CheckCircle
+    RiskLevel.CAUTION -> Icons.Filled.Info
+    RiskLevel.WARNING -> Icons.Filled.Error
+    RiskLevel.CRITICAL -> Icons.Filled.Warning
+}
