@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import com.safelink.app.util.IntentActions
+import com.safelink.app.data.model.raw.InstitutionEntry
 import com.safelink.app.data.repository.InstitutionCatalog
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
@@ -39,8 +40,17 @@ import com.safelink.app.ui.theme.RiskSafe
 import com.safelink.app.ui.theme.SurfaceWhite
 import com.safelink.app.ui.theme.TextSecondary
 
-private val applicationSteps = listOf(
-    "상담 예약하기 — 대표번호에 전화하여 상담을 예약합니다",
+/**
+ * contact 형식(전화번호/웹주소/안내문구)에 따라 1단계 문구가 달라진다 — 전화번호가 없는
+ * 기관(SupportDetailScreen에서도 "전화하기" 버튼을 숨기는 것과 같은 기준)까지 "전화하여
+ * 예약"이라고 안내하면 실제 화면(전화 버튼 없음)과 어긋나서 발생한 버그를 바로잡음.
+ */
+private fun applicationSteps(institution: InstitutionEntry) = listOf(
+    when {
+        institution.phoneOrNull() != null -> "상담 예약하기 — 대표번호에 전화하여 상담을 예약합니다"
+        institution.websiteOrNull() != null -> "상담 예약하기 — 홈페이지에서 상담을 신청합니다"
+        else -> "상담 예약하기 — 기관에 문의해 상담을 예약합니다"
+    },
     "필요 서류 준비하기 — 아래 서류 목록을 확인하세요",
     "방문 또는 전화 상담 진행",
     "지원 결정 및 후속 절차 안내 받기"
@@ -55,6 +65,7 @@ fun ApplicationGuideScreen(navController: NavHostController, institutionId: Stri
     val institutions = remember { InstitutionCatalog.load(context) }
     val institution = institutions.find { it.id == institutionId } ?: institutions.first()
     val completed = remember { mutableStateListOf<Int>() } // 세션 내 유지 (Task 5.5)
+    val steps = remember(institution) { applicationSteps(institution) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(title = "신청 절차 안내", onBack = { navController.popBackStack() })
@@ -69,7 +80,7 @@ fun ApplicationGuideScreen(navController: NavHostController, institutionId: Stri
             SafeLinkCard {
                 Text(text = institution.name, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = "${completed.size}단계 / ${applicationSteps.size}단계 완료",
+                    text = "${completed.size}단계 / ${steps.size}단계 완료",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -78,7 +89,7 @@ fun ApplicationGuideScreen(navController: NavHostController, institutionId: Stri
             // 수직 타임라인 — 단계마다 따로 카드로 감싸던 것을 하나의 카드 안에 구분선으로
             // 나누는 패턴(기록 화면과 동일)으로 정리해 "카드 남용"을 줄임
             SafeLinkCard {
-                applicationSteps.forEachIndexed { index, step ->
+                steps.forEachIndexed { index, step ->
                     val isDone = index in completed
                     val isCurrent = !isDone && index == (completed.maxOrNull()?.plus(1) ?: 0)
                     if (index != 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
