@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.ui.components.SafeLinkCard
+import com.safelink.app.ui.components.SafeLinkTopBar
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.RiskSafe
 
@@ -83,57 +84,62 @@ fun AnalyzingScreen(
 
     val percent = (progress * 100).toInt()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.size(140.dp),
-                strokeWidth = 10.dp
-            )
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "$percent%",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+    Column(modifier = Modifier.fillMaxSize()) {
+        SafeLinkTopBar(title = "위험 신호 확인 중")
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxSize()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.size(140.dp),
+                    strokeWidth = 10.dp
                 )
-                Text(
-                    text = "분석 진행 중",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "$percent%",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "분석 진행 중",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
+            Text(
+                // "AI가 분석"이 아니라 온디바이스 규칙 엔진(viewModel.runAnalysis())이 도는 화면 —
+                // CLAUDE.md 핵심 원칙("위험도 계산은 항상 온디바이스")과 맞게 문구 수정 (UI/UX 1순위)
+                text = "SafeLink가 위험 신호를 분석하고 있습니다…",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+
+            SafeLinkCard {
+                StepRow(label = "텍스트 추출", done = progress >= 0.33f)
+                Spacer(modifier = Modifier.height(12.dp))
+                StepRow(label = "위험 요소 탐지", done = progress >= 0.66f)
+                Spacer(modifier = Modifier.height(12.dp))
+                StepRow(label = "분석 리포트 생성", done = progress >= 1f)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "안전한 결과를 위해 조금만 기다려 주세요.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-        Text(
-            // "AI가 분석"이 아니라 온디바이스 규칙 엔진(viewModel.runAnalysis())이 도는 화면 —
-            // CLAUDE.md 핵심 원칙("위험도 계산은 항상 온디바이스")과 맞게 문구 수정 (UI/UX 1순위)
-            text = "SafeLink가 위험 신호를 분석하고 있습니다…",
-            style = MaterialTheme.typography.titleMedium
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-
-        SafeLinkCard {
-            StepRow(label = "텍스트 추출", done = progress >= 0.33f)
-            Spacer(modifier = Modifier.height(12.dp))
-            StepRow(label = "위험 요소 탐지", done = progress >= 0.66f)
-            Spacer(modifier = Modifier.height(12.dp))
-            StepRow(label = "분석 리포트 생성", done = progress >= 1f)
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(
-            text = "안전한 결과를 위해 조금만 기다려 주세요.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
