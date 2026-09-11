@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -169,7 +170,16 @@ fun SupportMatchScreen(navController: NavHostController) {
             }
 
             SafeLinkCard {
-                Text(text = "주의사항", style = MaterialTheme.typography.titleMedium)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.Warning,
+                        contentDescription = null,
+                        tint = RiskCritical,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(text = "주의사항", style = MaterialTheme.typography.titleMedium)
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "• 피해 발생 시 신속하게 계좌 지급 정지를 요청하세요.\n• 출처가 불분명한 앱은 즉시 삭제해 주세요.",
