@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -17,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.data.model.RiskLevel
 import com.safelink.app.ui.components.SafeLinkCard
-import com.safelink.app.ui.components.SafeLinkOutlinedButton
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
 import com.safelink.app.ui.components.SafeLinkTopBar
 import com.safelink.app.ui.navigation.Screen
@@ -70,20 +71,20 @@ fun FeatureGuideScreen(navController: NavHostController) {
                 text = "스크린샷 분석하러 가기",
                 onClick = { navController.navigate(Screen.DetectionInput.route) }
             )
-            SafeLinkOutlinedButton(
-                text = "접근성 설정 열기",
+            TextButton(
                 onClick = {
                     runCatching {
                         context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                     }
-                }
-            )
-            SafeLinkOutlinedButton(
-                text = "대응 가이드 예시 보기",
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("접근성 설정 열기") }
+            TextButton(
                 onClick = {
                     navController.navigate(Screen.ResponseGuide.createRoute(RiskLevel.WARNING))
-                }
-            )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("대응 가이드 예시 보기") }
         }
     }
 }

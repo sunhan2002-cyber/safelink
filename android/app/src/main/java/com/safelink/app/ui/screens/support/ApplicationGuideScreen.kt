@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -73,12 +74,17 @@ fun ApplicationGuideScreen(navController: NavHostController, institutionId: Stri
                 )
             }
 
-            // 수직 타임라인
-            applicationSteps.forEachIndexed { index, step ->
-                val isDone = index in completed
-                val isCurrent = !isDone && index == (completed.maxOrNull()?.plus(1) ?: 0)
-                SafeLinkCard {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+            // 수직 타임라인 — 단계마다 따로 카드로 감싸던 것을 하나의 카드 안에 구분선으로
+            // 나누는 패턴(기록 화면과 동일)으로 정리해 "카드 남용"을 줄임
+            SafeLinkCard {
+                applicationSteps.forEachIndexed { index, step ->
+                    val isDone = index in completed
+                    val isCurrent = !isDone && index == (completed.maxOrNull()?.plus(1) ?: 0)
+                    if (index != 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    ) {
                         Box(
                             modifier = Modifier
                                 .size(32.dp)

@@ -28,7 +28,6 @@ import androidx.navigation.NavHostController
 import com.safelink.app.data.model.RiskLevel
 import com.safelink.app.ui.components.RiskBadge
 import com.safelink.app.ui.components.SafeLinkCard
-import com.safelink.app.ui.components.SafeLinkOutlinedButton
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
 import com.safelink.app.ui.components.SafeLinkTopBar
 import com.safelink.app.ui.components.color
@@ -141,16 +140,19 @@ fun DiagnosisResultScreen(
             SafeLinkPrimaryButton(text = "대응 가이드 보기", onClick = {
                 navController.navigate(Screen.ResponseGuide.createRoute(level))
             })
-            SafeLinkOutlinedButton(text = "지원 기관 찾기", onClick = {
-                navController.navigate(Screen.SupportMatch.route)
-            })
+            TextButton(
+                onClick = { navController.navigate(Screen.SupportMatch.route) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("지원 기관 찾기")
+            }
             TextButton(
                 onClick = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Home.route) { inclusive = true }
                     }
                 },
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text("홈으로 돌아가기")
             }
