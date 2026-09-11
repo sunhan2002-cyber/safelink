@@ -22,11 +22,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
@@ -51,6 +52,7 @@ import com.safelink.app.ui.components.containerColor
 import com.safelink.app.data.repository.RecordRepository
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.screens.detection.DetectionViewModel
+import com.safelink.app.ui.theme.SurfaceWhite
 import com.safelink.app.ui.theme.TextPrimary
 
 /** 홈 대시보드 (Task 4.14) — 기능 진입점 + 최근 기록 요약 */
@@ -122,16 +124,14 @@ fun HomeScreen(
                         color = statusLevel.color()
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = homeStatusTitle(statusLevel),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = statusLevel.color()
-                    )
+                    // Figma B02: 짧은 상태 단어("안전함") 없이 이 문장 자체가 굵은 큰 헤드라인 —
+                    // homeStatusTitle()의 짧은 단어와 이 설명 문장을 굳이 나눠 두 줄로 보여주던 걸
+                    // Figma대로 한 줄(헤드라인)로 합침
                     Text(
                         text = snapshot?.let { "최근 감지된 표현이 있어요 · ${it.category}" }
-                            ?: "오늘도 안전하게 살펴보고 있어요",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                            ?: homeStatusHeadline(statusLevel),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = statusLevel.color()
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
@@ -153,18 +153,18 @@ fun HomeScreen(
                             .scale(pulseScale)
                             .background(statusLevel.color().copy(alpha = 0.18f), CircleShape)
                     )
-                    // 아이콘 원형 배지
+                    // 아이콘 원형 배지 — Figma는 상태색 원 안에 흰색 아이콘(SAFE는 체크)
                     Box(
                         modifier = Modifier
                             .size(44.dp)
-                            .background(MaterialTheme.colorScheme.surface, CircleShape),
+                            .background(statusLevel.color(), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Shield,
+                            imageVector = if (statusLevel == RiskLevel.SAFE) Icons.Filled.Check else Icons.Filled.Warning,
                             contentDescription = null,
-                            tint = statusLevel.color(),
-                            modifier = Modifier.size(26.dp)
+                            tint = SurfaceWhite,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
@@ -272,8 +272,8 @@ fun HomeScreen(
 }
 
 /** 홈 상태 카드 제목 — 백그라운드 감지 위험도별 (없으면 SAFE) */
-private fun homeStatusTitle(level: RiskLevel): String = when (level) {
-    RiskLevel.SAFE -> "안전함"
+private fun homeStatusHeadline(level: RiskLevel): String = when (level) {
+    RiskLevel.SAFE -> "오늘도 안전하게 살펴보고 있어요"
     RiskLevel.CAUTION -> "주의가 필요해요"
     RiskLevel.WARNING -> "확인이 필요해요"
     RiskLevel.CRITICAL -> "위험 신호가 있어요"
