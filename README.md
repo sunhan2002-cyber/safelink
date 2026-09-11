@@ -1,4 +1,4 @@
-![SafeLink README Banner](docs/assets/safelink_readme_banner.png)
+![SafeLink README Banner](docs/assets/safelink_readme_banner_pastel.png)
 
 ## SafeLink
 
