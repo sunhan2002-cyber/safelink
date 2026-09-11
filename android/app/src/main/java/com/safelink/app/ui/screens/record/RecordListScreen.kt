@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -276,11 +275,11 @@ private fun RecordRow(
     onDeleteClick: () -> Unit
 ) {
     val isCritical = record.riskLevel == RiskLevel.CRITICAL
-    val dotSize = when (record.riskLevel) {
-        RiskLevel.CRITICAL -> 14.dp
-        RiskLevel.WARNING -> 11.dp
-        RiskLevel.CAUTION -> 9.dp
-        RiskLevel.SAFE -> 7.dp
+    val iconSize = when (record.riskLevel) {
+        RiskLevel.CRITICAL -> 22.dp
+        RiskLevel.WARNING -> 19.dp
+        RiskLevel.CAUTION -> 17.dp
+        RiskLevel.SAFE -> 16.dp
     }
 
     Row(
@@ -306,19 +305,14 @@ private fun RecordRow(
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(dotSize)
-                        .background(record.riskLevel.color(), CircleShape)
-                )
-                Spacer(modifier = Modifier.size(6.dp))
                 // 색만으로 위험도를 구분하면 색맹 사용자는 알아보기 어려움(4순위, 사용자 요청) —
-                // 위험도별로 모양이 다른 아이콘을 점 옆에 나란히 표시해 색 없이도 구분되게 함
+                // 점 대신 위험도별로 모양이 다른 아이콘을 써서 색 없이도 구분되게 함(점+아이콘이
+                // 중복이라는 지적에 따라 점은 제거). 크기는 위험도가 높을수록 크게(2순위 유지).
                 Icon(
                     imageVector = riskLevelIcon(record.riskLevel),
                     contentDescription = null,
                     tint = record.riskLevel.color(),
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(iconSize)
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 Text(
