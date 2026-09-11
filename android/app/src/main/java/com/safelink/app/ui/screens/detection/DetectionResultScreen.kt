@@ -26,9 +26,11 @@ import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -54,7 +56,6 @@ import com.safelink.app.data.model.RecommendedInstitutionUi
 import com.safelink.app.data.model.RiskLevel
 import com.safelink.app.ui.components.RiskBadge
 import com.safelink.app.ui.components.SafeLinkCard
-import com.safelink.app.ui.components.SafeLinkOutlinedButton
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
 import com.safelink.app.ui.components.SafeLinkTopBar
 import com.safelink.app.ui.components.color
@@ -145,9 +146,9 @@ private fun DetectionResultContent(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // 상태 헤더 카드 — 위험도별 고정 제목/설명 (category 결합 금지, 최종 가이드 v1.0).
-            // UI/UX 4순위(여백·타이포 강약) - 이 화면에서 가장 중요한 정보(위험도)가 다른
-            // 텍스트들과 같은 titleMedium 크기로 묻혀있던 문제 - 아이콘·제목을 확실히 키우고
-            // 카드 안쪽 여백도 넉넉하게 줘서 "지금 이게 제일 중요하다"는 게 보이게 함
+            // 9주차 - Figma "Concept B" B04(Risk Result) 구조 반영: 정성적 문장을 제일 크게
+            // 유지(4순위 작업 그대로)하고, 예전에 "확인된 위험 유형" 카드 + 점수 큰 숫자 카드로
+            // 따로 있던 것을 헤더 카드 안 작은 보조 줄 하나로 합침 — 정보는 그대로, 비중만 낮춤.
             SafeLinkCard {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -173,9 +174,20 @@ private fun DetectionResultContent(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
+                        HorizontalDivider()
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val scoreLine = buildString {
+                            if (result.matchedKeywords.isNotEmpty()) append("위험 점수 ${result.score}")
+                            if (result.category.isNotBlank()) {
+                                if (isNotEmpty()) append(" · ")
+                                append(result.category)
+                            }
+                            if (isNotEmpty()) append(" · ")
+                            append("입력 경로: $sourceLabel")
+                        }
                         Text(
-                            text = "입력 경로: $sourceLabel",
+                            text = scoreLine,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -183,66 +195,39 @@ private fun DetectionResultContent(
                 }
             }
 
-            // 확인된 위험 유형 — category 있을 때만 (최종 가이드 v1.0)
-            if (result.category.isNotBlank()) {
-                SafeLinkCard {
-                    Text(text = "확인된 위험 유형", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        text = result.category,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = result.riskLevel.color()
-                    )
-                }
-            }
-
-            // 위험 점수 + 감지된 위험 요소 + 분석 근거 — matchedKeywords 있을 때만
+            // 감지된 표현 — 매칭 키워드는 짧은 태그 칩으로만(무엇이 걸렸는지 한눈에), 구체적인
+            // "왜"는 아래 통합 리스트에서 설명한다. 위험도 배지 병행(색만으로 전달 금지, 최종
+            // 가이드 v1.0).
             if (result.matchedKeywords.isNotEmpty()) {
                 SafeLinkCard {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "${result.score}",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = result.riskLevel.color()
-                            )
-                            Text(
-                                text = "위험 점수",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(20.dp))
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(text = "감지된 위험 요소", style = MaterialTheme.typography.titleMedium)
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                result.matchedKeywords
-                                    .map { it.subcategoryName }
-                                    .distinct()
-                                    .forEach { tag ->
-                                        Text(
-                                            text = tag,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = result.riskLevel.color(),
-                                            modifier = Modifier
-                                                .background(result.riskLevel.containerColor(), RoundedCornerShape(8.dp))
-                                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                                        )
-                                    }
-                            }
-                            // "위험도: 긴급" 형태 (배지 단독 중복 금지 — 최종 가이드 v1.0)
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "감지된 표현", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        result.matchedKeywords
+                            .map { it.subcategoryName }
+                            .distinct()
+                            .forEach { tag ->
                                 Text(
-                                    text = "위험도: ",
+                                    text = tag,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = result.riskLevel.color(),
+                                    modifier = Modifier
+                                        .background(result.riskLevel.containerColor(), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 10.dp, vertical = 4.dp)
                                 )
-                                RiskBadge(level = result.riskLevel)
                             }
-                        }
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "위험도: ",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        RiskBadge(level = result.riskLevel)
                     }
                 }
 
@@ -256,115 +241,28 @@ private fun DetectionResultContent(
                         )
                     }
                 }
-
-                Text(text = "분석 근거", style = MaterialTheme.typography.titleMedium)
-                result.matchedKeywords.forEach { kw ->
-                    SafeLinkCard {
-                        Row {
-                            Spacer(
-                                modifier = Modifier
-                                    .width(4.dp)
-                                    .height(48.dp)
-                                    .background(result.riskLevel.color(), RoundedCornerShape(2.dp))
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(text = "\"${kw.matchedText}\"", style = MaterialTheme.typography.bodyLarge)
-                                Text(
-                                    text = "${kw.subcategoryName} · ${kw.description}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
             }
 
             // 링크 검사 — 키워드가 하나도 안 걸린 문장이라도 링크만 위험할 수 있으므로
             // matchedKeywords 조건 밖에 둔다.
             LinkRiskSection(results = linkResults, isChecking = isCheckingLinks)
 
-            // 문장 규칙 / 상황 규칙 / AI 보조분석 — 키워드 근거 카드와 똑같아 보여서 "결국
-            // 키워드 중심"처럼 느껴진다는 지적(7주차 수정) 대응. 아이콘+전용 색상으로 세 층을
-            // 시각적으로 구분한다 — 최종 색상/아이콘 선택은 김우영/김재겸이 다듬을 수 있음.
+            // 이런 표현을 확인했어요 — 9주차: 예전엔 "문장 규칙 근거"/"상황 규칙 근거"/
+            // "AI 보조분석"이 각각 따로 박스로 나뉘어 있어 화면이 길고 조각나 보이던 문제
+            // (Figma 리디자인 검토 중 발견) 대응. 색 라벨(문장=청록/상황=보라/AI=남색, 7주차
+            // 색 그대로)로 구분은 유지한 채 하나의 리스트로 통합.
+            UnifiedReasonList(result = result, isEscalatingToAI = isEscalatingToAI)
 
-            // 문장 규칙 근거 — sentenceRuleEvidences 있을 때만 (6주차 신설)
-            if (result.sentenceRuleEvidences.isNotEmpty()) {
-                EvidenceSectionHeader(icon = Icons.Filled.TextFields, title = "문장 규칙 근거", accent = RuleSentenceAccent)
-                result.sentenceRuleEvidences.forEach { ev -> EvidenceCard(ev, RuleSentenceAccent, RuleSentenceContainer) }
-            }
-
-            // 상황 규칙 근거 — situationalRuleEvidences 있을 때만 (6주차 신설)
-            if (result.situationalRuleEvidences.isNotEmpty()) {
-                EvidenceSectionHeader(icon = Icons.Filled.Repeat, title = "상황 규칙 근거", accent = RuleSituationalAccent)
-                result.situationalRuleEvidences.forEach { ev -> EvidenceCard(ev, RuleSituationalAccent, RuleSituationalContainer) }
-            }
-
-            // AI 보조분석 — 2차 AI 분석(escalateToAI)이 실행됐거나 진행 중일 때만 (김재겸 8/14
-            // 추가과제 item5 병합: 로딩 상태 표시 + 빈 문자열 안전 처리를 그대로 가져옴).
-            // 순서: 문장 규칙 근거 → 상황 규칙 근거 → AI 보조분석 (위 두 섹션 기준으로 확정).
-            // 용어 표기는 "AI 보조분석"(붙여쓰기)로 통일 — SafeLink UI Guide v8.2 15장 용어
-            // 통일 기준("AI 판단"/"AI 결과" → "AI 보조분석") 반영.
-            if (isEscalatingToAI || result.aiSummary != null || result.aiDetectedPattern != null) {
-                EvidenceSectionHeader(icon = Icons.Filled.SmartToy, title = "AI 보조분석", accent = RuleAiAccent)
-                SafeLinkCard(containerColor = RuleAiContainer) {
-                    if (result.aiSummary == null && result.aiDetectedPattern == null) {
-                        // 온디바이스 결과는 이미 위에 표시됨 — AI 응답은 도착하는 대로 이 카드에 채워진다
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = "정밀 분석을 진행하고 있어요. 잠시 후 결과가 더해집니다.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    } else {
-                        result.aiDetectedPattern?.takeIf { it.isNotBlank() }?.let { pattern ->
-                            Text(
-                                text = "감지된 맥락: $pattern",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = result.riskLevel.color()
-                            )
-                        }
-                        result.aiSummary?.takeIf { it.isNotBlank() }?.let { summary ->
-                            Text(
-                                text = summary,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-                }
-            }
-
-            // 추천 기관 — 즉시 대응기관/추가 지원기관 2단 (RecommendedInstitutionUi.group 기준)
+            // 추천 기관 — 1순위 기관만 인라인으로 보여주고 나머지는 지원 탭에서(정보는 그대로,
+            // 화면에 한 번에 몰아넣지 않음 - Figma 리디자인 구조 반영)
             if (result.recommendedInstitutions.isNotEmpty()) {
-                val (immediate, additional) = result.recommendedInstitutions
-                    .sortedBy { it.rank }
-                    .partition { it.group == "긴급대응" }
-
-                Text(text = "추천 기관 목록", style = MaterialTheme.typography.titleMedium)
-                if (immediate.isNotEmpty()) {
-                    Text(text = "즉시 대응기관", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        text = "현재 상황에서 먼저 도움을 받을 수 있는 기관입니다.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    immediate.forEach { inst -> RecommendedInstitutionCard(inst) }
-                }
-                if (additional.isNotEmpty()) {
-                    Text(text = "추가 지원기관", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        text = "피해 회복, 상담, 법률 및 복지 지원을 받을 수 있는 기관입니다.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    additional.forEach { inst -> RecommendedInstitutionCard(inst) }
+                val sorted = result.recommendedInstitutions.sortedBy { it.rank }
+                Text(text = "추천 기관", style = MaterialTheme.typography.titleMedium)
+                RecommendedInstitutionCard(sorted.first())
+                if (sorted.size > 1) {
+                    TextButton(onClick = onSupportClick, modifier = Modifier.fillMaxWidth()) {
+                        Text("추천 기관 전체 보기 (${sorted.size}곳) ›")
+                    }
                 }
             } else if (result.riskLevel != RiskLevel.SAFE) {
                 // SAFE는 기관 영역 숨김, CAUTION 이상만 안내 (최종 가이드 v1.0)
@@ -382,14 +280,17 @@ private fun DetectionResultContent(
             )
         }
 
-        // 위험도별 CTA (김우영 final_allfile.wy CTA 우선순위)
-        //  SAFE     : 다시 분석하기
-        //  CAUTION  : 대응 가이드 보기 → 다시 분석하기
-        //  WARNING  : 대응 가이드 보기 → 추천 기관 목록 보기
-        //  CRITICAL : 긴급 도움 요청 → 대응 가이드 보기 → 추천 기관 목록 보기
+        // 위험도별 CTA — 9주차: 화면마다 버튼이 3개씩 같은 무게로 나열되던 걸(Figma 리디자인
+        // 검토 중 발견, KRDS "화면당 Primary 1개" 원칙과도 일치) 위험도별 제일 중요한 행동
+        // 1개만 채워진 버튼으로 두고, 나머지는 텍스트 링크로. 핸들러(4개)는 전부 그대로 유지 —
+        // 무게만 다르지 다 화면에 남아있고 다 누를 수 있음.
+        //  SAFE     : 다시 분석하기(주)
+        //  CAUTION  : 대응 가이드 보기(주) · 다시 분석하기(링크)
+        //  WARNING  : 대응 가이드 보기(주) · 추천 기관 전체 보기(링크)
+        //  CRITICAL : 긴급 도움 요청(주) · 대응 가이드 보기 · 추천 기관 전체 보기(링크)
         Column(
             modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             when (result.riskLevel) {
                 RiskLevel.SAFE -> {
@@ -401,7 +302,7 @@ private fun DetectionResultContent(
                         containerColor = result.riskLevel.color(),
                         onClick = onGuideClick
                     )
-                    SafeLinkOutlinedButton(text = "다시 분석하기", onClick = onReanalyzeClick)
+                    ResultSecondaryLink(text = "다시 분석하기", onClick = onReanalyzeClick)
                 }
                 RiskLevel.WARNING -> {
                     SafeLinkPrimaryButton(
@@ -409,7 +310,7 @@ private fun DetectionResultContent(
                         containerColor = result.riskLevel.color(),
                         onClick = onGuideClick
                     )
-                    SafeLinkOutlinedButton(text = "추천 기관 목록 보기", onClick = onSupportClick)
+                    ResultSecondaryLink(text = "추천 기관 전체 보기", onClick = onSupportClick)
                 }
                 RiskLevel.CRITICAL -> {
                     SafeLinkPrimaryButton(
@@ -417,15 +318,18 @@ private fun DetectionResultContent(
                         containerColor = RiskCritical,
                         onClick = onEmergencyClick
                     )
-                    SafeLinkPrimaryButton(
-                        text = "대응 가이드 보기",
-                        containerColor = result.riskLevel.color(),
-                        onClick = onGuideClick
-                    )
-                    SafeLinkOutlinedButton(text = "추천 기관 목록 보기", onClick = onSupportClick)
+                    ResultSecondaryLink(text = "대응 가이드 보기", onClick = onGuideClick)
+                    ResultSecondaryLink(text = "추천 기관 전체 보기", onClick = onSupportClick)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ResultSecondaryLink(text: String, onClick: () -> Unit) {
+    TextButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Text(text)
     }
 }
 
@@ -571,33 +475,75 @@ private fun EvidenceSectionHeader(icon: ImageVector, title: String, accent: Colo
     }
 }
 
+/** 통합 리스트 한 줄 — 색 라벨(문장/상황/AI)로 어느 근거인지 구분한다. */
+private data class UnifiedReason(
+    val tagLabel: String,
+    val tagColor: Color,
+    val tagContainer: Color,
+    val text: String
+)
+
 /**
- * 문장 규칙/상황 규칙 근거 카드 (6주차 신설, 7주차 시각 구분 추가) — 기존 키워드 "분석 근거"
- * 카드(좌측 컬러바 + 텍스트)와 같은 골격이지만, 컬러바를 리스크 색상이 아니라 근거 유형별
- * 전용 색상([RuleSentenceAccent]/[RuleSituationalAccent])으로 칠해서 키워드 카드와 구분되게
- * 했다. AnalysisEvidence.label이 설명, .detail이 매칭된 문구/판정 조건이라 순서를 label
- * 먼저, detail을 부가 설명으로 배치했다 (matchedKeyword 카드와 반대 — 거긴 매칭 문구가
- * 먼저였는데, 근거 콤보는 매칭된 "문구" 하나가 아니라 "조건 설명"이 핵심이라 label을 먼저
- * 보여주는 게 더 자연스럽다고 판단).
+ * "이런 표현을 확인했어요" — 문장 규칙/상황 규칙/AI 보조분석 근거를 하나의 리스트로 통합
+ * (9주차, Figma 리디자인 반영). 예전엔 이 셋이 각각 별도 박스+섹션 제목으로 나뉘어 있어
+ * 화면이 길고 조각나 보인다는 지적이 있었음 — 근거 종류 구분은 색 라벨로 유지한 채 하나의
+ * 카드 안에서 구분선으로만 나눈다. AI가 아직 진행 중이면(로딩) 기존 항목 아래에 진행 표시를
+ * 이어 붙인다(완전히 새로운 카드로 만들지 않음 — 완료되면 그 자리에 내용이 채워지도록).
  */
 @Composable
-private fun EvidenceCard(evidence: AnalysisEvidence, accent: Color, container: Color) {
-    SafeLinkCard(containerColor = container) {
-        Row {
-            Spacer(
-                modifier = Modifier
-                    .width(4.dp)
-                    .height(48.dp)
-                    .background(accent, RoundedCornerShape(2.dp))
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(text = evidence.label, style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    text = evidence.detail,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+private fun UnifiedReasonList(result: DetectionResult, isEscalatingToAI: Boolean) {
+    val reasons = buildList {
+        result.sentenceRuleEvidences.forEach {
+            add(UnifiedReason("문장", RuleSentenceAccent, RuleSentenceContainer, "${it.label} — ${it.detail}"))
+        }
+        result.situationalRuleEvidences.forEach {
+            add(UnifiedReason("상황", RuleSituationalAccent, RuleSituationalContainer, "${it.label} — ${it.detail}"))
+        }
+        val aiText = result.aiDetectedPattern?.takeIf { it.isNotBlank() }
+            ?: result.aiSummary?.takeIf { it.isNotBlank() }
+        if (aiText != null) {
+            add(UnifiedReason("AI", RuleAiAccent, RuleAiContainer, aiText))
+        }
+    }
+    val aiLoading = isEscalatingToAI && result.aiSummary == null && result.aiDetectedPattern == null
+
+    if (reasons.isEmpty() && !aiLoading) return
+
+    Text(text = "이런 표현을 확인했어요", style = MaterialTheme.typography.titleMedium)
+    SafeLinkCard {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            reasons.forEachIndexed { index, reason ->
+                Row(verticalAlignment = Alignment.Top) {
+                    Text(
+                        text = reason.tagLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = reason.tagColor,
+                        modifier = Modifier
+                            .background(reason.tagContainer, RoundedCornerShape(6.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = reason.text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                if (index != reasons.lastIndex || aiLoading) {
+                    HorizontalDivider()
+                }
+            }
+            if (aiLoading) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "정밀 분석을 진행하고 있어요. 잠시 후 결과가 더해집니다.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
