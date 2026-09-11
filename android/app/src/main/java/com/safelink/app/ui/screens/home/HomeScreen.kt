@@ -28,6 +28,8 @@ import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
@@ -56,6 +58,8 @@ import com.safelink.app.ui.screens.detection.DetectionViewModel
 import com.safelink.app.ui.theme.BrandBlueDark
 import com.safelink.app.ui.theme.SurfaceWhite
 import com.safelink.app.ui.theme.TextPrimary
+import com.safelink.app.ui.theme.TipBlue
+import com.safelink.app.ui.theme.TipBlueContainer
 
 /** 홈 대시보드 (Task 4.14) — 기능 진입점 + 최근 기록 요약 */
 @Composable
@@ -256,12 +260,12 @@ fun HomeScreen(
         // 오늘의 안전 팁 — Figma 신규 섹션. 기존 로직/데이터 없이 고정 문구 + 자가진단으로
         // 가는 지름 버튼만 추가(신규 기능 아님, 기존 자가진단 화면 재사용) — "신규기능은
         // 보류, 구조만" 범위 안에 들어가는 선에서 구성.
-        SafeLinkCard {
+        SafeLinkCard(containerColor = TipBlueContainer) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Filled.Lightbulb,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = TipBlue,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -275,7 +279,14 @@ fun HomeScreen(
             )
             Spacer(modifier = Modifier.height(12.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = { navController.navigate(Screen.Diagnosis.route) }) {
+                // Figma는 파란 카드 위에 흰색 알약 버튼(파란 글자)로 떠 보이게 함
+                Button(
+                    onClick = { navController.navigate(Screen.Diagnosis.route) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SurfaceWhite,
+                        contentColor = TipBlue
+                    )
+                ) {
                     Text("30초 안전 진단")
                 }
             }

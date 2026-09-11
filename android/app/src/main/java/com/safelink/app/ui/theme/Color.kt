@@ -37,3 +37,7 @@ val RuleSituationalAccent = Color(0xFF7C3AED)       // 상황 규칙 - 보라
 val RuleSituationalContainer = Color(0xFFEDE9FE)
 val RuleAiAccent = Color(0xFF4338CA)                // AI 보조분석 - 남색(브랜드블루보다 진하게, "보조"라는 인상 유지)
 val RuleAiContainer = Color(0xFFE0E7FF)
+
+// "오늘의 안전 팁" 카드 전용 파란 톤 — Figma B02 픽셀 샘플링 값(사용자 요청, 9주차)
+val TipBlue = Color(0xFF2766F2)
+val TipBlueContainer = Color(0xFFDBEEFF)
