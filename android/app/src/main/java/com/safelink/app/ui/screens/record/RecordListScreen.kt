@@ -5,14 +5,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteOutline
@@ -39,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -52,6 +57,7 @@ import com.safelink.app.ui.components.SafeLinkTopBar
 import com.safelink.app.ui.components.color
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.BrandBlueLight
+import com.safelink.app.ui.theme.RiskCriticalContainer
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -248,61 +254,102 @@ private fun RegularCheckTip() {
     }
 }
 
-/** 기록 한 건 — 이제 개별 카드가 아니라 [SafeLinkCard] 안의 한 행(구분선으로 다음 행과 분리). */
+/**
+ * 기록 한 건 — [SafeLinkCard] 안의 한 행(구분선으로 다음 행과 분리).
+ *
+ * 위험도가 "한눈에" 안 들어온다는 지적(사용자 요청)에 맞춰 3가지를 위험도에 따라 다르게 줌:
+ * 1) 왼쪽 색상 악센트 바 — 스크롤하며 훑어도 색이 먼저 눈에 들어옴
+ * 2) 점 크기·제목 굵기 — 긴급일수록 시각적으로 무겁게, 안전일수록 가볍게
+ * 3) 긴급 항목만 옅은 빨간 배경 — 목록에서 바로 튀어 보이게(안전/주의는 대비를 위해 그대로 둠)
+ */
 @Composable
 private fun RecordRow(
     record: RecordItem,
     navController: NavHostController,
     onDeleteClick: () -> Unit
 ) {
-    Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(record.riskLevel.color(), CircleShape)
+    val isCritical = record.riskLevel == RiskLevel.CRITICAL
+    val dotSize = when (record.riskLevel) {
+        RiskLevel.CRITICAL -> 14.dp
+        RiskLevel.WARNING -> 11.dp
+        RiskLevel.CAUTION -> 9.dp
+        RiskLevel.SAFE -> 7.dp
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .then(
+                if (isCritical) {
+                    Modifier
+                        .background(RiskCriticalContainer.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                        .padding(10.dp)
+                } else {
+                    Modifier
+                }
             )
-            Spacer(modifier = Modifier.size(8.dp))
+    ) {
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .fillMaxHeight()
+                .background(record.riskLevel.color(), RoundedCornerShape(2.dp))
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(dotSize)
+                        .background(record.riskLevel.color(), CircleShape)
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(
+                    text = formatTimestamp(record.timestamp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
+                )
+                RiskBadge(level = record.riskLevel)
+                IconButton(onClick = onDeleteClick, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        imageVector = Icons.Filled.DeleteOutline,
+                        contentDescription = "기록 삭제",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = formatTimestamp(record.timestamp),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f)
+                text = record.title,
+                style = if (isCritical) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+                fontWeight = if (isCritical) FontWeight.Bold else null
             )
-            RiskBadge(level = record.riskLevel)
-            IconButton(onClick = onDeleteClick, modifier = Modifier.size(36.dp)) {
-                Icon(
-                    imageVector = Icons.Filled.DeleteOutline,
-                    contentDescription = "기록 삭제",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
+            Text(
+                text = record.summary,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (!record.memo.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "메모: ${record.memo}",
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = record.title, style = MaterialTheme.typography.titleMedium)
-        Text(
-            text = record.summary,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        if (!record.memo.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "메모: ${record.memo}",
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-        Row {
-            // 자가진단 기록은 분석 결과 화면 구조와 달라 상세 보기를 제공하지 않는다.
-            if (record.type == RecordType.DETECTION) {
+            Row {
+                // 자가진단 기록은 분석 결과 화면 구조와 달라 상세 보기를 제공하지 않는다.
+                if (record.type == RecordType.DETECTION) {
+                    TextButton(onClick = {
+                        navController.navigate(Screen.DetectionResult.createRoute(record.id))
+                    }) { Text("상세 보기 →") }
+                }
                 TextButton(onClick = {
-                    navController.navigate(Screen.DetectionResult.createRoute(record.id))
-                }) { Text("상세 보기 →") }
+                    navController.navigate(Screen.MemoEdit.createRoute(record.id))
+                }) { Text(if (record.memo.isNullOrBlank()) "메모 작성" else "메모 수정") }
             }
-            TextButton(onClick = {
-                navController.navigate(Screen.MemoEdit.createRoute(record.id))
-            }) { Text(if (record.memo.isNullOrBlank()) "메모 작성" else "메모 수정") }
         }
     }
 }
