@@ -34,6 +34,8 @@ import com.safelink.app.ui.theme.BrandBlueDark
 import com.safelink.app.ui.theme.BrandBlueLight
 import com.safelink.app.ui.theme.RiskCritical
 import com.safelink.app.ui.theme.SurfaceWhite
+import com.safelink.app.ui.theme.TipBlue
+import com.safelink.app.ui.theme.TipBlueContainer
 
 /** 더미 기관 데이터 — 실제로는 assets/institutions.json 로드 (Tasks 5.1~5.2) */
 internal data class Institution(
@@ -152,8 +154,13 @@ fun SupportMatchScreen(navController: NavHostController) {
 
             // 전화를 앞두고 무슨 말을 해야 할지 막막한 사용자를 위한 짧은 스크립트 (Figma B09) —
             // 노인/사회적 약자 접근성 개선 취지와도 맞음
-            SafeLinkCard {
-                Text(text = "전화할 때 이렇게 말해보세요", style = MaterialTheme.typography.titleMedium)
+            // 다른 안내성 카드들과 같은 파란 톤으로 통일(사용자 요청)
+            SafeLinkCard(containerColor = TipBlueContainer) {
+                Text(
+                    text = "전화할 때 이렇게 말해보세요",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = TipBlue
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "\"의심되는 연락을 받았고, 이미 송금했는지 확인이 필요해요.\"",
