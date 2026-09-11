@@ -167,7 +167,7 @@ fun SettingsScreen(navController: NavHostController) {
                 ) { Text("저장") }
             },
             dismissButton = {
-                TextButton(onClick = { showPinDialog = false; pinInput = "" }) { Text("취소") }
+                TextButton(onClick = { showPinDialog = false; pinInput = "" }) { Text("취소", color = TextPrimary) }
             }
         )
     }
@@ -263,7 +263,7 @@ fun SettingsScreen(navController: NavHostController) {
             },
             dismissButton = {
                 // 동의하지 않고 닫으면 꺼진 상태 그대로 둔다 (기본값이 꺼짐)
-                TextButton(onClick = { showAiConsentDialog = false }) { Text("사용 안 함") }
+                TextButton(onClick = { showAiConsentDialog = false }) { Text("사용 안 함", color = TextPrimary) }
             }
         )
     }
@@ -496,7 +496,7 @@ fun SettingsScreen(navController: NavHostController) {
                         }) { Text("저장") }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showNotifTextDialog = false }) { Text("취소") }
+                        TextButton(onClick = { showNotifTextDialog = false }) { Text("취소", color = TextPrimary) }
                     }
                 )
             }
@@ -518,7 +518,7 @@ fun SettingsScreen(navController: NavHostController) {
                         }) { Text("삭제", color = RiskCritical) }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showDeleteDialog = false }) { Text("취소") }
+                        TextButton(onClick = { showDeleteDialog = false }) { Text("취소", color = TextPrimary) }
                     }
                 )
             }
