@@ -53,6 +53,7 @@ import com.safelink.app.ui.components.containerColor
 import com.safelink.app.data.repository.RecordRepository
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.screens.detection.DetectionViewModel
+import com.safelink.app.ui.theme.BrandBlueDark
 import com.safelink.app.ui.theme.SurfaceWhite
 import com.safelink.app.ui.theme.TextPrimary
 
@@ -129,7 +130,10 @@ fun HomeScreen(
                     Text(
                         text = if (snapshot == null) "실시간 보호 중" else "위험 신호 감지됨",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = statusLevel.color()
+                        // Figma 픽셀 샘플링 결과 라벨 글자는 아이콘과 같은 밝은 그린(#16C79A)이
+                        // 아니라 더 진한 그린(#078465 계열, BrandBlueDark에 가까움)이었음 —
+                        // 옅은 민트 배경 위에서 대비를 확보하기 위한 톤 차이로 보임
+                        color = if (statusLevel == RiskLevel.SAFE) BrandBlueDark else statusLevel.color()
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     // Figma B02: 짧은 상태 단어("안전함") 없이 이 문장 자체가 굵은 큰 헤드라인 —
