@@ -16,13 +16,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -30,8 +30,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.util.IntentActions
+import com.safelink.app.data.repository.InstitutionCatalog
 import com.safelink.app.ui.components.SafeLinkCard
-import com.safelink.app.ui.components.SafeLinkOutlinedButton
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
 import com.safelink.app.ui.components.SafeLinkTopBar
 import com.safelink.app.ui.navigation.Screen
@@ -42,7 +42,8 @@ import com.safelink.app.ui.theme.BrandBlueLight
 @Composable
 fun SupportDetailScreen(navController: NavHostController, institutionId: String) {
     val context = LocalContext.current
-    val institution = dummyInstitutions.find { it.id == institutionId } ?: dummyInstitutions.first()
+    val institutions = remember { InstitutionCatalog.load(context) }
+    val institution = institutions.find { it.id == institutionId } ?: institutions.first()
 
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(title = "기관 정보", onBack = { navController.popBackStack() })
@@ -73,7 +74,7 @@ fun SupportDetailScreen(navController: NavHostController, institutionId: String)
                     Column {
                         Text(text = institution.name, style = MaterialTheme.typography.titleMedium)
                         Text(
-                            text = institution.description,
+                            text = institution.role,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -92,11 +93,11 @@ fun SupportDetailScreen(navController: NavHostController, institutionId: String)
 
             // 정보 리스트
             SafeLinkCard {
-                InfoRow(icon = Icons.Filled.Call, label = "전화번호", value = institution.phone)
+                InfoRow(icon = Icons.Filled.AccountBalance, label = "분류", value = institution.tier)
                 Spacer(modifier = Modifier.size(12.dp))
-                InfoRow(icon = Icons.Filled.Schedule, label = "운영시간", value = institution.hours)
+                InfoRow(icon = Icons.Filled.Category, label = "구분", value = institution.group)
                 Spacer(modifier = Modifier.size(12.dp))
-                InfoRow(icon = Icons.Filled.Groups, label = "지원 대상", value = institution.target)
+                InfoRow(icon = Icons.Filled.Call, label = "연락처", value = institution.contact)
             }
 
             TextButton(onClick = {
@@ -106,17 +107,24 @@ fun SupportDetailScreen(navController: NavHostController, institutionId: String)
             }
         }
 
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            SafeLinkPrimaryButton(text = "전화하기", onClick = {
-                IntentActions.dial(context, institution.phone)
-            })
-            SafeLinkOutlinedButton(text = "홈페이지 이동", onClick = {
-                // 각 기관 공식 사이트(Institution.website, 2026-08 확인)로 이동
-                IntentActions.openWeb(context, institution.website)
-            })
+        // contact 형식이 기관마다 달라서(전화번호/웹주소/안내문구) 실행 가능한 액션이 있을 때만
+        // 버튼을 보여준다 — SupportMatchScreen.phoneOrNull()/websiteOrNull() 참고
+        val phone = institution.phoneOrNull()
+        val website = institution.websiteOrNull()
+        if (phone != null || website != null) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                when {
+                    phone != null -> SafeLinkPrimaryButton(text = "전화하기", onClick = {
+                        IntentActions.dial(context, phone)
+                    })
+                    website != null -> SafeLinkPrimaryButton(text = "홈페이지 이동", onClick = {
+                        IntentActions.openWeb(context, website)
+                    })
+                }
+            }
         }
     }
 }

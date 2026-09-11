@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import com.safelink.app.util.IntentActions
+import com.safelink.app.data.repository.InstitutionCatalog
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
 import com.safelink.app.ui.components.SafeLinkTopBar
@@ -51,7 +52,8 @@ private val requiredDocuments = listOf("신분증", "피해 관련 증거 자료
 @Composable
 fun ApplicationGuideScreen(navController: NavHostController, institutionId: String) {
     val context = LocalContext.current
-    val institution = dummyInstitutions.find { it.id == institutionId } ?: dummyInstitutions.first()
+    val institutions = remember { InstitutionCatalog.load(context) }
+    val institution = institutions.find { it.id == institutionId } ?: institutions.first()
     val completed = remember { mutableStateListOf<Int>() } // 세션 내 유지 (Task 5.5)
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -152,10 +154,13 @@ fun ApplicationGuideScreen(navController: NavHostController, institutionId: Stri
             )
         }
 
-        Column(modifier = Modifier.padding(20.dp)) {
-            SafeLinkPrimaryButton(text = "기관에 전화하기", onClick = {
-                IntentActions.dial(context, institution.phone)
-            })
+        // contact가 전화번호 형식이 아닌 기관(웹주소/안내문구)도 있어 그럴 때만 버튼 숨김
+        institution.phoneOrNull()?.let { phone ->
+            Column(modifier = Modifier.padding(20.dp)) {
+                SafeLinkPrimaryButton(text = "기관에 전화하기", onClick = {
+                    IntentActions.dial(context, phone)
+                })
+            }
         }
     }
 }

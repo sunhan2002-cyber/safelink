@@ -12,83 +12,58 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.safelink.app.data.model.raw.InstitutionEntry
+import com.safelink.app.data.repository.InstitutionCatalog
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkTopBar
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.BrandBlue
-import com.safelink.app.ui.theme.BrandBlueDark
 import com.safelink.app.ui.theme.BrandBlueLight
 import com.safelink.app.ui.theme.RiskCritical
-import com.safelink.app.ui.theme.SurfaceWhite
 import com.safelink.app.ui.theme.TipBlue
 import com.safelink.app.ui.theme.TipBlueContainer
 
-/** 더미 기관 데이터 — 실제로는 assets/institutions.json 로드 (Tasks 5.1~5.2) */
-internal data class Institution(
-    val id: String,
-    val name: String,
-    val description: String,
-    val phone: String,
-    val hours: String,
-    val target: String,
-    // 홈페이지 이동 대상 URL. 각 기관 공식 사이트(2026-08 확인).
-    val website: String
-)
-
-internal val dummyInstitutions = listOf(
-    Institution(
-        id = "112",
-        name = "보이스피싱 통합신고센터 (112)",
-        description = "경찰청 관할 피해 신고 및 즉시 조치",
-        phone = "112",
-        hours = "연중무휴 24시간",
-        target = "보이스피싱·금융사기 피해자",
-        website = "https://ecrm.police.go.kr"
-    ),
-    Institution(
-        id = "118",
-        name = "한국인터넷진흥원 (118)",
-        description = "스미싱 및 인터넷 침해사고 대응",
-        phone = "118",
-        hours = "연중무휴 24시간",
-        target = "스미싱·해킹·개인정보 침해 피해자",
-        website = "https://www.boho.or.kr"
-    ),
-    Institution(
-        id = "132",
-        name = "대한법률구조공단 (132)",
-        description = "피해 회복을 위한 법률 상담 및 지원",
-        phone = "132",
-        hours = "평일 09:00~18:00",
-        target = "법률 상담이 필요한 피해자",
-        website = "https://www.klac.or.kr"
-    )
-)
-
-private fun badgeColor(institutionId: String): Color = when (institutionId) {
-    "112" -> RiskCritical
-    "132" -> BrandBlueDark
-    else -> BrandBlue
+/**
+ * 기관의 contact 필드는 전화번호("112", "1577-5500")뿐 아니라 웹 주소("복지로.kr"),
+ * 안내 문구("지역별 센터", "24시간 상담전화") 등 형식이 섞여 있어(data/institutions.json 참고),
+ * 버튼(전화 걸기/홈페이지 이동)을 보여줄지는 값 형태로 판별한다.
+ */
+internal fun InstitutionEntry.phoneOrNull(): String? {
+    val core = contact.substringBefore("(").trim()
+    return core.takeIf { it.isNotEmpty() && it.all { c -> c.isDigit() || c == '-' } }
 }
 
-/** 지원 서비스 추천 (Figma B09) — 위험 유형별 필터링은 Task 5.3 */
+internal fun InstitutionEntry.websiteOrNull(): String? {
+    val trimmed = contact.trim()
+    return trimmed.takeIf { Regex("\\.[a-zA-Z]{2,4}$").containsMatchIn(it) }
+}
+
+/** 지원 서비스 추천 (Figma B09) — 위험 유형별 필터링은 Task 5.3, 지금은 전체 목록 표시 */
 @Composable
 fun SupportMatchScreen(navController: NavHostController) {
+    val context = LocalContext.current
+    val institutions = remember { InstitutionCatalog.load(context) }
+    val (urgent, others) = remember(institutions) {
+        institutions.partition { it.group == "긴급대응" }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(title = "도움받기")
 
@@ -112,45 +87,14 @@ fun SupportMatchScreen(navController: NavHostController) {
                 )
             }
 
-            Text(text = "빠른 도움", style = MaterialTheme.typography.titleMedium)
+            if (urgent.isNotEmpty()) {
+                Text(text = "즉시 대응기관", style = MaterialTheme.typography.titleMedium)
+                urgent.forEach { InstitutionRow(it, navController) }
+            }
 
-            dummyInstitutions.forEach { institution ->
-                SafeLinkCard(onClick = {
-                    navController.navigate(Screen.SupportDetail.createRoute(institution.id))
-                }) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(56.dp)
-                                .background(badgeColor(institution.id), RoundedCornerShape(12.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = institution.phone,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = SurfaceWhite
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(14.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = institution.name.substringBefore(" ("),
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                text = institution.description,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+            if (others.isNotEmpty()) {
+                Text(text = "추가 지원기관", style = MaterialTheme.typography.titleMedium)
+                others.forEach { InstitutionRow(it, navController) }
             }
 
             // 전화를 앞두고 무슨 말을 해야 할지 막막한 사용자를 위한 짧은 스크립트 (Figma B09) —
@@ -187,6 +131,44 @@ fun SupportMatchScreen(navController: NavHostController) {
                 )
             }
             Spacer(modifier = Modifier.height(60.dp))
+        }
+    }
+}
+
+@Composable
+private fun InstitutionRow(institution: InstitutionEntry, navController: NavHostController) {
+    SafeLinkCard(onClick = {
+        navController.navigate(Screen.SupportDetail.createRoute(institution.id))
+    }) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(BrandBlueLight, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.AccountBalance,
+                    contentDescription = null,
+                    tint = BrandBlue
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = institution.name, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = institution.role,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
