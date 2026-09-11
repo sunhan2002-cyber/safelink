@@ -364,7 +364,7 @@ fun SettingsScreen(navController: NavHostController) {
                 )
                 ToggleRow(
                     label = "백그라운드 AI 정밀 분석",
-                    caption = "켜면 판단이 애매한 경우 대화 내용이 분석 서버로 전송됩니다. 끄면 기기 안에서만 판단합니다.",
+                    caption = "켜면 판단이 애매한 경우 대화 내용이 AI 제공사(Anthropic)로 전송됩니다. 끄면 기기 안에서만 판단합니다.",
                     checked = aiConsent,
                     onChange = { on ->
                         // 켤 때만 동의 화면을 띄운다. 끄는 건 즉시 반영(동의 철회에 확인을 요구하지 않는다).

@@ -6,6 +6,7 @@ import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.model.raw.InstitutionData
 import com.safelink.app.data.model.raw.KeywordData
 import com.safelink.app.data.remote.AnalyzeApiClient
+import com.safelink.app.data.remote.ClaudeDirectAnalyzer
 import com.safelink.app.data.remote.AnalyzeApiService
 import com.safelink.app.data.remote.dto.AnalyzeRequestDto
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -38,6 +39,9 @@ class DetectionRepository @Inject constructor(
     /** 2차 AI 보조 분석 서버 클라이언트. 지금은 목 서버(backend/) 기준 기본 주소로 연결됨
      *  — 실제 배포 서버가 생기면 baseUrl만 바꾸면 됨(요청/응답 계약은 그대로). */
     private val apiService: AnalyzeApiService by lazy { AnalyzeApiClient.create() }
+
+    /** 발표용 구성: API 키가 빌드에 들어 있으면 앱이 Claude 를 직접 호출한다(ClaudeDirectAnalyzer KDoc 참고). */
+    private val claudeDirect: ClaudeDirectAnalyzer by lazy { ClaudeDirectAnalyzer() }
 
     private fun <T> loadAsset(fileName: String, clazz: Class<T>): T {
         val json = context.assets.open(fileName).bufferedReader().use(BufferedReader::readText)
@@ -102,9 +106,15 @@ class DetectionRepository @Inject constructor(
                 deviceAppliedComboIds = result.appliedComboIds,
                 categoryHint = result.category.ifBlank { null }
             )
-            val response = apiService.analyze(request)
-            val body = response.body()
-            if (!response.isSuccessful || body == null) {
+            // 발표용: 키가 있으면 앱이 Claude 를 직접 호출하고, 없으면 기존 서버로 보낸다.
+            // 어느 쪽이든 판정을 받지 못하면 body 가 null 이 되어 온디바이스 결과를 그대로 쓴다.
+            val body = if (claudeDirect.isConfigured) {
+                claudeDirect.analyze(request)
+            } else {
+                val response = apiService.analyze(request)
+                response.body()?.takeIf { response.isSuccessful }
+            }
+            if (body == null) {
                 result // 경로 1·2 - 온디바이스 결과 유지
             } else {
                 engine.mergeAiResponse(result, body)

@@ -32,6 +32,13 @@ val aiBaseUrl: String = localProperties.getProperty("SAFELINK_AI_BASE_URL", "htt
     .trim()
     .let { if (it.endsWith("/")) it else "$it/" }
 
+/**
+ * Claude API 키. 발표용으로 앱이 Claude 를 직접 호출한다(서버를 거치지 않음).
+ * local.properties 에만 둔다(.gitignore 대상). 키가 APK 안에 들어가므로 APK 파일을 외부에 공유하지 않는다.
+ * 키가 없으면 기존처럼 분석 서버(SAFELINK_AI_BASE_URL)로 요청한다.
+ */
+val anthropicApiKey: String = localProperties.getProperty("ANTHROPIC_API_KEY", "")
+
 android {
     namespace = "com.safelink.app"
     compileSdk = 35
@@ -45,6 +52,7 @@ android {
 
         buildConfigField("String", "SAFE_BROWSING_API_KEY", "\"$safeBrowsingApiKey\"")
         buildConfigField("String", "AI_BASE_URL", "\"$aiBaseUrl\"")
+        buildConfigField("String", "ANTHROPIC_API_KEY", "\"$anthropicApiKey\"")
     }
 
     buildTypes {
@@ -104,5 +112,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     // 링크 안전성 검사 — Google Play 서비스가 관리하는 온디바이스 차단 목록 조회(URL 미전송)
     implementation(libs.play.services.safebrowsing)
+    // AI 문맥 분석 — 발표용으로 앱이 Claude 를 직접 호출 (공식 Java SDK, Kotlin 에서 사용)
+    implementation(libs.anthropic.java)
     testImplementation(libs.junit)
 }
