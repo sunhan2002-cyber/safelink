@@ -17,7 +17,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PriorityHigh
@@ -26,7 +28,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -79,9 +80,12 @@ fun EmergencyScreen(navController: NavHostController) {
             useCloseIcon = true
         )
 
+        // 원·버튼을 키운 뒤로 작은 화면에서는 내용이 화면보다 길어져 맨 아래 안내 문구가
+        // 잘렸다 — 스크롤되게 해서 어느 화면 크기에서도 끝까지 볼 수 있게 한다.
         Column(
             modifier = Modifier
                 .weight(1f)
+                .verticalScroll(rememberScrollState())
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -173,15 +177,8 @@ fun EmergencyScreen(navController: NavHostController) {
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
         }
-
-        TextButton(
-            onClick = { navController.navigate(Screen.Settings.route) },
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(bottom = 20.dp)
-        ) {
-            Text("긴급 연락처가 없다면 설정에서 등록하세요")
-        }
+        // 하단 "긴급 연락처가 없다면 설정에서 등록하세요" 버튼은 뺐다 — 연락처가 없으면 위의
+        // "믿을 수 있는 사람에게 알리기" 버튼이 이미 설정으로 보내고 같은 안내 문구도 붙어 있어 중복이었다.
     }
 }
 
