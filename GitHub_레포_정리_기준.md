@@ -81,6 +81,14 @@ Website:
 비워두거나 발표/배포 링크가 생긴 뒤 추가
 ```
 
+Profile image:
+
+```text
+docs/assets/safelink_profile_avatar.png
+```
+
+SafeLink 레포 또는 GitHub 조직/계정 프로필 이미지를 설정할 때는 위 이미지를 사용한다. 두 아이가 손을 잡고 있는 SafeLink 마스코트를 강조한 정사각형 프로필용 파일이다.
+
 ### 추천 pinned repository
 
 - `safelink`
