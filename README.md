@@ -1,52 +1,180 @@
 # SafeLink
 
-SafeLink is an Android safety-support application that detects suspicious signals in messenger or SMS conversations and connects users to practical response guidance.
+Android safety-support app for detecting risky messenger conversations with OCR, background detection, and on-device rule-based analysis.
 
-The project was developed for an engineering competition. It focuses on three user flows:
+SafeLink helps users notice suspicious conversation patterns earlier and move from risk detection to practical response guidance. The project was built for an engineering competition and focuses on real user flows: direct text analysis, screenshot OCR analysis, background detection, result explanation, response guide, and institution support.
 
-- Text-based risk analysis
-- Screenshot-based conversation analysis using OCR
-- Background risk detection with notification and response guidance
+```text
+Risky conversation
+        ↓
+On-device rule-based analysis
+        ↓
+Risk result + evidence
+        ↓
+Response guide + institution support
+```
 
-SafeLink does not rely on AI as the main decision maker. The core judgment is performed by an on-device rule-based detection engine, and AI-assisted analysis is used only as a secondary support step when additional context is needed.
+## Quick Navigation
+
+- [Overview](#overview)
+- [Core Features](#core-features)
+- [Demo Flows](#demo-flows)
+- [Architecture](#architecture)
+- [Detection Logic](#detection-logic)
+- [Tech Stack](#tech-stack)
+- [Repository Structure](#repository-structure)
+- [Run Locally](#run-locally)
+- [Current Status](#current-status)
 
 ---
 
-## Key Features
+## Overview
 
-### Conversation Risk Analysis
+Digital crimes such as phishing, impersonation, romance scams, investment scams, and coercive relationship patterns often begin inside ordinary conversations. Users may notice the danger too late, or may not know what to do after recognizing it.
 
-- Analyzes user-entered conversation text
-- Detects risk signals using keyword, regex, sentence-rule, and situation-rule logic
-- Classifies the result into `SAFE`, `CAUTION`, `WARNING`, or `CRITICAL`
-- Shows matched keywords and analysis evidence on the result screen
+SafeLink is designed around two goals:
 
-### Screenshot OCR Analysis
+1. Detect risky signals in conversation text before the situation escalates.
+2. Connect the user to concrete response guidance instead of stopping at a simple warning.
 
-- Uses Android Photo Picker to select conversation screenshots
-- Extracts Korean text with Google ML Kit Text Recognition
-- Sends extracted text into the same detection flow as text input
-- Handles empty or too-short OCR results with user-facing feedback
+The app does not use AI as the main decision maker. The primary judgment is performed by an on-device rule-based detection engine. AI-assisted analysis is used only as a secondary support step for additional context when needed.
 
-### Background Detection
+---
 
-- Uses Android `AccessibilityService`
-- Detects visible text from other app screens when the user explicitly enables accessibility permission
-- Analyzes detected text with the same on-device detection engine
-- Shows neutral warning notifications through `NotificationCompat`
-- Connects notification taps to response guidance or emergency flow
+## Core Features
 
-### Response Guide and Institution Matching
+| Feature | Description | Status |
+|---|---|---|
+| Text Risk Analysis | Analyzes user-entered conversation text and classifies risk level. | Implemented |
+| Screenshot OCR Analysis | Extracts Korean text from screenshots and sends it into the same analysis flow. | Implemented |
+| Background Detection | Uses accessibility permission to detect risky visible text and notify the user. | Implemented |
+| Result Evidence | Shows keyword, sentence-rule, situation-rule, and AI-assisted evidence. | Implemented |
+| Response Guide | Provides response actions based on the detected risk. | Implemented |
+| Institution Matching | Recommends relevant support institutions by risk type. | Implemented |
+| Local Records | Stores analysis and self-diagnosis records locally with Room DB. | Implemented |
 
-- Provides risk-level-based response guidance
-- Recommends relevant support institutions by risk category
-- Connects users to phone, web, or support application guidance
+---
 
-### Local Record Storage
+## Demo Flows
 
-- Stores detection and self-diagnosis records locally with Room DB
-- Allows users to revisit past analysis results
-- Keeps records on the device instead of sending them to an external server
+### 1. Direct Text Analysis
+
+```text
+Home
+  → Text input
+  → Risk analysis
+  → Result screen
+  → Response guide
+  → Institution support
+```
+
+This is the most stable main demo flow. It shows the full path from user input to risk evidence and response guidance.
+
+### 2. Screenshot OCR Analysis
+
+```text
+Home
+  → Select screenshot
+  → ML Kit OCR
+  → Risk analysis
+  → Result screen
+  → Response guide
+```
+
+This flow demonstrates how a real conversation screenshot can be converted into text and analyzed through the same detection engine.
+
+### 3. Background Detection
+
+```text
+Other app screen
+  → Accessibility-based text detection
+  → On-device risk analysis
+  → Warning notification
+  → Response guide
+```
+
+This flow is the key feature expansion. It shows how SafeLink can detect risky expressions while the user is viewing another app, with explicit accessibility permission.
+
+---
+
+## Architecture
+
+```text
+User Input
+  ├─ Direct text input
+  ├─ Screenshot OCR input
+  └─ Background accessibility input
+        ↓
+DetectionViewModel
+        ↓
+DetectionRepository
+        ↓
+DetectionEngine
+  ├─ Keyword / regex matching
+  ├─ Combo rule scoring
+  ├─ Sentence rule scoring
+  ├─ Situation rule scoring
+  └─ Optional AI-assisted analysis
+        ↓
+DetectionResult
+        ↓
+Result Screen
+        ↓
+Response Guide
+        ↓
+Institution Support
+        ↓
+Room DB Record Storage
+```
+
+### Design Direction
+
+- Core analysis runs on-device.
+- OCR uses on-device ML Kit text recognition.
+- Background detection requires explicit user permission.
+- AI is a supporting layer, not the primary decision maker.
+- If network or AI analysis fails, the on-device result remains usable.
+- Sensitive values such as phone numbers and URLs are masked before API use.
+
+---
+
+## Detection Logic
+
+SafeLink combines multiple rule types so that the result does not depend only on simple keyword matching.
+
+```text
+Input text
+  → Keyword / regex matching
+  → Base score calculation
+  → Combo rule bonus
+  → Sentence rule scoring
+  → Situation rule scoring
+  → Risk level classification
+  → Evidence generation
+  → Optional AI-assisted explanation
+```
+
+### Risk Levels
+
+| Level | Meaning |
+|---|---|
+| `SAFE` | No meaningful risk signal detected. |
+| `CAUTION` | Some suspicious signs exist and should be checked. |
+| `WARNING` | Multiple risk signals are detected. |
+| `CRITICAL` | Immediate attention is recommended. |
+
+### Rule Examples
+
+- Institution impersonation plus personal information request
+- Urgency plus money transfer request
+- Link or app installation plus identity verification
+- Secrecy request plus financial demand
+- Family impersonation plus new phone number and transfer request
+- Romance scam trust-building plus urgent money request
+- Guaranteed investment return plus deposit request
+- Threat of exposure plus money demand
+- Gaslighting through memory denial and blame shifting
+- Relationship isolation and control
 
 ---
 
@@ -66,100 +194,35 @@ SafeLink does not rely on AI as the main decision maker. The core judgment is pe
 | Background Detection | Android AccessibilityService |
 | Notification | NotificationChannel, NotificationCompat |
 | Build | Gradle Kotlin DSL, KSP |
+| Backend Demo | FastAPI mock analysis server |
 
 ---
 
-## Architecture Overview
-
-```text
-User Input
-  ├─ Text input
-  ├─ Screenshot OCR
-  └─ Background accessibility detection
-        ↓
-DetectionViewModel
-        ↓
-DetectionRepository
-        ↓
-DetectionEngine
-  ├─ Keyword / regex matching
-  ├─ Combo rule scoring
-  ├─ Sentence rule scoring
-  ├─ Situation rule scoring
-  └─ AI-assisted analysis fallback
-        ↓
-DetectionResult
-        ↓
-Result Screen → Response Guide → Institution Support
-        ↓
-Room DB Record Storage
-```
-
----
-
-## Main Modules
+## Repository Structure
 
 ```text
 safelink/
 ├── android/                         # Android application
-│   └── app/src/main/java/com/safelink/app/
-│       ├── background/              # AccessibilityService-based background detection
-│       ├── data/
-│       │   ├── local/               # Room DB entities and DAO
-│       │   ├── model/               # Detection result and risk models
-│       │   ├── ocr/                 # ML Kit OCR service
-│       │   ├── remote/              # AI-assisted analysis API DTO/service
-│       │   └── repository/          # Detection and record repositories
-│       ├── notification/            # Risk notification handling
-│       ├── security/                # App lock manager
-│       ├── settings/                # Feature toggles and emergency contact storage
-│       └── ui/                      # Compose screens and reusable components
-├── backend/                         # Mock analysis server for API integration demo
-├── data/                            # Data/API reference files
-└── docs/                            # Requirements, design, flow, and task documents
+│   └── app/src/main/
+│       ├── assets/                  # keyword and institution data
+│       ├── java/com/safelink/app/
+│       │   ├── background/          # AccessibilityService detection
+│       │   ├── data/
+│       │   │   ├── local/           # Room DB entities and DAO
+│       │   │   ├── model/           # Risk and detection result models
+│       │   │   ├── ocr/             # ML Kit OCR service
+│       │   │   ├── remote/          # AI-assisted API DTO/service
+│       │   │   └── repository/      # Detection and record repositories
+│       │   ├── notification/        # Risk notification handling
+│       │   ├── security/            # App lock manager
+│       │   ├── settings/            # Feature toggles and emergency contact storage
+│       │   └── ui/                  # Compose screens and components
+│       └── res/                     # App resources and launcher assets
+├── backend/                         # Mock API server for integration demo
+├── data/                            # API/data reference files
+├── docs/                            # Requirements, design, and flow documents
+└── GitHub_레포_정리_기준.md          # GitHub portfolio cleanup guide
 ```
-
----
-
-## Core Detection Logic
-
-The detection engine calculates risk in the following order:
-
-```text
-Input text
-→ Keyword / regex matching
-→ Base score calculation
-→ Combo rule bonus
-→ Direct sentence and situation rule scoring
-→ Risk level classification
-→ Analysis evidence generation
-→ Optional AI-assisted analysis
-```
-
-Direct sentence and situation rules cover patterns such as:
-
-- Institution impersonation plus personal information request
-- Urgency plus money transfer request
-- Link or app installation plus identity verification
-- Secrecy request plus financial demand
-- Family impersonation plus new phone number and transfer request
-- Romance scam trust-building plus urgent money request
-- Guaranteed investment return plus deposit request
-- Threat of exposure plus money demand
-- Gaslighting through memory denial and blame shifting
-- Relationship isolation and control
-
----
-
-## Privacy and Safety Design
-
-- Core detection runs on-device.
-- OCR is performed with on-device ML Kit text recognition.
-- Detection records are stored locally with Room DB.
-- Accessibility-based background detection requires explicit user permission.
-- AI-assisted analysis is optional and secondary.
-- Sensitive values such as phone numbers and URLs are masked before API use.
-- If the AI API fails, the on-device analysis result remains available.
 
 ---
 
@@ -189,12 +252,22 @@ The Android emulator can access the local server through `10.0.2.2`.
 - Text analysis flow is implemented.
 - Screenshot OCR analysis flow is implemented.
 - Background detection and notification flow are implemented.
-- Result screen displays keyword, sentence-rule, situation-rule, and AI-assisted analysis evidence.
+- Result screen displays keyword, sentence-rule, situation-rule, and AI-assisted evidence.
+- Response guide and institution support flow are implemented.
 - Local record storage is implemented with Room DB.
-- AI-assisted analysis architecture is implemented with a mock server and fallback behavior.
+- AI-assisted analysis architecture is implemented with mock server and fallback behavior.
 
 ---
 
-## Team Role
+## Competition Highlights
 
-SafeLink was developed as a team engineering competition project. The repository includes Android implementation, analysis logic, OCR/background detection features, documentation, and presentation materials.
+SafeLink is not positioned as a simple keyword scanner. The project emphasizes a hybrid safety-support structure:
+
+- On-device primary judgment
+- Sentence and situation rule evidence
+- OCR-based screenshot analysis
+- Accessibility-based background detection
+- Response guide and institution support
+- AI-assisted explanation as a secondary layer
+
+This structure makes the app suitable for explaining both technical implementation and practical user value in an engineering competition setting.
