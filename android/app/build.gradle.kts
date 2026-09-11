@@ -8,14 +8,36 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
+/** local.properties — 이 PC 전용 설정. 저장소에 커밋되지 않는다(.gitignore 대상). */
+val localProperties: Properties = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+
 /**
  * Safe Browsing API 키는 저장소에 커밋하지 않는다(local.properties, .gitignore 대상).
  * 키가 없으면 빈 문자열이 들어가고, 링크 검사 기능만 "사용 불가"로 표시된 채 앱은 정상 동작한다.
  */
-val safeBrowsingApiKey: String = Properties().apply {
-    val f = rootProject.file("local.properties")
-    if (f.exists()) f.inputStream().use { load(it) }
-}.getProperty("SAFE_BROWSING_API_KEY", "")
+val safeBrowsingApiKey: String = localProperties.getProperty("SAFE_BROWSING_API_KEY", "")
+
+/**
+ * AI 문맥 분석 서버 주소.
+ *
+ * 기본값 10.0.2.2 는 에뮬레이터 안에서만 호스트 PC 를 가리키는 특수 주소다. 실기기에서는 서버에
+ * 절대 닿지 않고, 그때 앱은 조용히 온디바이스 결과만 쓴다. 실기기나 배포 서버에 붙이려면
+ * local.properties 에 SAFELINK_AI_BASE_URL=https://... 를 넣고 다시 빌드한다.
+ * Retrofit 은 주소 끝에 / 가 있어야 하므로 없으면 붙인다.
+ */
+val aiBaseUrl: String = localProperties.getProperty("SAFELINK_AI_BASE_URL", "http://10.0.2.2:8000/")
+    .trim()
+    .let { if (it.endsWith("/")) it else "$it/" }
+
+/**
+ * Claude API 키. 발표용으로 앱이 Claude 를 직접 호출한다(서버를 거치지 않음).
+ * local.properties 에만 둔다(.gitignore 대상). 키가 APK 안에 들어가므로 APK 파일을 외부에 공유하지 않는다.
+ * 키가 없으면 기존처럼 분석 서버(SAFELINK_AI_BASE_URL)로 요청한다.
+ */
+val anthropicApiKey: String = localProperties.getProperty("ANTHROPIC_API_KEY", "")
 
 android {
     namespace = "com.safelink.app"
@@ -29,6 +51,8 @@ android {
         versionName = "0.1.0"
 
         buildConfigField("String", "SAFE_BROWSING_API_KEY", "\"$safeBrowsingApiKey\"")
+        buildConfigField("String", "AI_BASE_URL", "\"$aiBaseUrl\"")
+        buildConfigField("String", "ANTHROPIC_API_KEY", "\"$anthropicApiKey\"")
     }
 
     buildTypes {
@@ -88,5 +112,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     // 링크 안전성 검사 — Google Play 서비스가 관리하는 온디바이스 차단 목록 조회(URL 미전송)
     implementation(libs.play.services.safebrowsing)
+    // AI 문맥 분석 — 발표용으로 앱이 Claude 를 직접 호출 (공식 Java SDK, Kotlin 에서 사용)
+    implementation(libs.anthropic.java)
     testImplementation(libs.junit)
 }

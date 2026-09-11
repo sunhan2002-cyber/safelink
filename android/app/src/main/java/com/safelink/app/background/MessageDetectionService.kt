@@ -22,6 +22,8 @@ import com.safelink.app.data.link.LinkRiskChecker
 import com.safelink.app.data.link.LinkRiskResult
 import com.safelink.app.data.link.LinkVerdict
 import com.safelink.app.notification.RiskNotifier
+import com.safelink.app.settings.AiConsentStore
+import java.util.UUID
 
 /**
  * 백그라운드 위험 감지 서비스 — 화면 텍스트 추출 → 온디바이스 분석 → 알림까지 실제 동작.
@@ -148,9 +150,12 @@ class MessageDetectionService : AccessibilityService() {
             )
             // 검사 기록에도 남겨 "기록" 탭에서 나중에 다시 확인할 수 있게 한다 (Task 7.1).
             // 알림이 뜬 건(경고 이상)만 저장 — 일상 화면까지 기록이 쌓이지 않도록.
+            // AI 보정 이전의 온디바이스 결과를 저장한다(보정은 비동기라 시점이 늦다) — 수동 분석과 동일.
             serviceScope.launch {
                 runCatching { recordRepository.saveDetection(result, RecordSource.BACKGROUND) }
             }
+
+            escalateToAiIfConsented(result, pkg, text)
             return
         }
 
@@ -213,6 +218,40 @@ class MessageDetectionService : AccessibilityService() {
         BackgroundDetectionState.update(result, sourceApp = pkg)
         notifier.notifyRisk(result.riskLevel, result.category, risk.link.displayText)
         runCatching { recordRepository.saveDetection(result, RecordSource.BACKGROUND) }
+    }
+
+    /**
+     * 사용자가 동의한 경우에만 2차 AI 보조 분석을 호출한다.
+     *
+     * ── 알림을 먼저 띄우고 나서 부른다 ────────────────────────────────
+     * AI 응답을 기다렸다 알리면 경고가 1~2초 늦어진다. 백그라운드 감지는 "빨리 알려주는 것"이
+     * 존재 이유라 그 지연을 감수할 이유가 없다. 그래서 알림·기록은 온디바이스 판정으로 즉시
+     * 처리하고, AI 결과는 도착하는 대로 화면에 실린 결과만 갈아끼운다
+     * ([BackgroundDetectionState.refine]) — 사용자가 알림을 눌러 결과를 볼 때쯤이면 대개 도착해 있다.
+     *
+     * ── 동의가 없으면 아무것도 하지 않는다 ────────────────────────────
+     * 백그라운드에서 읽은 텍스트에는 사용자가 인지하지 못한 제3자 대화가 들어 있다.
+     * 그래서 기본값은 꺼짐이고, 설정에서 명시적으로 동의한 경우에만 서버로 나간다
+     * ([AiConsentStore] KDoc 참고).
+     */
+    private fun escalateToAiIfConsented(result: DetectionResult, pkg: String, text: String) {
+        if (!AiConsentStore.isEnabled(applicationContext)) return
+        if (!repository.shouldEscalateToAI(result)) return
+
+        serviceScope.launch {
+            val refined = runCatching {
+                repository.escalateToAI(
+                    result = result,
+                    sessionId = UUID.randomUUID().toString(),
+                    recentTurns = listOf(text)
+                )
+            }.getOrNull() ?: return@launch
+
+            // 서버가 실패하면 escalateToAI 가 원본을 그대로 돌려준다 — 그때는 갈아끼울 게 없다.
+            if (refined !== result) {
+                BackgroundDetectionState.refine(refined, sourceApp = pkg)
+            }
+        }
     }
 
     /** 매칭된 키워드 id 집합 — 같은 내용을 다시 본 것인지 판단하는 기준 */

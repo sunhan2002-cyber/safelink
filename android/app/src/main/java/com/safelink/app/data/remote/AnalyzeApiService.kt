@@ -1,6 +1,7 @@
 package com.safelink.app.data.remote
 
 import com.google.gson.Gson
+import com.safelink.app.BuildConfig
 import com.safelink.app.data.remote.dto.AnalyzeRequestDto
 import com.safelink.app.data.remote.dto.AnalyzeResponseDto
 import okhttp3.OkHttpClient
@@ -26,7 +27,9 @@ interface AnalyzeApiService {
  * 10.0.2.2. 실제 배포 서버가 생기면 이 값만 바꾸면 됨(요청/응답 계약은 그대로).
  */
 object AnalyzeApiClient {
-    private const val DEFAULT_BASE_URL = "http://10.0.2.2:8000/"
+    // 빌드 시 local.properties 의 SAFELINK_AI_BASE_URL 로 정해진다 (app/build.gradle.kts 참고).
+    // 설정이 없으면 에뮬레이터 전용 주소 http://10.0.2.2:8000/ 이다.
+    private val DEFAULT_BASE_URL = BuildConfig.AI_BASE_URL
 
     fun create(baseUrl: String = DEFAULT_BASE_URL): AnalyzeApiService {
         val logging = HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }
