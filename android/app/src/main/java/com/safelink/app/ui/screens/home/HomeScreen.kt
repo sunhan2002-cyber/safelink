@@ -17,32 +17,30 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.data.model.RiskLevel
 import com.safelink.app.ui.components.RiskBadge
 import com.safelink.app.ui.components.SafeLinkCard
-import com.safelink.app.ui.components.SafeLinkOutlinedButton
-import com.safelink.app.ui.components.SafeLinkPrimaryButton
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -105,14 +103,47 @@ fun HomeScreen(
             label = "pulse-scale"
         )
 
+        // 9주차 - Figma "Concept B" B02(Protection Home) 구조로 재배치: 아이콘을 카드
+        // 우상단 배지로, 상태 문구 아래에 "최근 위험 신호 N건" 통계 줄 추가. 펄스·색·클릭
+        // 로직은 기존 그대로 유지 — 배치만 Figma 기준으로 바꿈.
         SafeLinkCard(
             containerColor = statusLevel.containerColor(),
             onClick = {
                 snapshot?.let { navController.navigate(Screen.ResponseGuide.createRoute(statusLevel)) }
             }
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.size(56.dp)) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.fillMaxWidth(0.78f)) {
+                    Text(
+                        text = if (snapshot == null) "실시간 보호 중" else "위험 신호 감지됨",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = statusLevel.color()
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = homeStatusTitle(statusLevel),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = statusLevel.color()
+                    )
+                    Text(
+                        text = snapshot?.let { "최근 감지된 표현이 있어요 · ${it.category}" }
+                            ?: "오늘도 안전하게 살펴보고 있어요",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "최근 위험 신호 ${todayAlertCount}건",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(56.dp)
+                ) {
                     // 은은한 숨쉬는 배경 원 (평상시에만 펄스)
                     Box(
                         modifier = Modifier
@@ -135,109 +166,93 @@ fun HomeScreen(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.size(16.dp))
-                Column {
-                    Text(
-                        text = homeStatusTitle(statusLevel),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = statusLevel.color()
-                    )
-                    Text(
-                        text = snapshot?.let { "최근 감지된 표현이 있어요 · ${it.category}" }
-                            ?: "실시간 보호 작동 중",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
         }
 
-        // 활동 요약 — 오늘의 알림 = 백그라운드 감지 건수, 정밀 검사 = 사용자가 직접 실행한 분석 건수.
-        // UI/UX 2순위(카드 남용 줄이기) - 단순 숫자 표시까지 흰 카드 2개로 감싸던 걸,
-        // 배경에 바로 얹은 한 줄 통계 + 구분선으로 바꿔 "전부 카드"인 단조로움을 깸.
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            SummaryStat(label = "오늘의 알림", count = todayAlertCount, modifier = Modifier.weight(1f))
-            VerticalDivider(
-                modifier = Modifier
-                    .height(40.dp)
-                    .align(Alignment.CenterVertically)
-            )
-            SummaryStat(label = "정밀 검사", count = todayScanCount, modifier = Modifier.weight(1f))
-        }
-
-        // 퀵 액션 — 앱의 핵심 기능이라 홈에서만 기본(56dp)보다 크게 강조 (사용자 요청).
-        // 높이만 키우면 글자 주변 여백만 늘어나 보여서, 글자 크기도 같이 키워 비례감을 맞춤.
-        SafeLinkPrimaryButton(
-            text = "대화 분석 시작",
-            onClick = startAnalysis,
-            height = 68.dp,
-            textStyle = MaterialTheme.typography.titleMedium
-        )
+        // 퀵 액션 — Figma는 대화분석/링크검사/자가진단 3개인데, "링크 검사"는 독립 입력화면이
+        // 따로 없고(분석 흐름 안에서 자동으로 함께 검사됨) 없는 기능을 있는 것처럼 만들지 않기
+        // 위해 2개만 둠. 기존 "대화 분석 시작" 큰 버튼은 제거하고 이 타일이 그 역할을 겸함
+        // (Figma에 별도 대형 버튼이 없음 - 퀵액션 3개가 곧 메인 진입점).
+        // "백그라운드 감지" 바로가기는 Figma에 없는 항목이라 홈에서는 빠지고, 설정 탭에서는
+        // 그대로 이용 가능(기능 삭제 아님, 위치만 이동).
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            QuickActionCard(
+                title = "대화 분석",
+                icon = Icons.Filled.Search,
+                onClick = startAnalysis,
+                modifier = Modifier.weight(1f)
+            )
             QuickActionCard(
                 title = "자가 진단",
                 icon = Icons.Filled.Checklist,
                 onClick = { navController.navigate(Screen.Diagnosis.route) },
                 modifier = Modifier.weight(1f)
             )
-            // "대화 분석"이 위 "대화 분석 시작" 버튼과 완전히 같은 동작(startAnalysis)이라
-            // 순수 중복이었음(사용자 지적) - 홈에서 접근 어려웠던 백그라운드 감지 설정
-            // 바로가기로 교체
-            QuickActionCard(
-                title = "백그라운드 감지",
-                icon = Icons.Filled.Visibility,
-                onClick = { navController.navigate(Screen.Settings.route) },
-                modifier = Modifier.weight(1f)
-            )
         }
 
-        // 추천 지원 서비스
-        Text(text = "추천 지원 서비스", style = MaterialTheme.typography.titleMedium)
-        SafeLinkCard(onClick = { navController.navigate(Screen.SupportMatch.route) }) {
-            Text(text = "전문가 1:1 상담", style = MaterialTheme.typography.titleMedium)
+        // 최근 확인 — Figma의 단일 인사이트 카드로 교체. 기존 "추천 지원 서비스"(전문가 상담)
+        // 카드는 Figma 홈에 없는 항목이라 빠짐 — 지원 탭에서 동일 항목을 그대로 볼 수 있어
+        // 기능이 사라지는 건 아님. 기존 "최근 검사 기록"(최대 3건 리스트)은 최신 1건 요약으로
+        // 압축하고, todayScanCount(정밀 검사 수)는 여기 통계 줄로 옮겨서 정보는 그대로 유지.
+        Text(text = "최근 확인", style = MaterialTheme.typography.titleMedium)
+        SafeLinkCard(onClick = { navController.navigate(Screen.RecordList.route) }) {
+            val latest = recentRecords.firstOrNull()
+            if (latest == null) {
+                Text(text = "위험한 대화가 발견되지 않았어요", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = "문자나 링크가 의심되면 바로 확인해 보세요 ›",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = latest.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    RiskBadge(level = latest.riskLevel)
+                }
+                Text(
+                    text = latest.summary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "오늘 정밀 검사 ${todayScanCount}건 · 전체 기록 보기 ›",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        // 오늘의 안전 팁 — Figma 신규 섹션. 기존 로직/데이터 없이 고정 문구 + 자가진단으로
+        // 가는 지름 버튼만 추가(신규 기능 아님, 기존 자가진단 화면 재사용) — "신규기능은
+        // 보류, 구조만" 범위 안에 들어가는 선에서 구성.
+        SafeLinkCard {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Filled.Lightbulb,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(text = "오늘의 안전 팁", style = MaterialTheme.typography.titleMedium)
+            }
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "24시간 상담 전문가 대기 중",
+                text = "낯선 번호가 송금을 재촉하면 대화를 멈추고 직접 확인하세요.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
-        SafeLinkOutlinedButton(
-            text = "지원 서비스 전체보기",
-            onClick = { navController.navigate(Screen.SupportMatch.route) }
-        )
-
-        // 최근 검사 기록 요약 (Task 4.14) — 기록이 있을 때만 보여준다
-        if (recentRecords.isNotEmpty()) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "최근 검사 기록",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f)
-                )
-                TextButton(onClick = { navController.navigate(Screen.RecordList.route) }) {
-                    Text("전체 보기")
-                }
-            }
-            recentRecords.take(MAX_RECENT_RECORDS).forEach { record ->
-                SafeLinkCard(onClick = { navController.navigate(Screen.RecordList.route) }) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = record.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.weight(1f)
-                        )
-                        RiskBadge(level = record.riskLevel)
-                    }
-                    Text(
-                        text = record.summary,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = { navController.navigate(Screen.Diagnosis.route) }) {
+                    Text("30초 안전 진단")
                 }
             }
         }
@@ -246,32 +261,12 @@ fun HomeScreen(
     }
 }
 
-/** 홈에 보여줄 최근 기록 개수 — 너무 많으면 홈이 기록 화면과 구분되지 않는다 */
-private const val MAX_RECENT_RECORDS = 3
-
 /** 홈 상태 카드 제목 — 백그라운드 감지 위험도별 (없으면 SAFE) */
 private fun homeStatusTitle(level: RiskLevel): String = when (level) {
     RiskLevel.SAFE -> "안전함"
     RiskLevel.CAUTION -> "주의가 필요해요"
     RiskLevel.WARNING -> "확인이 필요해요"
     RiskLevel.CRITICAL -> "위험 신호가 있어요"
-}
-
-@Composable
-private fun SummaryStat(label: String, count: Int, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = count.toString(),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
 }
 
 @Composable
