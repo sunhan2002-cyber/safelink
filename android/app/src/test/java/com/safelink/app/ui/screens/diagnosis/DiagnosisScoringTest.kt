@@ -121,4 +121,29 @@ class DiagnosisScoringTest {
             assertTrue("결과 문구 누락: ${item.text}", item.reason.isNotBlank())
         }
     }
+
+    @Test
+    fun `모든 문항은 지원 탭 매칭용 위험유형을 최소 1개 가진다`() {
+        val validRiskTypes = setOf("기관사칭", "금융사기", "개인정보탈취", "협박", "심리조작", "스토킹위협", "악성링크")
+        checklistItems.forEach { item ->
+            assertTrue("위험유형 누락: ${item.text}", item.riskTypes.isNotEmpty())
+            item.riskTypes.forEach { type ->
+                assertTrue("알 수 없는 위험유형 '$type': ${item.text}", type in validRiskTypes)
+            }
+        }
+    }
+
+    @Test
+    fun `resultOf는 체크된 문항들의 위험유형을 중복 없이 모은다`() {
+        // 0: 금융사기, 2: 협박, 3: 금융사기+개인정보탈취
+        val result = DiagnosisScorer.resultOf(listOf(0, 2, 3))
+
+        assertEquals(setOf("금융사기", "협박", "개인정보탈취"), result.matchedRiskTypes.toSet())
+        assertEquals(3, result.matchedRiskTypes.size) // 금융사기 중복 제거 확인
+    }
+
+    @Test
+    fun `체크가 없으면 위험유형도 비어 있다`() {
+        assertTrue(DiagnosisScorer.resultOf(emptyList()).matchedRiskTypes.isEmpty())
+    }
 }

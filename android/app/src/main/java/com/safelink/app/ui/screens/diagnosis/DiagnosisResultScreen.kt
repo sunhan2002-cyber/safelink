@@ -49,6 +49,7 @@ fun DiagnosisResultScreen(
     val level = result?.level ?: RiskLevel.SAFE
     val score = result?.score ?: 0
     val reasons = result?.reasons.orEmpty()
+    val matchedRiskTypes = result?.matchedRiskTypes.orEmpty()
 
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(
@@ -140,7 +141,7 @@ fun DiagnosisResultScreen(
                 navController.navigate(Screen.ResponseGuide.createRoute(level))
             })
             TextButton(
-                onClick = { navController.navigate(Screen.SupportMatch.createRoute()) },
+                onClick = { navController.navigate(Screen.SupportMatch.createRoute(matchedRiskTypes)) },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("지원 기관 찾기")

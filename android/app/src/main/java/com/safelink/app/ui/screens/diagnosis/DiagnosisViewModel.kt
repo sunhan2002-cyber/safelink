@@ -14,14 +14,19 @@ import kotlinx.coroutines.launch
 /**
  * 자가진단 체크리스트 항목.
  *
- * @param text     체크리스트 화면에 표시할 문항
- * @param reason   결과 화면 "왜 이런 결과가 나왔나요?"에 표시할 문장(부드러운 어투)
- * @param highRisk 고위험 항목 여부 — 가중치 2점(일반 항목은 1점). Design.md 5.1 기준
+ * @param text      체크리스트 화면에 표시할 문항
+ * @param reason    결과 화면 "왜 이런 결과가 나왔나요?"에 표시할 문장(부드러운 어투)
+ * @param highRisk  고위험 항목 여부 — 가중치 2점(일반 항목은 1점). Design.md 5.1 기준
+ * @param riskTypes institutions.json risk_type_priority 키("기관사칭" 등 7분류) — 지원 탭
+ *   우선순위 매칭용(Task 5.3). keyword.json의 해당 문항과 가장 가까운 중분류가
+ *   subcategory_to_risk_type에서 매핑하는 위험유형을 그대로 따름(예: "가족이나 지인을
+ *   사칭..."는 FM 4-1 가족사칭 진입과 같은 결로 금융사기).
  */
 data class ChecklistItem(
     val text: String,
     val reason: String,
-    val highRisk: Boolean
+    val highRisk: Boolean,
+    val riskTypes: List<String> = emptyList()
 ) {
     val weight: Int get() = if (highRisk) HIGH_RISK_WEIGHT else NORMAL_WEIGHT
 
@@ -31,35 +36,39 @@ data class ChecklistItem(
     }
 }
 
-/** 확정 문항(Task 3.6) — 가중치 기준은 Design.md 5.1 */
+/** 확정 문항(Task 3.6) — 가중치 기준은 Design.md 5.1, 위험유형은 Task 5.3 */
 val checklistItems = listOf(
-    ChecklistItem("상대방이 급하게 돈을 보내라고 요구했다", "급하게 돈을 보내라는 요구가 있었어요", true),
-    ChecklistItem("가족이나 지인을 사칭하는 것 같은 연락을 받았다", "가족·지인을 사칭하는 것 같은 연락이 있었어요", true),
-    ChecklistItem("협박이나 위협적인 말을 들었다", "협박이나 위협적인 말이 있었어요", true),
-    ChecklistItem("개인정보나 계좌번호를 요구받았다", "개인정보·계좌번호를 요구받았어요", true),
-    ChecklistItem("의심스러운 링크 클릭을 유도받았다", "의심스러운 링크 클릭을 유도받았어요", false),
-    ChecklistItem("수사기관·정부기관이라며 연락이 왔다", "수사기관을 사칭하는 연락이 있었어요", true),
-    ChecklistItem("높은 수익을 보장한다며 투자를 권유받았다", "높은 수익을 보장하는 투자 권유가 있었어요", false),
-    ChecklistItem("이 일을 다른 사람에게 말하지 말라고 했다", "다른 사람에게 말하지 말라는 요구가 있었어요", true),
-    ChecklistItem("반복적으로 연락하며 재촉당하고 있다", "반복적인 연락으로 재촉받고 있어요", false),
-    ChecklistItem("만남이나 연락을 통제당하는 느낌이 든다", "만남이나 연락을 통제받는 느낌이 있어요", true),
-    ChecklistItem("앱 설치나 원격 제어를 요구받았다", "앱 설치·원격 제어를 요구받았어요", false),
-    ChecklistItem("확인하기 어려운 이야기로 불안하게 만들었다", "확인하기 어려운 이야기로 불안을 느끼고 있어요", false),
+    ChecklistItem("상대방이 급하게 돈을 보내라고 요구했다", "급하게 돈을 보내라는 요구가 있었어요", true, listOf("금융사기")),
+    ChecklistItem("가족이나 지인을 사칭하는 것 같은 연락을 받았다", "가족·지인을 사칭하는 것 같은 연락이 있었어요", true, listOf("금융사기")),
+    ChecklistItem("협박이나 위협적인 말을 들었다", "협박이나 위협적인 말이 있었어요", true, listOf("협박")),
+    ChecklistItem("개인정보나 계좌번호를 요구받았다", "개인정보·계좌번호를 요구받았어요", true, listOf("금융사기", "개인정보탈취")),
+    ChecklistItem("의심스러운 링크 클릭을 유도받았다", "의심스러운 링크 클릭을 유도받았어요", false, listOf("악성링크")),
+    ChecklistItem("수사기관·정부기관이라며 연락이 왔다", "수사기관을 사칭하는 연락이 있었어요", true, listOf("기관사칭")),
+    ChecklistItem("높은 수익을 보장한다며 투자를 권유받았다", "높은 수익을 보장하는 투자 권유가 있었어요", false, listOf("금융사기")),
+    ChecklistItem("이 일을 다른 사람에게 말하지 말라고 했다", "다른 사람에게 말하지 말라는 요구가 있었어요", true, listOf("심리조작")),
+    ChecklistItem("반복적으로 연락하며 재촉당하고 있다", "반복적인 연락으로 재촉받고 있어요", false, listOf("심리조작")),
+    ChecklistItem("만남이나 연락을 통제당하는 느낌이 든다", "만남이나 연락을 통제받는 느낌이 있어요", true, listOf("심리조작")),
+    ChecklistItem("앱 설치나 원격 제어를 요구받았다", "앱 설치·원격 제어를 요구받았어요", false, listOf("악성링크")),
+    ChecklistItem("확인하기 어려운 이야기로 불안하게 만들었다", "확인하기 어려운 이야기로 불안을 느끼고 있어요", false, listOf("심리조작")),
 )
 
 /**
  * 자가진단 산출 결과.
  *
- * @param score        0~100 백분율 점수(획득 가중치 / 전체 가중치)
- * @param level        [RiskLevel] 분류 결과
- * @param reasons      체크된 항목의 결과 문구(고위험 항목 우선 정렬)
- * @param checkedCount 체크된 항목 수
+ * @param score           0~100 백분율 점수(획득 가중치 / 전체 가중치)
+ * @param level           [RiskLevel] 분류 결과
+ * @param reasons         체크된 항목의 결과 문구(고위험 항목 우선 정렬)
+ * @param checkedCount    체크된 항목 수
+ * @param matchedRiskTypes 체크된 항목들의 위험유형 합집합(institutions.json risk_type_priority
+ *   키) — 지원 탭 우선순위 매칭에 쓴다(Task 5.3, DetectionResult.recommendedInstitutions와
+ *   동일한 용도).
  */
 data class DiagnosisResult(
     val score: Int,
     val level: RiskLevel,
     val reasons: List<String>,
-    val checkedCount: Int
+    val checkedCount: Int,
+    val matchedRiskTypes: List<String> = emptyList()
 )
 
 /**
@@ -98,7 +107,8 @@ object DiagnosisScorer {
                 .map { checklistItems[it] }
                 .sortedByDescending { it.highRisk }
                 .map { it.reason },
-            checkedCount = checkedIndices.size
+            checkedCount = checkedIndices.size,
+            matchedRiskTypes = checkedIndices.flatMap { checklistItems[it].riskTypes }.distinct()
         )
     }
 }
