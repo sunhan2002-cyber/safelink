@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -59,6 +60,7 @@ import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.BrandBlueLight
 import com.safelink.app.ui.theme.RiskCriticalContainer
 import com.safelink.app.ui.theme.TextPrimary
+import com.safelink.app.ui.theme.TipBlue
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -342,14 +344,17 @@ private fun RecordRow(
             }
             Row {
                 // 자가진단 기록은 분석 결과 화면 구조와 달라 상세 보기를 제공하지 않는다.
+                // 링크 텍스트 색을 TipBlue(#2766F2)로 통일(사용자 요청)
                 if (record.type == RecordType.DETECTION) {
-                    TextButton(onClick = {
-                        navController.navigate(Screen.DetectionResult.createRoute(record.id))
-                    }) { Text("상세 보기 →") }
+                    TextButton(
+                        onClick = { navController.navigate(Screen.DetectionResult.createRoute(record.id)) },
+                        colors = ButtonDefaults.textButtonColors(contentColor = TipBlue)
+                    ) { Text("상세 보기 →") }
                 }
-                TextButton(onClick = {
-                    navController.navigate(Screen.MemoEdit.createRoute(record.id))
-                }) { Text(if (record.memo.isNullOrBlank()) "메모 작성" else "메모 수정") }
+                TextButton(
+                    onClick = { navController.navigate(Screen.MemoEdit.createRoute(record.id)) },
+                    colors = ButtonDefaults.textButtonColors(contentColor = TipBlue)
+                ) { Text(if (record.memo.isNullOrBlank()) "메모 작성" else "메모 수정") }
             }
         }
     }
