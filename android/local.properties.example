@@ -1,0 +1,19 @@
+# SafeLink 로컬 설정 템플릿
+#
+# 이 파일 내용을 같은 폴더의 local.properties 에 복사해 넣고 값을 채우세요.
+# local.properties 는 .gitignore 대상이라 git 에 올라가지 않습니다.
+# 이 .example 파일에는 절대 실제 키를 적지 마세요 (이 파일은 git 에 올라갑니다).
+#
+# sdk.dir 은 Android Studio 가 local.properties 에 자동으로 넣어줍니다.
+#
+# 자세한 설명: docs/ClaudeKeySetup.md
+
+# Claude API 키 — 발표용 구성에서 앱이 Claude 를 직접 호출할 때 사용합니다.
+# 비워두면 AI 분석 요청이 분석 서버(SAFELINK_AI_BASE_URL)로 갑니다.
+ANTHROPIC_API_KEY=
+
+# Google Safe Browsing API 키 — 링크 안전성 검사에 사용합니다. 비워두면 링크 검사만 꺼집니다.
+SAFE_BROWSING_API_KEY=
+
+# 분석 서버 주소 (ANTHROPIC_API_KEY 를 비워둘 때만 사용). 비워두면 에뮬레이터용 http://10.0.2.2:8000/
+SAFELINK_AI_BASE_URL=
