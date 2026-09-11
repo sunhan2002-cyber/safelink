@@ -1,6 +1,8 @@
 package com.safelink.app.ui.screens.emergency
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,13 +12,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Message
-import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.PriorityHigh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,18 +27,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.settings.EmergencyContactStore
-import com.safelink.app.ui.components.SafeLinkOutlinedButton
+import com.safelink.app.ui.components.SafeLinkPrimaryButton
 import com.safelink.app.ui.components.SafeLinkTopBar
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.BrandBlueDark
 import com.safelink.app.ui.theme.RiskCritical
+import com.safelink.app.ui.theme.RiskCriticalContainer
 import com.safelink.app.ui.theme.SurfaceWhite
 import com.safelink.app.util.IntentActions
 
-/** 긴급 도움 요청 (Figma 20:987) — 스트레스 상황용 초대형 버튼 (Tasks 5.6~5.9) */
+/** 긴급 도움 요청 (Figma B07) — 스트레스 상황용 초대형 버튼 (Tasks 5.6~5.9) */
 @Composable
 fun EmergencyScreen(navController: NavHostController) {
     val context = LocalContext.current
@@ -54,37 +57,55 @@ fun EmergencyScreen(navController: NavHostController) {
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "지금 바로 도움을 받을 수 있습니다",
-                style = MaterialTheme.typography.titleLarge
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .background(RiskCriticalContainer, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.PriorityHigh,
+                        contentDescription = null,
+                        tint = RiskCritical,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.size(12.dp))
+                Text(
+                    text = "이미 송금했거나 위협을 받고 있나요?",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.size(4.dp))
+                Text(
+                    text = "혼자 해결하려 하지 말고 아래 기관에 바로 연락하세요.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
             EmergencyCallButton(
-                title = "112 전화",
-                caption = "경찰 신고 · 범죄 신고·긴급 출동 요청",
+                number = "112",
+                title = "경찰 신고",
+                caption = "신변 위협 · 보이스피싱 즉시 신고",
                 color = RiskCritical,
                 onClick = { IntentActions.dial(context, "112") }
             )
             EmergencyCallButton(
-                title = "1366 전화",
-                caption = "여성긴급전화 · 가정폭력·데이트폭력 24시간 상담",
+                number = "1366",
+                title = "여성긴급전화",
+                caption = "가정폭력·데이트폭력 24시간 상담",
                 color = BrandBlueDark,
                 onClick = { IntentActions.dial(context, "1366") }
             )
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                HorizontalDivider(modifier = Modifier.weight(1f))
-                Text(
-                    text = "  지인에게 알리기  ",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                HorizontalDivider(modifier = Modifier.weight(1f))
-            }
-
             val contact = EmergencyContactStore.getContact(context)
-            SafeLinkOutlinedButton(
-                text = if (contact != null) "${contact.name}에게 긴급 문자 보내기" else "등록된 지인에게 긴급 문자 보내기",
+            SafeLinkPrimaryButton(
+                text = if (contact != null) "${contact.name}에게 긴급 문자 보내기" else "믿을 수 있는 사람에게 알리기",
                 onClick = {
                     if (contact != null) {
                         // 문자 앱에 수신번호+사전 문구를 채워 열어준다(자동 전송 아님)
@@ -97,6 +118,13 @@ fun EmergencyScreen(navController: NavHostController) {
             Text(
                 text = if (contact != null) "미리 작성된 문구가 문자 앱에 채워집니다"
                 else "먼저 설정에서 긴급 연락처를 등록해 주세요",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+
+            Text(
+                text = "위험하면 안전한 장소로 먼저 이동하세요.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -116,6 +144,7 @@ fun EmergencyScreen(navController: NavHostController) {
 
 @Composable
 private fun EmergencyCallButton(
+    number: String,
     title: String,
     caption: String,
     color: Color,
@@ -129,14 +158,20 @@ private fun EmergencyCallButton(
             .fillMaxWidth()
             .height(88.dp)
     ) {
-        Icon(
-            imageVector = Icons.Filled.Call,
-            contentDescription = null,
-            modifier = Modifier.size(32.dp)
+        Text(
+            text = number,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = SurfaceWhite,
+            modifier = Modifier.width(72.dp)
         )
-        Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = MaterialTheme.typography.titleLarge, color = SurfaceWhite)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = SurfaceWhite
+            )
             Text(
                 text = caption,
                 style = MaterialTheme.typography.bodyMedium,
