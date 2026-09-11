@@ -23,9 +23,9 @@ interface DetectionRecordDao {
     @Query("UPDATE detection_records SET memo = :memo WHERE id = :id")
     suspend fun updateMemo(id: String, memo: String?)
 
-    /** AI 보조분석이 반영되면 같은 기록을 최종 판정으로 갱신한다. */
-    @Query("UPDATE detection_records SET riskLevel = :riskLevel, score = :score, aiSummary = :aiSummary, aiDetectedPattern = :aiDetectedPattern WHERE id = :id")
-    suspend fun updateAiResult(id: String, riskLevel: RiskLevel, score: Int, aiSummary: String?, aiDetectedPattern: String?)
+    /** 최종 판정이 바뀌면(AI 보조분석 반영, 위험 링크 확인) 같은 기록을 갱신한다. */
+    @Query("UPDATE detection_records SET riskLevel = :riskLevel, score = :score, category = :category, aiSummary = :aiSummary, aiDetectedPattern = :aiDetectedPattern WHERE id = :id")
+    suspend fun updateVerdict(id: String, riskLevel: RiskLevel, score: Int, category: String, aiSummary: String?, aiDetectedPattern: String?)
 
     /** 링크 검사가 끝나면 같은 기록에 판정을 남긴다 (검사는 저장보다 늦게 끝날 수 있다). */
     @Query("UPDATE detection_records SET linkResultsJson = :linkResultsJson WHERE id = :id")

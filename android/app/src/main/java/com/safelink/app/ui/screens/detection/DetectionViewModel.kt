@@ -8,19 +8,22 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.safelink.app.background.BackgroundDetectionState
+import com.safelink.app.data.link.LinkExtractor
 import com.safelink.app.data.link.LinkResultCodec
 import com.safelink.app.data.link.LinkRiskChecker
+import com.safelink.app.data.link.LinkRiskPolicy
 import com.safelink.app.data.link.LinkRiskResult
-import com.safelink.app.data.link.LinkVerdict
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.ocr.MlKitOcrService
 import com.safelink.app.data.ocr.OcrService
 import com.safelink.app.data.local.RecordSource
 import com.safelink.app.data.repository.DetectionRepository
 import com.safelink.app.data.repository.RecordRepository
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.UUID
 
 /**
@@ -55,8 +58,21 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
     var selectedImages by mutableStateOf<List<Uri>>(emptyList())
         private set
 
-    var result by mutableStateOf<DetectionResult?>(null)
-        private set
+    /**
+     * 분석이 낸 기준 판정 — 온디바이스 결과, AI 보조분석이 들어오면 그 결과.
+     * 화면에는 여기에 링크 판정을 얹은 [result] 를 보여준다.
+     */
+    private var analyzed by mutableStateOf<DetectionResult?>(null)
+
+    /**
+     * 결과 화면에 보여줄 최종 판정 — 기준 판정에 링크 판정을 얹는다([LinkRiskPolicy]).
+     *
+     * 예전에는 링크가 악성으로 확인돼도 키워드가 없으면 "안전 · 0점"으로 보였다(바로 아래 링크 카드는
+     * "피싱·사칭 사이트"). 링크 검사와 AI 보조분석은 따로 끝나므로, 합친 값을 저장해 두지 않고 읽을 때마다
+     * 합쳐 어느 쪽이 먼저 끝나도 화면이 맞게 한다.
+     */
+    val result: DetectionResult?
+        get() = analyzed?.let { LinkRiskPolicy.apply(it, linkResults) }
 
     /** 마지막 분석 입력 경로 — 결과 화면에서 사용자에게 어떤 경로로 들어온 결과인지 보여준다. */
     var lastAnalysisSource by mutableStateOf(AnalysisSource.TEXT)
@@ -78,6 +94,7 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
      *
      * 키워드 분석과 **독립적으로** 채워진다 — 검사가 실패해도(키 미설정·목록 미준비 등)
      * 위험도 판정은 그대로 나오고 이 목록만 비거나 "검사하지 못함"으로 남는다.
+     * 위험한 링크가 확인되면 [result] 의 위험도가 긴급으로 올라간다.
      */
     var linkResults by mutableStateOf<List<LinkRiskResult>>(emptyList())
         private set
@@ -96,6 +113,12 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
 
     /** 지금 결과 화면의 결과가 저장된 기록 id — AI 보정이 나중에 들어오면 이 기록을 갱신한다. */
     private var currentRecordId: String? = null
+
+    /**
+     * 화면에 올린 결과의 순번. 분석·기록 열기를 새로 시작할 때마다 올린다.
+     * 늦게 끝난 이전 분석의 링크 검사·AI 결과가 지금 화면을 덮어쓰지 않도록, 비동기 작업은 이 값이 그대로일 때만 화면을 바꾼다.
+     */
+    private var generation = 0
 
     private val repository: DetectionRepository by lazy { DetectionRepository(getApplication()) }
     private val recordRepository: RecordRepository by lazy { RecordRepository(getApplication()) }
@@ -128,10 +151,7 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         originalText = ""
         inputMethod = "텍스트 입력"
         selectedImages = emptyList()
-        result = null
-        linkResults = emptyList()
-        manualAiMessage = null
-        currentRecordId = null
+        startNewResult()
         ocrNoText = false
         ocrFeedbackMessage = null
         lastAnalysisSource = AnalysisSource.TEXT
@@ -146,16 +166,25 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         inputMethod = mode
         originalText = ""
         selectedImages = emptyList()
-        result = null
-        linkResults = emptyList()
-        manualAiMessage = null
-        currentRecordId = null
+        startNewResult()
         ocrNoText = false
         ocrFeedbackMessage = null
     }
 
     fun switchToTextInput() {
         switchMode("텍스트 입력")
+    }
+
+    /** 이전 결과의 화면 상태를 비우고 순번을 올린다. 새 결과를 화면에 올리기 직전에 부른다. */
+    private fun startNewResult(): Int {
+        generation++
+        analyzed = null
+        linkResults = emptyList()
+        isCheckingLinks = false
+        isEscalatingToAI = false
+        manualAiMessage = null
+        currentRecordId = null
+        return generation
     }
 
     /**
@@ -166,10 +195,11 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
      */
     fun loadBackgroundResult(): Boolean {
         val bg = BackgroundDetectionState.latestResult.value ?: return false
-        result = bg
+        val gen = startNewResult()
+        analyzed = bg
         originalText = bg.originalText
         lastAnalysisSource = AnalysisSource.BACKGROUND
-        checkLinks(bg.originalText)
+        viewModelScope.launch { showLinks(gen, bg.originalText) }
         return true
     }
 
@@ -184,30 +214,31 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
     suspend fun loadRecord(recordId: String): Boolean {
         val record = recordRepository.findById(recordId) ?: return false
         val text = record.originalText?.takeIf { it.isNotBlank() } ?: return false
-        originalText = text
         val onDevice = repository.analyze(text)
+        val gen = startNewResult()
+        originalText = text
         // 위험도·점수·유형은 기록에 저장된 판정을 그대로 쓴다 — 기록 목록과 상세 보기가 같은 판정을 보여야 한다.
         // 재분석은 근거(매칭 구간·규칙 설명)를 되살리는 용도다. 재분석 값을 그대로 쓰면
         // - AI 보조분석이 반영된 기록은 AI 반영 전 점수로 보이고(재분석은 온디바이스로만 한다),
         // - 백그라운드에서 악성 링크로 알린 기록은 키워드가 없어 "안전"으로 보였다(목록은 "긴급").
-        result = onDevice.copy(
+        val restored = onDevice.copy(
             score = record.score,
             riskLevel = record.riskLevel,
             category = record.category.ifBlank { onDevice.category },
             aiSummary = record.aiSummary,
             aiDetectedPattern = record.aiDetectedPattern
         )
+        analyzed = restored
         currentRecordId = recordId
-        manualAiMessage = null
-        checkLinks(
-            text = text,
-            recordId = CompletableDeferred(recordId),
-            stored = LinkResultCodec.decode(record.linkResultsJson)
-        )
         lastAnalysisSource = when (record.sourceLabel) {
             AnalysisSource.SCREENSHOT.label -> AnalysisSource.SCREENSHOT
             AnalysisSource.BACKGROUND.label -> AnalysisSource.BACKGROUND
             else -> AnalysisSource.TEXT
+        }
+        viewModelScope.launch {
+            val links = showLinks(gen, text, stored = LinkResultCodec.decode(record.linkResultsJson))
+            // 저장한 뒤에 위험으로 등재된 링크가 새로 확인되면 기록의 판정도 함께 올린다.
+            VerdictRecorder(recordRepository, recordId, restored).onLinks(links)
         }
         return true
     }
@@ -227,13 +258,13 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
             if (extracted.isBlank()) {
                 ocrNoText = true
                 ocrFeedbackMessage = "스크린샷에서 텍스트를 찾지 못했어요. 글자가 선명한 이미지를 다시 선택하거나 텍스트 입력으로 분석해 주세요."
-                result = null
+                startNewResult()
                 return false
             }
             if (extracted.replace("\\s".toRegex(), "").length < MIN_OCR_TEXT_LENGTH) {
                 ocrNoText = true
                 ocrFeedbackMessage = "추출된 텍스트가 너무 짧아 정확한 분석이 어려워요. 다른 스크린샷을 선택하거나 텍스트 입력으로 다시 시도해 주세요."
-                result = null
+                startNewResult()
                 return false
             }
             lastAnalysisSource = AnalysisSource.SCREENSHOT
@@ -243,76 +274,68 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
 
         // 1차 온디바이스 분석 (항상 동기, 즉시 완료) — 결과를 먼저 반영
         val onDeviceResult = repository.analyze(originalText)
-        result = onDeviceResult
+        val gen = startNewResult()
+        analyzed = onDeviceResult
+        val text = originalText
 
-        // 링크 안전성 검사 — 결과 화면을 붙잡지 않도록 비동기로 돌리고 끝나는 대로 반영한다.
-        // 판정은 아래에서 저장하는 기록에도 남긴다(저장이 끝나 id 가 정해지면).
-        val recordIdForLinks = CompletableDeferred<String?>()
-        checkLinks(originalText, recordId = recordIdForLinks)
+        // 2차 AI 보조 분석: 조건 충족 시 비동기로 호출해 결과를 한 번 더 갱신(신기훈).
+        // 네트워크 실패 시 escalateToAI 가 온디바이스 결과를 그대로 반환하므로 결과가 나빠지는 경우는 없음.
+        // ⚠️ 한계: 단일 입력 구조라 recentTurns=[originalText] 고정 (07번 문서 "recentTurns 한계" 참고).
+        val shouldEscalate = repository.shouldEscalateToAI(onDeviceResult)
+        isEscalatingToAI = shouldEscalate
+
+        // 링크 안전성 검사 — 기기 안의 차단 목록과 대조해 대개 금방 끝난다. 위험한 링크가 있으면 판정이 긴급으로
+        // 바뀌므로, 결과 화면이 "안전"으로 떴다가 곧 "긴급"으로 바뀌지 않게 잠깐([LINK_WAIT_MS]) 기다렸다 넘어간다.
+        // 그보다 오래 걸리면 기다리지 않고 넘어가고, 끝나는 대로 화면과 기록에 반영된다.
+        val links = viewModelScope.async { showLinks(gen, text) }
+        withTimeoutOrNull(LINK_WAIT_MS) { links.await() }
 
         // 검사 기록 저장 (Task 7.1) — 기기 내 DB에만 남으며 서버로 나가지 않는다.
-        // 온디바이스 결과를 먼저 저장하고, AI 보조분석이 반영되면 같은 기록을 최종 판정으로 갱신한다.
+        // 온디바이스 결과를 먼저 저장하고, 링크 판정·AI 보조분석이 들어오면 같은 기록을 최종 판정으로 갱신한다.
         // (예전에는 AI 보정 전 결과만 남아, 결과 화면은 "긴급"인데 기록은 "경고"로 보이는 불일치가 있었다.)
-        //
-        // 2차 AI 보조 분석: 조건 충족 시 비동기로 호출해 result 를 한 번 더 갱신(신기훈).
-        // runAnalysis 는 온디바이스 결과가 나오면 바로 반환하고, AI 보정은 이후 자연스럽게 들어온다.
-        // 네트워크 실패 시 escalateToAI 가 온디바이스 결과를 그대로 반환하므로 result 가 나빠지는 경우는 없음.
-        //
-        // ⚠️ 한계: 단일 입력 구조라 recentTurns=[originalText] 고정 (07번 문서 "recentTurns 한계" 참고).
         val source = if (lastAnalysisSource == AnalysisSource.SCREENSHOT) RecordSource.SCREENSHOT else RecordSource.TEXT_INPUT
-        val shouldEscalate = repository.shouldEscalateToAI(onDeviceResult)
-        val textForAi = originalText
-        currentRecordId = null
-        manualAiMessage = null
-        if (shouldEscalate) isEscalatingToAI = true
         viewModelScope.launch {
             val recordId = runCatching { recordRepository.saveDetection(onDeviceResult, source) }.getOrNull()
-            currentRecordId = recordId
-            recordIdForLinks.complete(recordId)
+            if (gen == generation) currentRecordId = recordId
+            val recorder = VerdictRecorder(recordRepository, recordId, onDeviceResult)
+            launch { recorder.onLinks(links.await()) }
             if (shouldEscalate) {
                 val refined = repository.escalateToAI(
                     result = onDeviceResult,
                     sessionId = sessionId,
-                    recentTurns = listOf(textForAi)
+                    recentTurns = listOf(text)
                 )
                 if (refined !== onDeviceResult) {
                     // 그사이 사용자가 새 분석을 시작했으면 화면은 건드리지 않고 기록만 맞춘다.
-                    if (result === onDeviceResult) result = refined
-                    recordId?.let { id -> runCatching { recordRepository.updateAiResult(id, refined) } }
+                    if (gen == generation) analyzed = refined
+                    recorder.onAi(refined)
                 }
-                isEscalatingToAI = false
+                if (gen == generation) isEscalatingToAI = false
             }
         }
         return true
     }
 
     /**
-     * 원문에서 링크를 뽑아 안전성을 검사한다.
+     * 원문의 링크를 검사해 화면에 반영하고, 합친 결과를 돌려준다.
      *
-     * 링크가 없으면 아무 일도 하지 않는다. 검사는 화면 전환을 막지 않도록 항상 비동기로 돌리고,
-     * 실패하면 조용히 빈 목록으로 둔다 — 링크 검사는 부가 정보이지 분석의 전제가 아니다.
+     * 링크가 없으면 검사하지 않는다. 실패하면 조용히 넘어간다 — 링크 검사는 부가 정보이지 분석의 전제가 아니다.
      *
-     * @param recordId 판정을 남길 기록 id. 저장이 검사보다 늦게 끝날 수 있어 완료를 기다렸다 남긴다. null 이면 남기지 않는다.
+     * @param gen 이 검사를 시작한 결과의 순번. 그사이 화면이 다른 결과로 바뀌었으면 화면은 건드리지 않는다.
      * @param stored 기록에 남아 있던 당시 판정. 먼저 보여주고 새 검사 결과와 합친다([LinkResultCodec.merge]) —
      *   다시 검사하지 못해도(오프라인 등) 당시 판정이 사라지지 않는다.
      */
-    private fun checkLinks(
-        text: String,
-        recordId: Deferred<String?>? = null,
-        stored: List<LinkRiskResult> = emptyList()
-    ) {
-        linkResults = stored
-        if (!linkRiskChecker.isConfigured) return
-        viewModelScope.launch {
-            isCheckingLinks = true
-            val fresh = runCatching { linkRiskChecker.checkText(text) }.getOrDefault(emptyList())
-            val merged = LinkResultCodec.merge(stored, fresh)
+    private suspend fun showLinks(gen: Int, text: String, stored: List<LinkRiskResult> = emptyList()): List<LinkRiskResult> {
+        if (gen == generation) linkResults = stored
+        if (!linkRiskChecker.isConfigured || LinkExtractor.extract(text).isEmpty()) return stored
+        if (gen == generation) isCheckingLinks = true
+        val fresh = runCatching { linkRiskChecker.checkText(text) }.getOrDefault(emptyList())
+        val merged = LinkResultCodec.merge(stored, fresh)
+        if (gen == generation) {
             linkResults = merged
             isCheckingLinks = false
-            if (recordId != null && merged.any { it.verdict != LinkVerdict.UNCHECKED }) {
-                recordId.await()?.let { id -> runCatching { recordRepository.updateLinkResults(id, merged) } }
-            }
         }
+        return merged
     }
 
     /**
@@ -323,11 +346,13 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
      * manualReportFlag 가 항상 false 였다.
      */
     fun requestManualAi() {
-        val base = result ?: return
+        val base = analyzed ?: return
         if (isEscalatingToAI || base.aiSummary != null || base.aiDetectedPattern != null) return
         if (!repository.shouldEscalateToAI(base, manualReportFlag = true)) return
+        val gen = generation
         val text = originalText.ifBlank { base.originalText }
         val recordId = currentRecordId
+        val linksAtRequest = linkResults
         manualAiMessage = null
         isEscalatingToAI = true
         viewModelScope.launch {
@@ -336,18 +361,60 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
                 sessionId = sessionId,
                 recentTurns = listOf(text)
             )
+            val stillShown = gen == generation
             if (refined === base) {
-                manualAiMessage = "AI 보조분석을 받지 못했어요. 잠시 후 다시 시도해 주세요."
+                if (stillShown) manualAiMessage = "AI 보조분석을 받지 못했어요. 잠시 후 다시 시도해 주세요."
             } else {
-                if (result === base) result = refined
-                recordId?.let { id -> runCatching { recordRepository.updateAiResult(id, refined) } }
+                if (stillShown) analyzed = refined
+                // 기록에는 화면과 같은 판정(링크 판정까지 얹은 값)을 남긴다.
+                val links = if (stillShown) linkResults else linksAtRequest
+                recordId?.let { id -> runCatching { recordRepository.updateVerdict(id, LinkRiskPolicy.apply(refined, links)) } }
             }
-            isEscalatingToAI = false
+            if (stillShown) isEscalatingToAI = false
         }
     }
 
     companion object {
         const val MAX_IMAGES = 10
         private const val MIN_OCR_TEXT_LENGTH = 8
+
+        /** 결과 화면으로 넘어가기 전에 링크 검사를 기다리는 최대 시간 */
+        private const val LINK_WAIT_MS = 1500L
+    }
+}
+
+/**
+ * 분석 한 건의 최종 판정을 기록에 남긴다.
+ *
+ * 링크 검사와 AI 보조분석은 따로, 순서 없이 끝난다. 각자 기록을 고치면 늦게 끝난 쪽이 먼저 끝난 쪽의
+ * 반영을 지운다(예: AI 가 점수를 낮춰 쓰면서 위험 링크로 올라간 "긴급"을 덮는다). 그래서 두 결과를 여기에
+ * 모아 매번 "지금까지 나온 결과를 모두 반영한 판정"을 쓰고, 쓰기는 한 번에 하나씩만 한다.
+ */
+private class VerdictRecorder(
+    private val records: RecordRepository,
+    private val recordId: String?,
+    private var base: DetectionResult
+) {
+    private var links: List<LinkRiskResult> = emptyList()
+    private val lock = Mutex()
+
+    suspend fun onLinks(results: List<LinkRiskResult>) {
+        if (results.isEmpty()) return
+        lock.withLock {
+            links = results
+            val id = recordId ?: return
+            runCatching {
+                records.updateLinkResults(id, results)
+                records.updateVerdict(id, LinkRiskPolicy.apply(base, links))
+            }
+        }
+    }
+
+    suspend fun onAi(refined: DetectionResult) {
+        lock.withLock {
+            base = refined
+            val id = recordId ?: return
+            runCatching { records.updateVerdict(id, LinkRiskPolicy.apply(base, links)) }
+        }
     }
 }
