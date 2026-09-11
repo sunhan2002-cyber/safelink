@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.settings.EmergencyContactStore
@@ -59,11 +60,10 @@ fun EmergencyScreen(navController: NavHostController) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {
-                // 더 위급하게 느껴지도록 배지를 키우고, 옅은 배경+색 아이콘 대신 꽉 찬 빨간
-                // 원+흰 느낌표로 시각적 무게를 확 올림(사용자 요청)
+                // 라이트 테마는 유지하되 원·글씨를 한층 더 키움(사용자 요청, 2차 확대)
                 Box(
                     modifier = Modifier
-                        .size(96.dp)
+                        .size(128.dp)
                         .background(RiskCritical, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
@@ -71,20 +71,22 @@ fun EmergencyScreen(navController: NavHostController) {
                         imageVector = Icons.Filled.PriorityHigh,
                         contentDescription = null,
                         tint = SurfaceWhite,
-                        modifier = Modifier.size(56.dp)
+                        modifier = Modifier.size(72.dp)
                     )
                 }
-                Spacer(modifier = Modifier.size(12.dp))
+                Spacer(modifier = Modifier.size(16.dp))
                 Text(
                     text = "이미 송금했거나 위협을 받고 있나요?",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.size(4.dp))
+                Spacer(modifier = Modifier.size(6.dp))
                 Text(
                     text = "혼자 해결하려 하지 말고 아래 기관에 바로 연락하세요.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
                 )
             }
 
@@ -156,25 +158,25 @@ private fun EmergencyCallButton(
         colors = ButtonDefaults.buttonColors(containerColor = color),
         modifier = Modifier
             .fillMaxWidth()
-            .height(88.dp)
+            .height(104.dp)
     ) {
         Text(
             text = number,
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = SurfaceWhite,
-            modifier = Modifier.width(72.dp)
+            modifier = Modifier.width(84.dp)
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = SurfaceWhite
             )
             Text(
                 text = caption,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 color = SurfaceWhite.copy(alpha = 0.85f)
             )
         }
