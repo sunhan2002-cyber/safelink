@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -26,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -55,13 +57,38 @@ internal fun InstitutionEntry.websiteOrNull(): String? {
     return trimmed.takeIf { Regex("\\.[a-zA-Z]{2,4}$").containsMatchIn(it) }
 }
 
-/** 지원 서비스 추천 (Figma B09) — 위험 유형별 필터링은 Task 5.3, 지금은 전체 목록 표시 */
+/**
+ * 지원 서비스 추천 (Figma B09).
+ *
+ * [matchedRiskTypes]가 비어있으면(하단 탭으로 바로 진입) 예전처럼 전체 목록만 보여준다.
+ * 분석 결과 화면에서 "추천 기관 전체 보기"로 들어와 값이 있으면(Task 5.3), institutions.json의
+ * risk_type_priority를 찾아 매칭된 기관을 그룹 안에서 순위대로 앞으로 정렬하고 "추천" 배지를 단다
+ * — group(긴급대응/기타) 2단 구조 자체는 그대로 유지, 그 안에서만 재정렬.
+ */
 @Composable
-fun SupportMatchScreen(navController: NavHostController) {
+fun SupportMatchScreen(navController: NavHostController, matchedRiskTypes: List<String> = emptyList()) {
     val context = LocalContext.current
     val institutions = remember { InstitutionCatalog.load(context) }
-    val (urgent, others) = remember(institutions) {
+    val recommendedRank = remember(matchedRiskTypes) {
+        if (matchedRiskTypes.isEmpty()) emptyMap()
+        else {
+            val priority = InstitutionCatalog.riskTypePriority(context)
+            val ranks = mutableMapOf<String, Int>()
+            matchedRiskTypes.forEach { type ->
+                priority[type].orEmpty().forEach { entry ->
+                    val current = ranks[entry.institutionId]
+                    if (current == null || entry.rank < current) ranks[entry.institutionId] = entry.rank
+                }
+            }
+            ranks
+        }
+    }
+    val (urgent, others) = remember(institutions, recommendedRank) {
         institutions.partition { it.group == "긴급대응" }
+            .let { (u, o) ->
+                u.sortedBy { recommendedRank[it.id] ?: Int.MAX_VALUE } to
+                    o.sortedBy { recommendedRank[it.id] ?: Int.MAX_VALUE }
+            }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -89,12 +116,12 @@ fun SupportMatchScreen(navController: NavHostController) {
 
             if (urgent.isNotEmpty()) {
                 Text(text = "즉시 대응기관", style = MaterialTheme.typography.titleMedium)
-                urgent.forEach { InstitutionRow(it, navController) }
+                urgent.forEach { InstitutionRow(it, navController, recommended = it.id in recommendedRank) }
             }
 
             if (others.isNotEmpty()) {
                 Text(text = "추가 지원기관", style = MaterialTheme.typography.titleMedium)
-                others.forEach { InstitutionRow(it, navController) }
+                others.forEach { InstitutionRow(it, navController, recommended = it.id in recommendedRank) }
             }
 
             // 전화를 앞두고 무슨 말을 해야 할지 막막한 사용자를 위한 짧은 스크립트 (Figma B09) —
@@ -136,7 +163,11 @@ fun SupportMatchScreen(navController: NavHostController) {
 }
 
 @Composable
-private fun InstitutionRow(institution: InstitutionEntry, navController: NavHostController) {
+private fun InstitutionRow(
+    institution: InstitutionEntry,
+    navController: NavHostController,
+    recommended: Boolean = false
+) {
     SafeLinkCard(onClick = {
         navController.navigate(Screen.SupportDetail.createRoute(institution.id))
     }) {
@@ -155,7 +186,21 @@ private fun InstitutionRow(institution: InstitutionEntry, navController: NavHost
             }
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = institution.name, style = MaterialTheme.typography.titleMedium)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = institution.name, style = MaterialTheme.typography.titleMedium)
+                    if (recommended) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "추천",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = TipBlue,
+                            modifier = Modifier
+                                .background(TipBlueContainer, RoundedCornerShape(6.dp))
+                                .padding(horizontal = 6.dp, vertical = 1.dp)
+                        )
+                    }
+                }
                 Text(
                     text = institution.role,
                     style = MaterialTheme.typography.bodyMedium,

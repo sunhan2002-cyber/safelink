@@ -54,7 +54,20 @@ fun SafeLinkNavGraph(
         composable(Screen.RecordList.route) {
             RecordListScreen(navController, activityRecordListViewModel())
         }
-        composable(Screen.SupportMatch.route) { SupportMatchScreen(navController) }
+        composable(
+            route = Screen.SupportMatch.route,
+            arguments = listOf(navArgument(Screen.SupportMatch.ARG_RISK_TYPES) {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            })
+        ) { entry ->
+            val riskTypes = entry.arguments?.getString(Screen.SupportMatch.ARG_RISK_TYPES)
+                ?.split(",")
+                ?.filter { it.isNotBlank() }
+                .orEmpty()
+            SupportMatchScreen(navController, matchedRiskTypes = riskTypes)
+        }
         composable(Screen.Settings.route) { SettingsScreen(navController) }
         composable(Screen.FeatureGuide.route) { FeatureGuideScreen(navController) }
 

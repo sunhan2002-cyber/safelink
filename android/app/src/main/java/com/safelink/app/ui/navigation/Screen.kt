@@ -16,7 +16,21 @@ sealed class Screen(val route: String) {
     // 하단 탭
     data object Home : Screen("home")
     data object RecordList : Screen("records")
-    data object SupportMatch : Screen("support")
+    /**
+     * 지원 기관 목록. 분석 결과 화면에서 "추천 기관 전체 보기"로 들어올 때는 매칭된
+     * 위험유형(institutions.json risk_type_priority 키, 콤마 구분)을 실어 우선순위 정렬에
+     * 쓰고, 하단 탭에서 바로 들어오면 인자 없이 전체 목록만 보여준다(Task 5.3).
+     */
+    data object SupportMatch : Screen("support?riskTypes={riskTypes}") {
+        const val ARG_RISK_TYPES = "riskTypes"
+
+        /** 하단 탭 등 맥락 없이 진입(전체 목록) */
+        fun createRoute() = "support"
+
+        /** 분석 결과에서 매칭된 위험유형을 들고 진입(해당 기관 우선 정렬) */
+        fun createRoute(riskTypes: List<String>): String =
+            if (riskTypes.isEmpty()) "support" else "support?riskTypes=${riskTypes.joinToString(",")}"
+    }
     data object Settings : Screen("settings")
     data object FeatureGuide : Screen("feature_guide")
 

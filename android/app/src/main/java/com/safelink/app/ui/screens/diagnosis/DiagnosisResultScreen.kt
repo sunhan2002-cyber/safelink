@@ -140,7 +140,7 @@ fun DiagnosisResultScreen(
                 navController.navigate(Screen.ResponseGuide.createRoute(level))
             })
             TextButton(
-                onClick = { navController.navigate(Screen.SupportMatch.route) },
+                onClick = { navController.navigate(Screen.SupportMatch.createRoute()) },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("지원 기관 찾기")

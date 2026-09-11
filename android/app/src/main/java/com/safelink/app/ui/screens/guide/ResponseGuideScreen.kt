@@ -26,6 +26,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -55,6 +56,9 @@ fun ResponseGuideScreen(
 ) {
     val backgroundSnapshot by BackgroundDetectionState.latestSnapshot.collectAsState()
     val matchedBackgroundSnapshot = backgroundSnapshot?.takeIf { it.riskLevel == riskLevel }
+    val matchedRiskTypes = remember(detectionViewModel.result) {
+        detectionViewModel.result?.recommendedInstitutions?.map { it.matchedRiskType }?.distinct().orEmpty()
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(title = "대응 가이드", onBack = { navController.popBackStack() })
@@ -171,12 +175,12 @@ fun ResponseGuideScreen(
                 )
                 GuideSecondaryLink(
                     text = "추천 기관 목록 보기",
-                    onClick = { navController.navigate(Screen.SupportMatch.route) }
+                    onClick = { navController.navigate(Screen.SupportMatch.createRoute(matchedRiskTypes)) }
                 )
             } else {
                 SafeLinkPrimaryButton(
                     text = "추천 기관 목록 보기",
-                    onClick = { navController.navigate(Screen.SupportMatch.route) }
+                    onClick = { navController.navigate(Screen.SupportMatch.createRoute(matchedRiskTypes)) }
                 )
             }
             GuideSecondaryLink(

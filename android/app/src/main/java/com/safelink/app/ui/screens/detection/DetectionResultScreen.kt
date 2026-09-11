@@ -114,7 +114,10 @@ fun DetectionResultScreen(
         onRequestAi = { viewModel.requestManualAi() },
         onBack = { navController.popBackStack() },
         onGuideClick = { navController.navigate(Screen.ResponseGuide.createRoute(result.riskLevel)) },
-        onSupportClick = { navController.navigate(Screen.SupportMatch.route) },
+        onSupportClick = {
+            val riskTypes = result.recommendedInstitutions.map { it.matchedRiskType }.distinct()
+            navController.navigate(Screen.SupportMatch.createRoute(riskTypes))
+        },
         onEmergencyClick = { navController.navigate(Screen.Emergency.route) },
         onReanalyzeClick = {
             // 다시 분석: 이전 입력·이미지·결과를 비우고 입력 화면으로 (현재 결과 화면은 스택에서 제거)

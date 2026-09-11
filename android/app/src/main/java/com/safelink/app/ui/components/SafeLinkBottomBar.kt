@@ -42,7 +42,12 @@ fun SafeLinkBottomBar(navController: NavHostController, tabs: List<Screen>) {
             NavigationBarItem(
                 selected = currentRoute == screen.route,
                 onClick = {
-                    navController.navigate(screen.route) {
+                    // SupportMatch는 route 자체가 "support?riskTypes={riskTypes}" 패턴 문자열이라
+                    // 그대로 navigate()에 넘기면 안 되고 createRoute()로 실제 목적지를 만들어야 한다
+                    // (분석 결과 화면에서 위험유형을 실어 보내는 것과 같은 이유, Task 5.3).
+                    val destination =
+                        if (screen is Screen.SupportMatch) screen.createRoute() else screen.route
+                    navController.navigate(destination) {
                         popUpTo(navController.graph.findStartDestination().id) {
                             saveState = true
                         }
