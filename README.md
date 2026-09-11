@@ -1,93 +1,200 @@
-# Safelink
+# SafeLink
 
-Safelink는 위험한 관계의 신호를 빠르게 감지하고, 사용자가 필요한 도움을 안전하게 받을 수 있도록 지원하는 앱 프로젝트입니다.
+SafeLink is an Android safety-support application that detects suspicious signals in messenger or SMS conversations and connects users to practical response guidance.
 
-단순히 위험을 경고하는 데서 끝나지 않고, 상담 기관, 복지 제도, 보호 서비스와 같은 실제 지원으로 연결하고 신청 과정까지 동행하는 것을 목표로 합니다. 메신저 대화나 반복적인 관계 패턴 속에서 나타나는 위험 표현을 감지하고, 즉시 대응할 수 있도록 배너 알림과 대응 가이드를 제공합니다.
+The project was developed for an engineering competition. It focuses on three user flows:
 
-또한 가정폭력이나 통제적 관계처럼 앱 사용 사실이 노출되는 것 자체가 위험할 수 있는 상황을 고려해 비밀번호 잠금과 생체인증 같은 보안 기능도 함께 설계하고 있습니다.
+- Text-based risk analysis
+- Screenshot-based conversation analysis using OCR
+- Background risk detection with notification and response guidance
 
-## Project Goal
+SafeLink does not rely on AI as the main decision maker. The core judgment is performed by an on-device rule-based detection engine, and AI-assisted analysis is used only as a secondary support step when additional context is needed.
 
-- 위험 신호를 조기에 발견할 수 있는 앱 만들기
-- 위험 감지 후 바로 대응 행동으로 이어질 수 있는 흐름 설계
-- 상황에 맞는 상담 기관과 복지 제도를 연결
-- 사용자의 안전과 프라이버시를 함께 보호
+---
 
-## Core Features
+## Key Features
 
-- 위험 관계 자가진단 체크리스트
-- 위험 대화 감지 기능
-- 백그라운드 감지 및 배너 알림
-- 위험도 분류와 대응 가이드 제공
-- 맞춤 지원 제도 및 상담 기관 추천
-- 신청 동행 기능
-- 긴급 도움 요청 기능
-- 상황 기록 및 조회 기능
-- 비밀번호 및 생체인증 기반 보안 기능
+### Conversation Risk Analysis
+
+- Analyzes user-entered conversation text
+- Detects risk signals using keyword, regex, sentence-rule, and situation-rule logic
+- Classifies the result into `SAFE`, `CAUTION`, `WARNING`, or `CRITICAL`
+- Shows matched keywords and analysis evidence on the result screen
+
+### Screenshot OCR Analysis
+
+- Uses Android Photo Picker to select conversation screenshots
+- Extracts Korean text with Google ML Kit Text Recognition
+- Sends extracted text into the same detection flow as text input
+- Handles empty or too-short OCR results with user-facing feedback
+
+### Background Detection
+
+- Uses Android `AccessibilityService`
+- Detects visible text from other app screens when the user explicitly enables accessibility permission
+- Analyzes detected text with the same on-device detection engine
+- Shows neutral warning notifications through `NotificationCompat`
+- Connects notification taps to response guidance or emergency flow
+
+### Response Guide and Institution Matching
+
+- Provides risk-level-based response guidance
+- Recommends relevant support institutions by risk category
+- Connects users to phone, web, or support application guidance
+
+### Local Record Storage
+
+- Stores detection and self-diagnosis records locally with Room DB
+- Allows users to revisit past analysis results
+- Keeps records on the device instead of sending them to an external server
+
+---
 
 ## Tech Stack
 
-### Frontend
-- Kotlin
-- Jetpack Compose
-- Android Studio
-- Android Notification
-- Foreground Service
+| Area | Stack |
+|---|---|
+| Language | Kotlin |
+| UI | Jetpack Compose, Material3 |
+| Navigation | Navigation Compose |
+| State Management | ViewModel, Compose State |
+| Dependency Injection | Hilt |
+| Local Database | Room |
+| OCR | Google ML Kit Korean Text Recognition |
+| Network | Retrofit, OkHttp, Gson |
+| Async | Kotlin Coroutines, Flow |
+| Background Detection | Android AccessibilityService |
+| Notification | NotificationChannel, NotificationCompat |
+| Build | Gradle Kotlin DSL, KSP |
 
-### Backend
-- Python
-- FastAPI or Flask
-- REST API
-- JSON
+---
 
-### Storage
-- MySQL or SQLite
-- Room
-- SharedPreferences
+## Architecture Overview
 
-### Security
-- App password lock
-- Biometric authentication
-- Encrypted local storage
-
-## Project Direction
-
-- 대학 과정에서 익힌 Java와 Python을 기반으로 개발
-- AI와 협업하여 앱 구현과 분석 로직 개발 생산성 향상
-- 공학경진대회 일정에 맞춰 데모 완성과 제출물 준비를 병행
-- 실제 상용 서비스 수준보다 발표와 시연이 가능한 구조를 우선 구현
-
-## Schedule
-
-- 2026.05.26 ~ 2026.06.15: 시험기간으로 프로젝트 진행 중단
-- 2026.06.16 ~ 2026.07.06: 기획, 설계, 화면 구조 정리
-- 2026.07.07 ~ 2026.08.03: 핵심 기능 구현 및 데모 완성
-- 2026.08.04 ~ 2026.08.27: 보고서, 팜플렛, 소개 영상, 최종 점검
-- 2026.08.28 16:00: 1차 심사 결과물 제출 마감
-
-## Repository Structure
-
+```text
+User Input
+  ├─ Text input
+  ├─ Screenshot OCR
+  └─ Background accessibility detection
+        ↓
+DetectionViewModel
+        ↓
+DetectionRepository
+        ↓
+DetectionEngine
+  ├─ Keyword / regex matching
+  ├─ Combo rule scoring
+  ├─ Sentence rule scoring
+  ├─ Situation rule scoring
+  └─ AI-assisted analysis fallback
+        ↓
+DetectionResult
+        ↓
+Result Screen → Response Guide → Institution Support
+        ↓
+Room DB Record Storage
 ```
+
+---
+
+## Main Modules
+
+```text
 safelink/
-├── android/          # Android 앱 (Kotlin + Jetpack Compose)
-│                     #   → Android Studio에서 이 폴더를 열어 실행
-├── docs/             # 개발 설계 문서
-│   ├── Requirements.md      # 요구사항 (F-01~F-09)
-│   ├── Design.md            # 기술 설계 (아키텍처·데이터 모델·로직)
-│   ├── Tasks.md             # 스프린트별 작업 목록
-│   ├── ScreenFlow.md        # 화면 흐름도
-│   ├── ScreenUI.md          # 화면별 UI 구성표
-│   ├── DevPriority.md       # 우선 개발 화면 목록
-│   └── AndroidStructure.md  # 앱 구조 설계
-├── data/             # 데이터·API 스펙 (institutions.json, keyword.json, API 입출력)
-├── 기획문서/          # 서비스 소개·로드맵·일정·기술스택·명세서·대회 안내
-├── 아이디어_초안/     # 시나리오·위험도 계산·카테고리 브레인스토밍
-├── 작업노트/          # 팀원 작업 메모 (.wy)
-└── 주차별_결과물/     # 주차별 산출물 정리
+├── android/                         # Android application
+│   └── app/src/main/java/com/safelink/app/
+│       ├── background/              # AccessibilityService-based background detection
+│       ├── data/
+│       │   ├── local/               # Room DB entities and DAO
+│       │   ├── model/               # Detection result and risk models
+│       │   ├── ocr/                 # ML Kit OCR service
+│       │   ├── remote/              # AI-assisted analysis API DTO/service
+│       │   └── repository/          # Detection and record repositories
+│       ├── notification/            # Risk notification handling
+│       ├── security/                # App lock manager
+│       ├── settings/                # Feature toggles and emergency contact storage
+│       └── ui/                      # Compose screens and reusable components
+├── backend/                         # Mock analysis server for API integration demo
+├── data/                            # Data/API reference files
+└── docs/                            # Requirements, design, flow, and task documents
 ```
 
-- 디자인(Figma): https://www.figma.com/design/pgz34E5ealhQwQICH9xSTy/safelink
+---
 
-## One-line Summary
+## Core Detection Logic
 
-Safelink는 위험한 관계를 감지하고, 안전하게 도움을 연결하며, 사용자의 행동까지 이어지도록 돕는 보호형 지원 앱입니다.
+The detection engine calculates risk in the following order:
+
+```text
+Input text
+→ Keyword / regex matching
+→ Base score calculation
+→ Combo rule bonus
+→ Direct sentence and situation rule scoring
+→ Risk level classification
+→ Analysis evidence generation
+→ Optional AI-assisted analysis
+```
+
+Direct sentence and situation rules cover patterns such as:
+
+- Institution impersonation plus personal information request
+- Urgency plus money transfer request
+- Link or app installation plus identity verification
+- Secrecy request plus financial demand
+- Family impersonation plus new phone number and transfer request
+- Romance scam trust-building plus urgent money request
+- Guaranteed investment return plus deposit request
+- Threat of exposure plus money demand
+- Gaslighting through memory denial and blame shifting
+- Relationship isolation and control
+
+---
+
+## Privacy and Safety Design
+
+- Core detection runs on-device.
+- OCR is performed with on-device ML Kit text recognition.
+- Detection records are stored locally with Room DB.
+- Accessibility-based background detection requires explicit user permission.
+- AI-assisted analysis is optional and secondary.
+- Sensitive values such as phone numbers and URLs are masked before API use.
+- If the AI API fails, the on-device analysis result remains available.
+
+---
+
+## Run Locally
+
+### Android App
+
+1. Open the `android/` directory in Android Studio.
+2. Sync Gradle.
+3. Select the `app` run configuration.
+4. Run on an emulator or Android device.
+
+### Backend Mock Server
+
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+The Android emulator can access the local server through `10.0.2.2`.
+
+---
+
+## Current Status
+
+- Text analysis flow is implemented.
+- Screenshot OCR analysis flow is implemented.
+- Background detection and notification flow are implemented.
+- Result screen displays keyword, sentence-rule, situation-rule, and AI-assisted analysis evidence.
+- Local record storage is implemented with Room DB.
+- AI-assisted analysis architecture is implemented with a mock server and fallback behavior.
+
+---
+
+## Team Role
+
+SafeLink was developed as a team engineering competition project. The repository includes Android implementation, analysis logic, OCR/background detection features, documentation, and presentation materials.

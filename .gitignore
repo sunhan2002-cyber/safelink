@@ -6,3 +6,18 @@ __pycache__/
 *.pyc
 .venv/
 *.log
+
+# Local verification / extracted submissions
+_verify_*/
+_local_backup_*/
+
+# Local presentation and personal artifacts
+*.mp4
+*.zip
+*.xlsx
+*.docx
+KakaoTalk_*.png
+내 증명사진.png
+
+# Local scratch outputs generated during preparation
+safelink 구조도.png
