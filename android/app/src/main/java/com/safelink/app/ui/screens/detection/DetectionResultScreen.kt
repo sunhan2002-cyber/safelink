@@ -21,9 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Repeat
-import androidx.compose.material.icons.filled.SmartToy
-import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -49,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.data.link.LinkRiskResult
 import com.safelink.app.data.link.LinkVerdict
-import com.safelink.app.data.model.AnalysisEvidence
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.model.DetectionResultDummyData
 import com.safelink.app.data.model.RecommendedInstitutionUi

@@ -34,7 +34,6 @@ import com.safelink.app.ui.components.color
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.BrandBlueLight
 import com.safelink.app.ui.theme.RiskCritical
-import com.safelink.app.ui.theme.SurfaceWhite
 
 /**
  * 자가 진단 결과 (Figma 20:922) — 점수·위험도·근거는 [DiagnosisViewModel.submit]이 산출한
