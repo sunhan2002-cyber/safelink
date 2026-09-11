@@ -58,6 +58,7 @@ import com.safelink.app.ui.components.color
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.BrandBlueLight
 import com.safelink.app.ui.theme.RiskCriticalContainer
+import com.safelink.app.ui.theme.TextPrimary
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -163,10 +164,10 @@ fun RecordListScreen(
                 TextButton(onClick = {
                     viewModel.delete(record.id)
                     recordPendingDelete = null
-                }) { Text("삭제") }
+                }) { Text("삭제", color = TextPrimary) }
             },
             dismissButton = {
-                TextButton(onClick = { recordPendingDelete = null }) { Text("취소") }
+                TextButton(onClick = { recordPendingDelete = null }) { Text("취소", color = TextPrimary) }
             }
         )
     }
