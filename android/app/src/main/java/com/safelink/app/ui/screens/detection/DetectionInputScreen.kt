@@ -207,10 +207,11 @@ fun DetectionInputScreen(
     }
 }
 
-/** 스크린샷 분석 입력 기준 안내 — OCR 성공률을 높이기 위한 사용자 가이드 */
+/** 스크린샷 분석 입력 기준 안내 — OCR 성공률을 높이기 위한 사용자 가이드 (다른 안내 카드와
+ * 같은 파란 톤으로 통일, 사용자 요청) */
 @Composable
 private fun ScreenshotAnalysisGuideCard() {
-    SafeLinkCard(containerColor = BrandBlueLight) {
+    SafeLinkCard(containerColor = TipBlueContainer) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 text = "스크린샷 분석 안내",
@@ -335,7 +336,7 @@ private fun OcrNoTextBanner(
     message: String,
     onSwitchToText: () -> Unit
 ) {
-    SafeLinkCard(containerColor = BrandBlueLight) {
+    SafeLinkCard(containerColor = TipBlueContainer) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 text = "OCR 안내",

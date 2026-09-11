@@ -32,8 +32,8 @@ import com.safelink.app.ui.components.SafeLinkPrimaryButton
 import com.safelink.app.ui.components.SafeLinkTopBar
 import com.safelink.app.ui.components.color
 import com.safelink.app.ui.navigation.Screen
-import com.safelink.app.ui.theme.BrandBlueLight
 import com.safelink.app.ui.theme.RiskCritical
+import com.safelink.app.ui.theme.TipBlueContainer
 
 /**
  * 자가 진단 결과 (Figma 20:922) — 점수·위험도·근거는 [DiagnosisViewModel.submit]이 산출한
@@ -123,8 +123,8 @@ fun DiagnosisResultScreen(
                 }
             }
 
-            // 안심 카드
-            SafeLinkCard(containerColor = BrandBlueLight) {
+            // 안심 카드 — 다른 안내/신뢰 카드와 같은 파란 톤으로 통일(사용자 요청)
+            SafeLinkCard(containerColor = TipBlueContainer) {
                 Text(
                     text = "혼자 해결하지 않아도 됩니다. 아래에서 도움을 받을 수 있는 방법을 확인하세요.",
                     style = MaterialTheme.typography.bodyLarge

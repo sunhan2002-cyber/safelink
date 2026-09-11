@@ -64,6 +64,7 @@ import com.safelink.app.ui.theme.BrandBlueLight
 import com.safelink.app.ui.theme.RiskCriticalContainer
 import com.safelink.app.ui.theme.TextPrimary
 import com.safelink.app.ui.theme.TipBlue
+import com.safelink.app.ui.theme.TipBlueContainer
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -133,12 +134,13 @@ fun RecordListScreen(
                 // 기록 데이터가 기기 밖으로 나가지 않는다는 걸 알려주는 신뢰 카드 (Figma B08) —
                 // CLAUDE.md 원문 비저장 원칙과도 맞물려 "삭제 가능"이 사실이어야 하므로
                 // 개별 삭제(아래 RecordRow 휴지통 아이콘) 기능을 함께 구현했다.
-                SafeLinkCard(containerColor = BrandBlueLight) {
+                // 다른 안내/신뢰 카드(오늘의 안전 팁 등)와 같은 파란 톤으로 통일(사용자 요청)
+                SafeLinkCard(containerColor = TipBlueContainer) {
                     Row(verticalAlignment = Alignment.Top) {
                         Icon(
                             imageVector = Icons.Filled.Shield,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = TipBlue,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.size(10.dp))
