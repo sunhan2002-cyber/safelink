@@ -49,6 +49,7 @@ import com.safelink.app.data.link.LinkRiskResult
 import com.safelink.app.data.link.LinkVerdict
 import com.safelink.app.data.model.AnalysisEvidence
 import com.safelink.app.data.model.DetectionResult
+import com.safelink.app.data.model.EvidenceText
 import com.safelink.app.data.model.DetectionResultDummyData
 import com.safelink.app.data.model.RecommendedInstitutionUi
 import com.safelink.app.data.model.RiskLevel
@@ -106,6 +107,8 @@ fun DetectionResultScreen(
         isEscalatingToAI = viewModel.isEscalatingToAI,
         linkResults = viewModel.linkResults,
         isCheckingLinks = viewModel.isCheckingLinks,
+        manualAiMessage = viewModel.manualAiMessage,
+        onRequestAi = { viewModel.requestManualAi() },
         onBack = { navController.popBackStack() },
         onGuideClick = { navController.navigate(Screen.ResponseGuide.createRoute(result.riskLevel)) },
         onSupportClick = { navController.navigate(Screen.SupportMatch.route) },
@@ -128,6 +131,8 @@ private fun DetectionResultContent(
     isEscalatingToAI: Boolean = false,
     linkResults: List<LinkRiskResult> = emptyList(),
     isCheckingLinks: Boolean = false,
+    manualAiMessage: String? = null,
+    onRequestAi: () -> Unit = {},
     onBack: () -> Unit,
     onGuideClick: () -> Unit,
     onSupportClick: () -> Unit,
@@ -271,7 +276,8 @@ private fun DetectionResultContent(
                             Column {
                                 Text(text = "\"${kw.matchedText}\"", style = MaterialTheme.typography.bodyLarge)
                                 Text(
-                                    text = "${kw.subcategoryName} · ${kw.description}",
+                                    // 원본 설명에 개발 메모가 섞여 있어 화면에 보일 때만 걸러낸다(EvidenceText 참고)
+                                    text = EvidenceText.forUser(kw.description).let { if (it.isBlank()) kw.subcategoryName else "${kw.subcategoryName} · $it" },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -338,6 +344,20 @@ private fun DetectionResultContent(
                             )
                         }
                     }
+                }
+            }
+
+            // 수동 AI 보조분석 요청 (보고서 4장 "수동 신고") — AI 가 아직 반영되지 않은 결과에서만 보인다.
+            // 온디바이스 판정이 AI 호출 조건에 걸리지 않았어도, 사용자가 애매하다고 느끼면 직접 요청할 수 있다.
+            if (!isEscalatingToAI && result.aiSummary == null && result.aiDetectedPattern == null) {
+                SafeLinkOutlinedButton(text = "AI 보조분석 요청", onClick = onRequestAi)
+                Text(
+                    text = "판단이 애매하다고 느껴질 때 눌러주세요. 누르면 대화 내용이 AI 제공사(Anthropic)로 전송됩니다.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                manualAiMessage?.let { message ->
+                    Text(text = message, style = MaterialTheme.typography.bodySmall, color = RiskCritical)
                 }
             }
 
@@ -592,9 +612,10 @@ private fun EvidenceCard(evidence: AnalysisEvidence, accent: Color, container: C
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column {
-                Text(text = evidence.label, style = MaterialTheme.typography.bodyLarge)
+                Text(text = EvidenceText.forUser(evidence.label).ifBlank { evidence.label }, style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    text = evidence.detail,
+                    // detail 에는 사용자 원문(매칭된 문구)도 들어오므로 개발 메모 자르기는 하지 않고 코드·규칙 id 만 걷어낸다
+                    text = EvidenceText.forUser(evidence.detail, cutDeveloperNote = false),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

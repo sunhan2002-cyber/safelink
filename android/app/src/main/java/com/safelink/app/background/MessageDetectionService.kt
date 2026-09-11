@@ -152,10 +152,10 @@ class MessageDetectionService : AccessibilityService() {
             // 알림이 뜬 건(경고 이상)만 저장 — 일상 화면까지 기록이 쌓이지 않도록.
             // AI 보정 이전의 온디바이스 결과를 저장한다(보정은 비동기라 시점이 늦다) — 수동 분석과 동일.
             serviceScope.launch {
-                runCatching { recordRepository.saveDetection(result, RecordSource.BACKGROUND) }
+                val recordId = runCatching { recordRepository.saveDetection(result, RecordSource.BACKGROUND) }.getOrNull()
+                // AI 보조분석이 반영되면 방금 저장한 기록도 최종 판정으로 맞춘다 (결과 화면과 기록 불일치 방지).
+                escalateToAiIfConsented(result, pkg, text, recordId)
             }
-
-            escalateToAiIfConsented(result, pkg, text)
             return
         }
 
@@ -234,23 +234,27 @@ class MessageDetectionService : AccessibilityService() {
      * 그래서 기본값은 꺼짐이고, 설정에서 명시적으로 동의한 경우에만 서버로 나간다
      * ([AiConsentStore] KDoc 참고).
      */
-    private fun escalateToAiIfConsented(result: DetectionResult, pkg: String, text: String) {
+    private suspend fun escalateToAiIfConsented(
+        result: DetectionResult,
+        pkg: String,
+        text: String,
+        recordId: String?
+    ) {
         if (!AiConsentStore.isEnabled(applicationContext)) return
         if (!repository.shouldEscalateToAI(result)) return
 
-        serviceScope.launch {
-            val refined = runCatching {
-                repository.escalateToAI(
-                    result = result,
-                    sessionId = UUID.randomUUID().toString(),
-                    recentTurns = listOf(text)
-                )
-            }.getOrNull() ?: return@launch
+        val refined = runCatching {
+            repository.escalateToAI(
+                result = result,
+                sessionId = UUID.randomUUID().toString(),
+                recentTurns = listOf(text)
+            )
+        }.getOrNull() ?: return
 
-            // 서버가 실패하면 escalateToAI 가 원본을 그대로 돌려준다 — 그때는 갈아끼울 게 없다.
-            if (refined !== result) {
-                BackgroundDetectionState.refine(refined, sourceApp = pkg)
-            }
+        // 실패하면 escalateToAI 가 원본을 그대로 돌려준다 — 그때는 갈아끼울 게 없다.
+        if (refined !== result) {
+            BackgroundDetectionState.refine(refined, sourceApp = pkg)
+            recordId?.let { id -> runCatching { recordRepository.updateAiResult(id, refined) } }
         }
     }
 

@@ -28,7 +28,14 @@ data class DetectionRecordEntity(
     /** 감지된 위험 요소(중분류명) — 쉼표 구분. 목록 요약 문구 생성에 사용 */
     val matchedSubcategories: String,
     val matchedKeywordCount: Int,
-    val memo: String? = null
+    val memo: String? = null,
+    /**
+     * AI 보조분석이 반영된 경우의 설명과 수법. 반영되지 않았으면 null.
+     * 반영되면 [riskLevel]·[score] 도 AI 보정이 들어간 최종값으로 갱신한다 — 결과 화면과 기록이
+     * 같은 판정을 보이게 하기 위해서다(예전에는 결과는 "긴급", 기록은 "경고"로 어긋났다).
+     */
+    val aiSummary: String? = null,
+    val aiDetectedPattern: String? = null
 )
 
 /** 자가진단 기록 (Design.md 3.1 DiagnosisRecord) */

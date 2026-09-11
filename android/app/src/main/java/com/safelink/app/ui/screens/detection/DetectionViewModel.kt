@@ -86,6 +86,13 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
     var isEscalatingToAI by mutableStateOf(false)
         private set
 
+    /** "AI 보조분석 요청"(수동 신고)이 실패했을 때 결과 화면에 보여줄 안내 */
+    var manualAiMessage by mutableStateOf<String?>(null)
+        private set
+
+    /** 지금 결과 화면의 결과가 저장된 기록 id — AI 보정이 나중에 들어오면 이 기록을 갱신한다. */
+    private var currentRecordId: String? = null
+
     private val repository: DetectionRepository by lazy { DetectionRepository(getApplication()) }
     private val recordRepository: RecordRepository by lazy { RecordRepository(getApplication()) }
     // 실제 온디바이스 OCR. (OCR 없이 흐름만 볼 땐 StubOcrService() 로 교체)
@@ -119,6 +126,8 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         selectedImages = emptyList()
         result = null
         linkResults = emptyList()
+        manualAiMessage = null
+        currentRecordId = null
         ocrNoText = false
         ocrFeedbackMessage = null
         lastAnalysisSource = AnalysisSource.TEXT
@@ -135,6 +144,8 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         selectedImages = emptyList()
         result = null
         linkResults = emptyList()
+        manualAiMessage = null
+        currentRecordId = null
         ocrNoText = false
         ocrFeedbackMessage = null
     }
@@ -170,7 +181,21 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         val record = recordRepository.findById(recordId) ?: return false
         val text = record.originalText?.takeIf { it.isNotBlank() } ?: return false
         originalText = text
-        result = repository.analyze(text)
+        val onDevice = repository.analyze(text)
+        // AI 보조분석이 반영된 기록이면 저장된 최종 판정과 AI 설명을 그대로 복원한다.
+        // 재분석은 온디바이스로만 하므로, 복원하지 않으면 상세 보기에서 AI 반영 전 점수로 보인다.
+        result = if (record.aiSummary != null || record.aiDetectedPattern != null) {
+            onDevice.copy(
+                score = record.score,
+                riskLevel = record.riskLevel,
+                aiSummary = record.aiSummary,
+                aiDetectedPattern = record.aiDetectedPattern
+            )
+        } else {
+            onDevice
+        }
+        currentRecordId = recordId
+        manualAiMessage = null
         checkLinks(text)
         lastAnalysisSource = when (record.sourceLabel) {
             AnalysisSource.SCREENSHOT.label -> AnalysisSource.SCREENSHOT
@@ -217,37 +242,34 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         checkLinks(originalText)
 
         // 검사 기록 저장 (Task 7.1) — 기기 내 DB에만 남으며 서버로 나가지 않는다.
-        // AI 보정 이전의 온디바이스 결과를 기준으로 저장한다(보정은 비동기라 시점이 늦음).
-        viewModelScope.launch {
-            runCatching {
-                recordRepository.saveDetection(
-                    result = onDeviceResult,
-                    source = if (lastAnalysisSource == AnalysisSource.SCREENSHOT) {
-                        RecordSource.SCREENSHOT
-                    } else {
-                        RecordSource.TEXT_INPUT
-                    }
-                )
-            }
-        }
-
+        // 온디바이스 결과를 먼저 저장하고, AI 보조분석이 반영되면 같은 기록을 최종 판정으로 갱신한다.
+        // (예전에는 AI 보정 전 결과만 남아, 결과 화면은 "긴급"인데 기록은 "경고"로 보이는 불일치가 있었다.)
+        //
         // 2차 AI 보조 분석: 조건 충족 시 비동기로 호출해 result 를 한 번 더 갱신(신기훈).
         // runAnalysis 는 온디바이스 결과가 나오면 바로 반환하고, AI 보정은 이후 자연스럽게 들어온다.
-        // 결과 화면은 viewModel.result 를 구독하므로 자동 재구성된다. 네트워크 실패 시 escalateToAI 가
-        // 온디바이스 결과를 그대로 반환하므로 result 가 나빠지는 경우는 없음.
+        // 네트워크 실패 시 escalateToAI 가 온디바이스 결과를 그대로 반환하므로 result 가 나빠지는 경우는 없음.
         //
-        // ⚠️ 한계: 단일 입력 구조라 recentTurns=[originalText] 고정. 실제 다중 턴 세션 추적이
-        //   생기면 누적 상태로 교체할 것 (07번 문서 "recentTurns 한계" 참고). shouldEscalateToAI의
-        //   AI 호출 판단 자체는 5주차 정리로 세션 턴 수와 무관해졌음(09번 문서 참고) —
-        //   sessionTurnCount 파라미터는 더 이상 없음.
-        if (repository.shouldEscalateToAI(onDeviceResult)) {
-            viewModelScope.launch {
-                isEscalatingToAI = true
-                result = repository.escalateToAI(
+        // ⚠️ 한계: 단일 입력 구조라 recentTurns=[originalText] 고정 (07번 문서 "recentTurns 한계" 참고).
+        val source = if (lastAnalysisSource == AnalysisSource.SCREENSHOT) RecordSource.SCREENSHOT else RecordSource.TEXT_INPUT
+        val shouldEscalate = repository.shouldEscalateToAI(onDeviceResult)
+        val textForAi = originalText
+        currentRecordId = null
+        manualAiMessage = null
+        if (shouldEscalate) isEscalatingToAI = true
+        viewModelScope.launch {
+            val recordId = runCatching { recordRepository.saveDetection(onDeviceResult, source) }.getOrNull()
+            currentRecordId = recordId
+            if (shouldEscalate) {
+                val refined = repository.escalateToAI(
                     result = onDeviceResult,
                     sessionId = sessionId,
-                    recentTurns = listOf(originalText)
+                    recentTurns = listOf(textForAi)
                 )
+                if (refined !== onDeviceResult) {
+                    // 그사이 사용자가 새 분석을 시작했으면 화면은 건드리지 않고 기록만 맞춘다.
+                    if (result === onDeviceResult) result = refined
+                    recordId?.let { id -> runCatching { recordRepository.updateAiResult(id, refined) } }
+                }
                 isEscalatingToAI = false
             }
         }
@@ -267,6 +289,37 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
             isCheckingLinks = true
             linkResults = runCatching { linkRiskChecker.checkText(text) }.getOrDefault(emptyList())
             isCheckingLinks = false
+        }
+    }
+
+    /**
+     * 사용자가 결과 화면에서 "AI 보조분석 요청"을 누른 경우 (보고서 4장 "수동 신고" 조건).
+     *
+     * 온디바이스 판정이 AI 호출 조건(회색지대 점수, 신규 세부유형)에 걸리지 않았더라도, 사용자가
+     * 애매하다고 느끼면 직접 AI 보조분석을 받을 수 있게 한다. 이전에는 이 조건을 넘기는 화면이 없어
+     * manualReportFlag 가 항상 false 였다.
+     */
+    fun requestManualAi() {
+        val base = result ?: return
+        if (isEscalatingToAI || base.aiSummary != null || base.aiDetectedPattern != null) return
+        if (!repository.shouldEscalateToAI(base, manualReportFlag = true)) return
+        val text = originalText.ifBlank { base.originalText }
+        val recordId = currentRecordId
+        manualAiMessage = null
+        isEscalatingToAI = true
+        viewModelScope.launch {
+            val refined = repository.escalateToAI(
+                result = base,
+                sessionId = sessionId,
+                recentTurns = listOf(text)
+            )
+            if (refined === base) {
+                manualAiMessage = "AI 보조분석을 받지 못했어요. 잠시 후 다시 시도해 주세요."
+            } else {
+                if (result === base) result = refined
+                recordId?.let { id -> runCatching { recordRepository.updateAiResult(id, refined) } }
+            }
+            isEscalatingToAI = false
         }
     }
 
