@@ -66,6 +66,8 @@ import com.safelink.app.ui.theme.BrandBlue
 import com.safelink.app.ui.theme.BrandBlueLight
 import com.safelink.app.ui.theme.RiskCritical
 import com.safelink.app.ui.theme.SurfaceWhite
+import com.safelink.app.ui.theme.TipBlue
+import com.safelink.app.ui.theme.TipBlueContainer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -177,12 +179,14 @@ fun DetectionInputScreen(
                 )
             }
 
-            SafeLinkCard {
+            // Figma B03은 이 카드를 "오늘의 안전 팁"과 같은 파란 톤으로 표시(픽셀 샘플링
+            // 확인, 사용자 요청) — 정보/안내성 카드는 파란 계열로 통일
+            SafeLinkCard(containerColor = TipBlueContainer) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Filled.Shield,
                         contentDescription = null,
-                        tint = BrandBlue,
+                        tint = TipBlue,
                         modifier = Modifier.size(28.dp)
                     )
                     Spacer(modifier = Modifier.size(12.dp))
