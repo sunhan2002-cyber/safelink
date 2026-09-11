@@ -2,25 +2,28 @@ package com.safelink.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// 브랜드 (Figma 와이어프레임 기준 파랑 계열)
-val BrandBlue = Color(0xFF2563EB)
-val BrandBlueDark = Color(0xFF1E40AF)
-val BrandBlueLight = Color(0xFFDBEAFE)
+// 브랜드 (9주차 - Figma "SafeLink Concept B" 리디자인 시안 기준 민트/그린 계열로 전환.
+// 변수 이름은 그대로 유지 — 이 4개 토큰을 참조하는 다른 화면 코드를 안 건드리기 위해 값만
+// 교체함. 실제 값은 시안 스크린샷 픽셀 샘플링으로 추출(#16C79A 계열이 반복적으로 등장).
+val BrandBlue = Color(0xFF16C79A)
+val BrandBlueDark = Color(0xFF0B8F6E)
+val BrandBlueLight = Color(0xFFDCF6EE)
 
 // 배경·표면
 val BackgroundGray = Color(0xFFF5F6F8)
 val SurfaceWhite = Color(0xFFFFFFFF)
 
-// 위험도 색상 (안전=초록, 주의=노랑, 경고=주황, 긴급=빨강)
-val RiskSafe = Color(0xFF16A34A)
-val RiskCaution = Color(0xFFCA8A04)
-val RiskWarning = Color(0xFFEA580C)
-val RiskCritical = Color(0xFFDC2626)
+// 위험도 색상 (안전=초록, 주의=주황, 경고=주황(진하게), 긴급=빨강) — 9주차: Figma 시안 색으로 갱신.
+// 시안에서 "안전"은 브랜드 그린과 같은 색을 씀(=신뢰감 있는 기본색이 곧 안전 상태).
+val RiskSafe = Color(0xFF16C79A)
+val RiskCaution = Color(0xFFF5A524)
+val RiskWarning = Color(0xFFE0801A)
+val RiskCritical = Color(0xFFF25C54)
 
-val RiskSafeContainer = Color(0xFFDCFCE7)
-val RiskCautionContainer = Color(0xFFFEF9C3)
-val RiskWarningContainer = Color(0xFFFFEDD5)
-val RiskCriticalContainer = Color(0xFFFEE2E2)
+val RiskSafeContainer = Color(0xFFDCF6EE)
+val RiskCautionContainer = Color(0xFFFEF2DE)
+val RiskWarningContainer = Color(0xFFFCE8D6)
+val RiskCriticalContainer = Color(0xFFFDE7E5)
 
 val TextPrimary = Color(0xFF111827)
 val TextSecondary = Color(0xFF6B7280)
