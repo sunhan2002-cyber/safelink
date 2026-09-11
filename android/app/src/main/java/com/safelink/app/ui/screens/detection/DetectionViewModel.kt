@@ -8,14 +8,18 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.safelink.app.background.BackgroundDetectionState
+import com.safelink.app.data.link.LinkResultCodec
 import com.safelink.app.data.link.LinkRiskChecker
 import com.safelink.app.data.link.LinkRiskResult
+import com.safelink.app.data.link.LinkVerdict
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.ocr.MlKitOcrService
 import com.safelink.app.data.ocr.OcrService
 import com.safelink.app.data.local.RecordSource
 import com.safelink.app.data.repository.DetectionRepository
 import com.safelink.app.data.repository.RecordRepository
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -182,21 +186,24 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         val text = record.originalText?.takeIf { it.isNotBlank() } ?: return false
         originalText = text
         val onDevice = repository.analyze(text)
-        // AI 보조분석이 반영된 기록이면 저장된 최종 판정과 AI 설명을 그대로 복원한다.
-        // 재분석은 온디바이스로만 하므로, 복원하지 않으면 상세 보기에서 AI 반영 전 점수로 보인다.
-        result = if (record.aiSummary != null || record.aiDetectedPattern != null) {
-            onDevice.copy(
-                score = record.score,
-                riskLevel = record.riskLevel,
-                aiSummary = record.aiSummary,
-                aiDetectedPattern = record.aiDetectedPattern
-            )
-        } else {
-            onDevice
-        }
+        // 위험도·점수·유형은 기록에 저장된 판정을 그대로 쓴다 — 기록 목록과 상세 보기가 같은 판정을 보여야 한다.
+        // 재분석은 근거(매칭 구간·규칙 설명)를 되살리는 용도다. 재분석 값을 그대로 쓰면
+        // - AI 보조분석이 반영된 기록은 AI 반영 전 점수로 보이고(재분석은 온디바이스로만 한다),
+        // - 백그라운드에서 악성 링크로 알린 기록은 키워드가 없어 "안전"으로 보였다(목록은 "긴급").
+        result = onDevice.copy(
+            score = record.score,
+            riskLevel = record.riskLevel,
+            category = record.category.ifBlank { onDevice.category },
+            aiSummary = record.aiSummary,
+            aiDetectedPattern = record.aiDetectedPattern
+        )
         currentRecordId = recordId
         manualAiMessage = null
-        checkLinks(text)
+        checkLinks(
+            text = text,
+            recordId = CompletableDeferred(recordId),
+            stored = LinkResultCodec.decode(record.linkResultsJson)
+        )
         lastAnalysisSource = when (record.sourceLabel) {
             AnalysisSource.SCREENSHOT.label -> AnalysisSource.SCREENSHOT
             AnalysisSource.BACKGROUND.label -> AnalysisSource.BACKGROUND
@@ -239,7 +246,9 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         result = onDeviceResult
 
         // 링크 안전성 검사 — 결과 화면을 붙잡지 않도록 비동기로 돌리고 끝나는 대로 반영한다.
-        checkLinks(originalText)
+        // 판정은 아래에서 저장하는 기록에도 남긴다(저장이 끝나 id 가 정해지면).
+        val recordIdForLinks = CompletableDeferred<String?>()
+        checkLinks(originalText, recordId = recordIdForLinks)
 
         // 검사 기록 저장 (Task 7.1) — 기기 내 DB에만 남으며 서버로 나가지 않는다.
         // 온디바이스 결과를 먼저 저장하고, AI 보조분석이 반영되면 같은 기록을 최종 판정으로 갱신한다.
@@ -259,6 +268,7 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             val recordId = runCatching { recordRepository.saveDetection(onDeviceResult, source) }.getOrNull()
             currentRecordId = recordId
+            recordIdForLinks.complete(recordId)
             if (shouldEscalate) {
                 val refined = repository.escalateToAI(
                     result = onDeviceResult,
@@ -281,14 +291,27 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
      *
      * 링크가 없으면 아무 일도 하지 않는다. 검사는 화면 전환을 막지 않도록 항상 비동기로 돌리고,
      * 실패하면 조용히 빈 목록으로 둔다 — 링크 검사는 부가 정보이지 분석의 전제가 아니다.
+     *
+     * @param recordId 판정을 남길 기록 id. 저장이 검사보다 늦게 끝날 수 있어 완료를 기다렸다 남긴다. null 이면 남기지 않는다.
+     * @param stored 기록에 남아 있던 당시 판정. 먼저 보여주고 새 검사 결과와 합친다([LinkResultCodec.merge]) —
+     *   다시 검사하지 못해도(오프라인 등) 당시 판정이 사라지지 않는다.
      */
-    private fun checkLinks(text: String) {
-        linkResults = emptyList()
+    private fun checkLinks(
+        text: String,
+        recordId: Deferred<String?>? = null,
+        stored: List<LinkRiskResult> = emptyList()
+    ) {
+        linkResults = stored
         if (!linkRiskChecker.isConfigured) return
         viewModelScope.launch {
             isCheckingLinks = true
-            linkResults = runCatching { linkRiskChecker.checkText(text) }.getOrDefault(emptyList())
+            val fresh = runCatching { linkRiskChecker.checkText(text) }.getOrDefault(emptyList())
+            val merged = LinkResultCodec.merge(stored, fresh)
+            linkResults = merged
             isCheckingLinks = false
+            if (recordId != null && merged.any { it.verdict != LinkVerdict.UNCHECKED }) {
+                recordId.await()?.let { id -> runCatching { recordRepository.updateLinkResults(id, merged) } }
+            }
         }
     }
 

@@ -1,6 +1,8 @@
 package com.safelink.app.data.repository
 
 import android.content.Context
+import com.safelink.app.data.link.LinkResultCodec
+import com.safelink.app.data.link.LinkRiskResult
 import com.safelink.app.data.local.DetectionRecordEntity
 import com.safelink.app.data.local.DiagnosisRecordEntity
 import com.safelink.app.data.local.RecordSource
@@ -34,7 +36,11 @@ data class RecordItem(
     val sourceLabel: String? = null,
     /** AI 보조분석이 반영된 기록이면 설명·수법 (상세 보기에서 복원용) */
     val aiSummary: String? = null,
-    val aiDetectedPattern: String? = null
+    val aiDetectedPattern: String? = null,
+    /** 대화 분석 기록의 위험 유형(자가진단은 빈 값) — 상세 보기에서 저장 당시 판정 복원용 */
+    val category: String = "",
+    /** 검사 당시 링크 판정(JSON). 목록에서는 쓰지 않으므로 상세 보기에서만 [LinkResultCodec.decode] 한다. */
+    val linkResultsJson: String? = null
 )
 
 /**
@@ -85,8 +91,15 @@ class RecordRepository(context: Context) {
     suspend fun findById(id: String): RecordItem? =
         detectionDao.findById(id)?.toItem() ?: diagnosisDao.findById(id)?.toItem()
 
-    /** 대화 분석 결과 저장. [source]로 텍스트/스크린샷/백그라운드 경로를 구분한다. */
-    suspend fun saveDetection(result: DetectionResult, source: RecordSource): String {
+    /**
+     * 대화 분석 결과 저장. [source]로 텍스트/스크린샷/백그라운드 경로를 구분한다.
+     * @param linkResults 저장 시점에 이미 끝난 링크 검사 결과(백그라운드 악성 링크 알림). 나중에 끝나면 [updateLinkResults].
+     */
+    suspend fun saveDetection(
+        result: DetectionResult,
+        source: RecordSource,
+        linkResults: List<LinkRiskResult> = emptyList()
+    ): String {
         val id = UUID.randomUUID().toString()
         detectionDao.insert(
             DetectionRecordEntity(
@@ -101,10 +114,17 @@ class RecordRepository(context: Context) {
                     .map { it.subcategoryName }
                     .distinct()
                     .joinToString(","),
-                matchedKeywordCount = result.matchedKeywords.size
+                matchedKeywordCount = result.matchedKeywords.size,
+                linkResultsJson = LinkResultCodec.encode(linkResults)
             )
         )
         return id
+    }
+
+    /** 링크 검사 판정을 기록에 남긴다. 남길 판정이 없으면(전부 검사 실패) 기존 값을 건드리지 않는다. */
+    suspend fun updateLinkResults(id: String, results: List<LinkRiskResult>) {
+        val json = LinkResultCodec.encode(results) ?: return
+        detectionDao.updateLinkResults(id, json)
     }
 
     /** 자가진단 결과 저장 */
@@ -179,7 +199,9 @@ private fun DetectionRecordEntity.toItem(): RecordItem {
         originalText = originalText,
         sourceLabel = sourceType.label,
         aiSummary = aiSummary,
-        aiDetectedPattern = aiDetectedPattern
+        aiDetectedPattern = aiDetectedPattern,
+        category = category,
+        linkResultsJson = linkResultsJson
     )
 }
 

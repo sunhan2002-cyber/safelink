@@ -28,6 +28,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -40,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.settings.EmergencyContactStore
+import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
 import com.safelink.app.ui.components.SafeLinkTopBar
 import com.safelink.app.ui.navigation.Screen
@@ -138,10 +140,30 @@ fun EmergencyScreen(navController: NavHostController) {
             EmergencyCallButton(
                 number = "112",
                 title = "경찰 신고",
-                caption = "신변 위협 · 보이스피싱 즉시 신고",
+                caption = "보이스피싱 신고 · 송금했다면 지급정지 요청",
                 color = RiskCritical,
                 onClick = { IntentActions.dial(context, "112") }
             )
+
+            // "이미 송금했나요?"라고 묻는 화면인데, 송금 뒤 가장 급한 행동인 지급정지 안내가 없었다.
+            // 지급정지는 112 나 송금한 은행 고객센터에 요청하고, 금융감독원(1332)은 피해 상담·절차를 안내한다.
+            SafeLinkCard {
+                Text(
+                    text = "이미 송금했다면 지금 바로 지급정지",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = RiskCritical
+                )
+                Spacer(modifier = Modifier.size(4.dp))
+                Text(
+                    text = "송금한 은행 고객센터나 112에 전화해 계좌 지급정지를 요청하세요. 빨리 요청할수록 피해금을 돌려받는 데 유리해요.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                TextButton(onClick = { IntentActions.dial(context, "1332") }) {
+                    Text("금융감독원 1332 · 피해 상담 전화")
+                }
+            }
             EmergencyCallButton(
                 number = "1366",
                 title = "여성긴급전화",

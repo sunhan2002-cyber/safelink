@@ -16,7 +16,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  */
 @Database(
     entities = [DetectionRecordEntity::class, DiagnosisRecordEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(RecordConverters::class)
@@ -38,6 +38,13 @@ abstract class SafeLinkDatabase : RoomDatabase() {
             }
         }
 
+        /** v2 → v3: 링크 검사 판정 칸 추가. v1 → v2 와 같은 이유로 기존 기록을 지우지 않고 칸만 덧붙인다. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE detection_records ADD COLUMN linkResultsJson TEXT")
+            }
+        }
+
         @Volatile
         private var instance: SafeLinkDatabase? = null
 
@@ -48,7 +55,7 @@ abstract class SafeLinkDatabase : RoomDatabase() {
                 "safelink.db"
             )
                 // 개발 중 스키마 변경 시 기록을 유지할 필요가 없어 재생성으로 둔다.
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .fallbackToDestructiveMigration()
                 .build()
                 .also { instance = it }

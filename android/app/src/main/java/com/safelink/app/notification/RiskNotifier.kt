@@ -23,14 +23,18 @@ class RiskNotifier(private val context: Context) {
         manager().createNotificationChannel(channel)
     }
 
-    fun notifyRisk(level: RiskLevel, category: String, detectedPhrase: String? = null) {
+    /**
+     * @param recordId 이 감지가 저장된 기록 id. 있으면 알림을 눌렀을 때 그 기록의 분석 결과 화면이 열린다.
+     */
+    fun notifyRisk(level: RiskLevel, category: String, detectedPhrase: String? = null, recordId: String? = null) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra(MainActivity.EXTRA_NAV_ROUTE, routeFor(level))
+            putExtra(MainActivity.EXTRA_NAV_ROUTE, routeFor(level, recordId))
         }
         val pending = PendingIntent.getActivity(
             context,
-            level.ordinal,
+            // 기록마다 요청 코드를 달리해, 이전 알림의 이동 경로가 새 알림에 섞이지 않게 한다.
+            recordId?.hashCode() ?: level.ordinal,
             intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
@@ -74,8 +78,17 @@ class RiskNotifier(private val context: Context) {
     private fun manager(): NotificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-    private fun routeFor(level: RiskLevel): String = when (level) {
-        RiskLevel.CRITICAL -> Screen.Emergency.route
+    /**
+     * 알림을 눌렀을 때 열 화면.
+     *
+     * 기록이 있으면 그 기록의 분석 결과 화면으로 간다. 예전에는 긴급이면 긴급 도움, 그 외엔 대응 가이드로
+     * 바로 보내서, 사용자가 무엇이 왜 감지됐는지 확인할 방법이 없었다. 결과 화면에서 긴급 도움·대응
+     * 가이드로 이어지므로(긴급이면 "긴급 도움 요청"이 주 버튼) 한 번만 더 누르면 같은 곳에 닿는다.
+     * 기록 저장에 실패한 경우에만 예전처럼 위험도별 화면으로 보낸다.
+     */
+    private fun routeFor(level: RiskLevel, recordId: String?): String = when {
+        recordId != null -> Screen.DetectionResult.createRoute(recordId)
+        level == RiskLevel.CRITICAL -> Screen.Emergency.route
         else -> Screen.ResponseGuide.createRoute(level)
     }
 
