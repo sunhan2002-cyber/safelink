@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -17,22 +18,24 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import androidx.compose.ui.platform.LocalContext
 import com.safelink.app.background.BackgroundDetectionState
 import com.safelink.app.background.BackgroundDetectionSnapshot
 import com.safelink.app.ui.screens.detection.DetectionViewModel
-import com.safelink.app.util.IntentActions
 import com.safelink.app.data.model.RiskLevel
+import com.safelink.app.ui.components.RiskBadge
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkOutlinedButton
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
@@ -41,6 +44,7 @@ import com.safelink.app.ui.components.color
 import com.safelink.app.ui.components.containerColor
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.BrandBlueDark
+import com.safelink.app.ui.theme.BrandBlueLight
 import com.safelink.app.ui.theme.RiskCritical
 
 @Composable
@@ -49,7 +53,6 @@ fun ResponseGuideScreen(
     riskLevel: RiskLevel,
     detectionViewModel: DetectionViewModel
 ) {
-    val context = LocalContext.current
     val backgroundSnapshot by BackgroundDetectionState.latestSnapshot.collectAsState()
     val matchedBackgroundSnapshot = backgroundSnapshot?.takeIf { it.riskLevel == riskLevel }
 
@@ -63,14 +66,6 @@ fun ResponseGuideScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (riskLevel == RiskLevel.CRITICAL) {
-                SafeLinkPrimaryButton(
-                    text = "긴급 도움 요청",
-                    containerColor = RiskCritical,
-                    onClick = { navController.navigate(Screen.Emergency.route) }
-                )
-            }
-
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
@@ -92,6 +87,8 @@ fun ResponseGuideScreen(
                 }
                 Spacer(modifier = Modifier.size(12.dp))
                 Text(text = "대응 안내", style = MaterialTheme.typography.titleLarge)
+                Spacer(modifier = Modifier.size(6.dp))
+                RiskBadge(level = riskLevel)
             }
 
             Text(
@@ -144,34 +141,13 @@ fun ResponseGuideScreen(
                 )
             }
 
-            Text(text = "지금 해야 할 행동", style = MaterialTheme.typography.titleMedium)
-            SafeLinkCard {
-                Text(
-                    text = riskLevelAction(riskLevel),
-                    style = MaterialTheme.typography.bodyLarge
+            Text(text = "대응 순서", style = MaterialTheme.typography.titleMedium)
+            GuideStepList(
+                steps = listOf(
+                    "지금 해야 할 행동" to riskLevelAction(riskLevel),
+                    "추가 확인 사항" to riskLevelExtraCheck(riskLevel)
                 )
-            }
-
-            Text(text = "추가 확인 사항", style = MaterialTheme.typography.titleMedium)
-            SafeLinkCard {
-                Text(
-                    text = riskLevelExtraCheck(riskLevel),
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
-
-            if (riskLevel == RiskLevel.CRITICAL) {
-                SafeLinkPrimaryButton(
-                    text = "112 전화",
-                    containerColor = RiskCritical,
-                    onClick = { IntentActions.dial(context, "112") }
-                )
-                SafeLinkPrimaryButton(
-                    text = "1332 전화",
-                    containerColor = BrandBlueDark,
-                    onClick = { IntentActions.dial(context, "1332") }
-                )
-            }
+            )
 
             Text(
                 text = "분석 결과는 참고 정보이며, 최종 판단은 사용자에게 있습니다.",
@@ -184,11 +160,26 @@ fun ResponseGuideScreen(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            SafeLinkPrimaryButton(
-                text = "추천 기관 목록 보기",
-                onClick = { navController.navigate(Screen.SupportMatch.route) }
-            )
-            SafeLinkOutlinedButton(
+            if (riskLevel == RiskLevel.CRITICAL) {
+                // 긴급 단계 버튼 위계 정리 — 이 화면에서 112/1332를 각각 누르게 하는 대신
+                // "긴급 도움 요청" 하나로 모아 전용 화면(EmergencyScreen, 88dp 대형 전화 버튼)으로
+                // 보낸다. 화면당 주 버튼 1개 원칙 + 그 화면이 이미 112 연결을 제공하므로 중복 아님.
+                SafeLinkPrimaryButton(
+                    text = "긴급 도움 요청",
+                    containerColor = RiskCritical,
+                    onClick = { navController.navigate(Screen.Emergency.route) }
+                )
+                GuideSecondaryLink(
+                    text = "추천 기관 목록 보기",
+                    onClick = { navController.navigate(Screen.SupportMatch.route) }
+                )
+            } else {
+                SafeLinkPrimaryButton(
+                    text = "추천 기관 목록 보기",
+                    onClick = { navController.navigate(Screen.SupportMatch.route) }
+                )
+            }
+            GuideSecondaryLink(
                 text = "메인 화면으로 돌아가기",
                 onClick = {
                     navController.navigate(Screen.Home.route) {
@@ -197,6 +188,45 @@ fun ResponseGuideScreen(
                 }
             )
         }
+    }
+}
+
+@Composable
+private fun GuideStepList(steps: List<Pair<String, String>>) {
+    SafeLinkCard {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            steps.forEachIndexed { index, (title, description) ->
+                if (index > 0) HorizontalDivider()
+                Row {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .background(BrandBlueLight, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "${index + 1}",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = BrandBlueDark
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(text = title, style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(text = description, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GuideSecondaryLink(text: String, onClick: () -> Unit) {
+    TextButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Text(text)
     }
 }
 
