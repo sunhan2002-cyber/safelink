@@ -38,7 +38,7 @@ import java.util.UUID
  *   2. extractVisibleText()  : 화면 노드 트리에서 대화 텍스트 추출
  *   3. DetectionRepository.analyze(text) : 온디바이스 위험 분석 (기존 엔진 재사용)
  *   4. RiskNotifier.notifyRisk()         : 경고 이상이면 배너 알림
- *   5. (알림 탭) → 대응 가이드 / 긴급 화면 딥링크 ([RiskNotifier] + MainActivity)
+ *   5. (알림 탭) → 저장된 기록의 분석 결과 화면 딥링크 ([RiskNotifier] + MainActivity)
  *
  * ── 성능/중복 억제 ──────────────────────────────────────────────────────
  *   - 같은 화면에서 이벤트가 쏟아지므로 [MIN_INTERVAL_MS] 간격으로만 분석(디바운스).
@@ -143,16 +143,20 @@ class MessageDetectionService : AccessibilityService() {
             lastAlertWindowId = windowId
 
             BackgroundDetectionState.update(result, sourceApp = pkg)
-            notifier.notifyRisk(
-                result.riskLevel,
-                result.category,
-                result.matchedKeywords.firstOrNull()?.matchedText
-            )
             // 검사 기록에도 남겨 "기록" 탭에서 나중에 다시 확인할 수 있게 한다 (Task 7.1).
             // 알림이 뜬 건(경고 이상)만 저장 — 일상 화면까지 기록이 쌓이지 않도록.
             // AI 보정 이전의 온디바이스 결과를 저장한다(보정은 비동기라 시점이 늦다) — 수동 분석과 동일.
+            //
+            // 기록을 먼저 저장하고 그 id 로 알림을 띄운다 — 알림을 누르면 이 기록의 분석 결과 화면이 열리게 하기
+            // 위해서다. 기기 내 DB 한 줄 쓰기라 알림이 체감될 만큼 늦어지지 않는다. 저장에 실패해도 알림은 띄운다.
             serviceScope.launch {
                 val recordId = runCatching { recordRepository.saveDetection(result, RecordSource.BACKGROUND) }.getOrNull()
+                notifier.notifyRisk(
+                    result.riskLevel,
+                    result.category,
+                    result.matchedKeywords.firstOrNull()?.matchedText,
+                    recordId
+                )
                 // AI 보조분석이 반영되면 방금 저장한 기록도 최종 판정으로 맞춘다 (결과 화면과 기록 불일치 방지).
                 escalateToAiIfConsented(result, pkg, text, recordId)
             }
@@ -216,8 +220,11 @@ class MessageDetectionService : AccessibilityService() {
         )
 
         BackgroundDetectionState.update(result, sourceApp = pkg)
-        notifier.notifyRisk(result.riskLevel, result.category, risk.link.displayText)
-        runCatching { recordRepository.saveDetection(result, RecordSource.BACKGROUND) }
+        // 링크 판정도 기록에 함께 남긴다 — 다시 열 때 재검사가 실패해도 어떤 링크가 위험했는지 보이도록.
+        val recordId = runCatching {
+            recordRepository.saveDetection(result, RecordSource.BACKGROUND, linkResults = listOf(risk))
+        }.getOrNull()
+        notifier.notifyRisk(result.riskLevel, result.category, risk.link.displayText, recordId)
     }
 
     /**

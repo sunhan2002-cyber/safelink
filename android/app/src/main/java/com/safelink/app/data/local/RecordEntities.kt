@@ -35,7 +35,12 @@ data class DetectionRecordEntity(
      * 같은 판정을 보이게 하기 위해서다(예전에는 결과는 "긴급", 기록은 "경고"로 어긋났다).
      */
     val aiSummary: String? = null,
-    val aiDetectedPattern: String? = null
+    val aiDetectedPattern: String? = null,
+    /**
+     * 검사 당시의 링크 판정(주소·판정만, JSON). 링크가 없거나 검사하지 못했으면 null.
+     * 다시 열 때 오프라인 등으로 재검사가 실패해도 당시 판정이 남도록 저장한다([com.safelink.app.data.link.LinkResultCodec]).
+     */
+    val linkResultsJson: String? = null
 )
 
 /** 자가진단 기록 (Design.md 3.1 DiagnosisRecord) */

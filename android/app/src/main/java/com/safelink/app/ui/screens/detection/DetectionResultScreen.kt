@@ -30,6 +30,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -90,8 +94,10 @@ fun DetectionResultScreen(
     recordId: String? = null
 ) {
     // 기록 탭에서 들어온 경우: 저장된 원문을 같은 엔진으로 재분석해 결과를 복원한다(Task 7.1).
+    // 알림에서 들어온 경우도 같은 경로다(알림이 기록 id 를 들고 온다). 기록이 지워진 뒤 예전 알림을
+    // 누르는 등 복원할 기록이 없으면, 이전 결과나 예시 화면을 보여주지 않고 돌아간다.
     LaunchedEffect(recordId) {
-        if (recordId != null) viewModel.loadRecord(recordId)
+        if (recordId != null && !viewModel.loadRecord(recordId)) navController.popBackStack()
     }
 
     // 실제 데이터 흐름 (김선한_02 문서): 공유 ViewModel의 분석 결과를 사용.
@@ -497,7 +503,9 @@ private data class UnifiedReason(
     val tagLabel: String,
     val tagColor: Color,
     val tagContainer: Color,
-    val text: String
+    val text: String,
+    /** 눌러서 펼쳐 보는 설명 — 한 줄(수법명) 아래에 접어 둔다. 없으면 null. */
+    val detail: String? = null
 )
 
 /**
@@ -523,10 +531,13 @@ private fun UnifiedReasonList(result: DetectionResult, isEscalatingToAI: Boolean
             val detail = EvidenceText.forUser(it.detail, cutDeveloperNote = false)
             add(UnifiedReason("상황", RuleSituationalAccent, RuleSituationalContainer, "$label — $detail"))
         }
-        val aiText = result.aiDetectedPattern?.takeIf { it.isNotBlank() }
-            ?: result.aiSummary?.takeIf { it.isNotBlank() }
-        if (aiText != null) {
-            add(UnifiedReason("AI", RuleAiAccent, RuleAiContainer, aiText))
+        // 목록은 한 줄씩 짧게 두되(수법명), AI 가 쓴 설명은 버리지 않고 눌러서 펼쳐 볼 수 있게 한다.
+        // (김재겸) 예전에는 수법명이 있으면 설명이 화면 어디에도 나오지 않았다.
+        val aiPattern = result.aiDetectedPattern?.takeIf { it.isNotBlank() }
+        val aiSummary = result.aiSummary?.takeIf { it.isNotBlank() }
+        when {
+            aiPattern != null -> add(UnifiedReason("AI", RuleAiAccent, RuleAiContainer, aiPattern, detail = aiSummary))
+            aiSummary != null -> add(UnifiedReason("AI", RuleAiAccent, RuleAiContainer, aiSummary))
         }
     }
     val aiLoading = isEscalatingToAI && result.aiSummary == null && result.aiDetectedPattern == null
@@ -537,7 +548,11 @@ private fun UnifiedReasonList(result: DetectionResult, isEscalatingToAI: Boolean
     SafeLinkCard {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             reasons.forEachIndexed { index, reason ->
-                Row(verticalAlignment = Alignment.Top) {
+                var expanded by remember(reason.text) { mutableStateOf(false) }
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    modifier = if (reason.detail != null) Modifier.clickable { expanded = !expanded } else Modifier
+                ) {
                     Text(
                         text = reason.tagLabel,
                         style = MaterialTheme.typography.bodySmall,
@@ -548,11 +563,26 @@ private fun UnifiedReasonList(result: DetectionResult, isEscalatingToAI: Boolean
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = reason.text,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = reason.text, style = MaterialTheme.typography.bodyMedium)
+                        reason.detail?.let { detail ->
+                            if (expanded) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = detail,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = if (expanded) "접기" else "AI 설명 보기",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = reason.tagColor
+                            )
+                        }
+                    }
                 }
                 if (index != reasons.lastIndex || aiLoading) {
                     HorizontalDivider()
