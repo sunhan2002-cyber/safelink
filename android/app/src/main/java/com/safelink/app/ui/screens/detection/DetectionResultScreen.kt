@@ -49,6 +49,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.data.link.LinkRiskResult
+import com.safelink.app.data.local.RecordFeedback
 import com.safelink.app.data.link.LinkVerdict
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.model.EvidenceText
@@ -125,6 +126,8 @@ fun DetectionResultScreen(
         isCheckingLinks = viewModel.isCheckingLinks,
         manualAiMessage = viewModel.manualAiMessage,
         onRequestAi = { viewModel.requestManualAi() },
+        feedback = viewModel.feedback,
+        onFeedback = { value -> viewModel.submitFeedback(value) },
         onInstitutionClick = { id -> navController.navigate(Screen.SupportDetail.createRoute(id)) },
         onBack = { navController.popBackStack() },
         onGuideClick = { navController.navigate(Screen.ResponseGuide.createRoute(result.riskLevel)) },
@@ -180,6 +183,8 @@ private fun DetectionResultContent(
     isCheckingLinks: Boolean = false,
     manualAiMessage: String? = null,
     onRequestAi: () -> Unit = {},
+    feedback: RecordFeedback? = null,
+    onFeedback: (RecordFeedback) -> Unit = {},
     onInstitutionClick: (String) -> Unit = {},
     onBack: () -> Unit,
     onGuideClick: () -> Unit,
@@ -341,6 +346,10 @@ private fun DetectionResultContent(
                 )
             }
 
+            // 판정이 맞았는지 사용자에게 물어 둔다. 특히 "위험하지 않았어요"(오탐)가 쌓이면
+            // 어떤 표현·점수 구간에서 헛짚는지 확인할 근거가 된다. 기기 안에만 저장된다.
+            FeedbackCard(feedback = feedback, onFeedback = onFeedback)
+
             Text(
                 text = "분석 결과는 참고 정보이며, 최종 판단은 사용자에게 있습니다.",
                 style = MaterialTheme.typography.bodySmall,
@@ -388,6 +397,42 @@ private fun DetectionResultContent(
                     )
                     ResultSecondaryLink(text = "대응 가이드 보기", onClick = onGuideClick)
                     ResultSecondaryLink(text = "추천 기관 전체 보기", onClick = onSupportClick)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * "이 판단이 맞았나요?" — 결과에 대한 사용자 피드백.
+ *
+ * 같은 버튼을 다시 누르면 선택이 취소된다. 답한 내용은 이 기기의 기록에만 남고 전송되지 않는다.
+ */
+@Composable
+private fun FeedbackCard(feedback: RecordFeedback?, onFeedback: (RecordFeedback) -> Unit) {
+    SafeLinkCard {
+        Text(
+            text = if (feedback == null) "이 판단이 맞았나요?" else "알려줘서 고마워요",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = if (feedback == null) {
+                "답해 주시면 판단 기준을 다듬는 데 씁니다. 이 기기에만 저장돼요."
+            } else {
+                "\"${feedback.label}\" 으로 저장했어요. 다시 누르면 취소됩니다."
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            RecordFeedback.entries.forEach { option ->
+                val selected = feedback == option
+                TextButton(onClick = { onFeedback(option) }) {
+                    Text(
+                        text = if (selected) "✓ ${option.label}" else option.label,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                    )
                 }
             }
         }

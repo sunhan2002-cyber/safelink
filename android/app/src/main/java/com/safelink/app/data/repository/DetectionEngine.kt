@@ -191,7 +191,8 @@ class DetectionEngine(
             label = "관계 고립과 통제 조합 감지",
             detail = "주변 관계를 끊게 하거나 상대 의존을 강요하는 표현이 함께 확인되었습니다.",
             requiredPatterns = listOf(
-                Regex("(?:친구|가족|걔).{0,12}(?:만나지|연락하지|거리\\s*둬)"),
+                // 턴 구분자가 줄바꿈이라 점(.)으로는 줄을 넘어가지 못한다 — 두 턴에 걸쳐 나와도 잡히게 둔다
+                Regex("(?:친구|가족|걔)[\\s\\S]{0,12}(?:만나지|연락하지|거리\\s*둬)"),
                 Regex("(?:나\\s*아니면\\s*안\\s*돼|내\\s*말만\\s*들어|내가\\s*없으면)")
             )
         )
@@ -216,7 +217,9 @@ class DetectionEngine(
 
     /** 여러 턴(대화)을 이어서 분석. 콤보 판정 등 세션 단위 로직 검증에 사용. */
     fun analyze(turns: List<String>): DetectionResult {
-        val originalText = turns.joinToString(" ")
+        // 줄바꿈으로 합친다 — 붙여넣은 대화의 줄 구분이 화면에서도 그대로 보이고,
+        // 구분자가 한 글자라 매칭 위치(startIndex/endIndex) 계산은 공백일 때와 같다.
+        val originalText = turns.joinToString("\n")
         val turnOffsets = turnOffsets(turns)
 
         val rawMatches = turns.flatMapIndexed { turnIndex, turnText ->
@@ -281,7 +284,7 @@ class DetectionEngine(
         turns.forEachIndexed { i, t ->
             offsets.add(pos)
             pos += t.length
-            if (i < turns.size - 1) pos += 1 // joinToString(" ") 구분자
+            if (i < turns.size - 1) pos += 1 // 턴 구분자(줄바꿈 한 글자)
         }
         return offsets
     }

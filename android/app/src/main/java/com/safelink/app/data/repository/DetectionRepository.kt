@@ -61,8 +61,14 @@ class DetectionRepository @Inject constructor(
         }
     }
 
-    /** 원문 텍스트 1건을 분석해서 [DetectionResult]로 변환. ViewModel에서는 이거 하나만 호출하면 됨. */
-    fun analyze(originalText: String): DetectionResult = engine.analyze(originalText)
+    /**
+     * 원문 텍스트 1건을 분석해서 [DetectionResult]로 변환.
+     * 여러 줄이면 줄 단위로 턴을 나눠 분석한다([ConversationTurns]) — 반복·장기세션 규칙이 실제로 동작하도록.
+     */
+    fun analyze(originalText: String): DetectionResult = analyzeTurns(ConversationTurns.split(originalText))
+
+    /** 이미 턴으로 나뉜 대화를 분석한다. */
+    fun analyzeTurns(turns: List<String>): DetectionResult = engine.analyze(turns)
 
     /**
      * [analyze] 결과를 가지고 2차 AI API 보조 분석이 필요한지 판단한다. true가 나오면
@@ -96,11 +102,9 @@ class DetectionRepository @Inject constructor(
      *
      * @param result 온디바이스 [analyze] 결과
      * @param sessionId 세션(대화방) 식별자
-     * @param recentTurns 최근 턴 원문 목록(마스킹 전) — 최근 10턴 이내로 호출부에서 잘라서 넘길 것.
-     *   **한계**: 지금 유일한 호출부인 [com.safelink.app.ui.screens.detection.DetectionViewModel]은
-     *   `listOf(originalText)`(입력 1건)만 넘긴다 — 진짜 다중 턴 세션이 아니라 단일 입력
-     *   기준이라는 뜻. 실제 다중 턴 추적이 생기면 그 상태를 그대로 넘기면 됨(이 함수 자체는
-     *   턴 개수와 무관하게 동작).
+     * @param recentTurns 최근 턴 원문 목록(마스킹 전). 호출부는 [ConversationTurns.recentForAi] 로
+     *   최근 10턴까지만 잘라서 넘긴다 — 붙여넣은 대화와 백그라운드에서 읽은 화면 모두 줄 단위로 턴을 나눈다.
+     *   **남은 한계**: 대화방을 오가며 시간에 걸쳐 쌓인 진짜 세션은 아직 추적하지 않는다(화면·입력 단위).
      */
     suspend fun escalateToAI(
         result: DetectionResult,

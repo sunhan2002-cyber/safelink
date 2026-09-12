@@ -9,6 +9,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.model.RiskLevel
 import com.safelink.app.data.local.RecordSource
+import com.safelink.app.data.repository.ConversationTurns
 import com.safelink.app.data.repository.DetectionRepository
 import com.safelink.app.data.repository.RecordRepository
 import kotlinx.coroutines.CoroutineScope
@@ -300,7 +301,8 @@ class MessageDetectionService : AccessibilityService() {
             repository.escalateToAI(
                 result = result,
                 sessionId = UUID.randomUUID().toString(),
-                recentTurns = listOf(text)
+                // 화면에서 읽은 대화를 줄 단위 턴으로 넘긴다 (마스킹은 escalateToAI 안에서 수행)
+                recentTurns = ConversationTurns.recentForAi(ConversationTurns.split(text))
             )
         }.getOrNull() ?: return
 

@@ -5,6 +5,7 @@ import com.safelink.app.data.link.LinkResultCodec
 import com.safelink.app.data.link.LinkRiskResult
 import com.safelink.app.data.local.DetectionRecordEntity
 import com.safelink.app.data.local.DiagnosisRecordEntity
+import com.safelink.app.data.local.RecordFeedback
 import com.safelink.app.data.local.RecordSource
 import com.safelink.app.data.local.SafeLinkDatabase
 import com.safelink.app.data.model.DetectionResult
@@ -40,7 +41,9 @@ data class RecordItem(
     /** 대화 분석 기록의 위험 유형(자가진단은 빈 값) — 상세 보기에서 저장 당시 판정 복원용 */
     val category: String = "",
     /** 검사 당시 링크 판정(JSON). 목록에서는 쓰지 않으므로 상세 보기에서만 [LinkResultCodec.decode] 한다. */
-    val linkResultsJson: String? = null
+    val linkResultsJson: String? = null,
+    /** 사용자가 남긴 피드백(맞음/오탐). 남기지 않았으면 null */
+    val feedback: RecordFeedback? = null
 )
 
 /**
@@ -165,6 +168,14 @@ class RecordRepository(context: Context) {
         )
     }
 
+    /**
+     * 사용자가 결과 화면에서 남긴 피드백을 기록에 저장한다.
+     * 오탐 신고가 쌓이면 어떤 키워드·점수 구간에서 헛짚는지 근거로 쓸 수 있다(기기 안에만 저장).
+     */
+    suspend fun updateFeedback(id: String, feedback: RecordFeedback?) {
+        detectionDao.updateFeedback(id, feedback)
+    }
+
     suspend fun updateMemo(id: String, memo: String?) {
         // 어느 테이블의 기록인지 모르므로 양쪽 모두 시도한다(존재하는 쪽만 갱신됨).
         detectionDao.updateMemo(id, memo)
@@ -204,7 +215,8 @@ private fun DetectionRecordEntity.toItem(): RecordItem {
         aiSummary = aiSummary,
         aiDetectedPattern = aiDetectedPattern,
         category = category,
-        linkResultsJson = linkResultsJson
+        linkResultsJson = linkResultsJson,
+        feedback = userFeedback
     )
 }
 

@@ -16,7 +16,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  */
 @Database(
     entities = [DetectionRecordEntity::class, DiagnosisRecordEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(RecordConverters::class)
@@ -45,6 +45,13 @@ abstract class SafeLinkDatabase : RoomDatabase() {
             }
         }
 
+        /** v3 → v4: 사용자 피드백(맞음/오탐) 칸 추가. 기존 기록은 그대로 두고 칸만 덧붙인다. */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE detection_records ADD COLUMN userFeedback TEXT")
+            }
+        }
+
         @Volatile
         private var instance: SafeLinkDatabase? = null
 
@@ -57,7 +64,7 @@ abstract class SafeLinkDatabase : RoomDatabase() {
                 // 스키마를 바꿀 때는 반드시 위처럼 마이그레이션을 추가한다.
                 // 예전에는 fallbackToDestructiveMigration() 이 붙어 있어, 마이그레이션을 빠뜨리면
                 // 사용자의 검사 기록이 조용히 전부 지워졌다(복구 불가). 지금은 그런 경우 개발 중에 바로 드러난다.
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
                 .also { instance = it }
         }
