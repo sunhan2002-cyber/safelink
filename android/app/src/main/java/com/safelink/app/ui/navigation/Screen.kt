@@ -33,6 +33,7 @@ sealed class Screen(val route: String) {
     }
     data object Settings : Screen("settings")
     data object FeatureGuide : Screen("feature_guide")
+    data object PrivacyPolicy : Screen("privacy_policy")
 
     // 자가진단 (F-01)
     data object Diagnosis : Screen("diagnosis")

@@ -12,17 +12,23 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.safelink.app.ui.components.SafeLinkBottomBar
 import com.safelink.app.ui.components.SosFab
+import com.safelink.app.security.AppLockManager
 import com.safelink.app.ui.navigation.SafeLinkNavGraph
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.SafeLinkTheme
@@ -103,6 +109,36 @@ fun SafeLinkApp(pendingRoute: MutableState<String?>) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val showChrome = currentRoute != null && currentRoute !in noChromeRoutes
+
+    // 앱 잠금: 앱을 벗어났다가 돌아오면 다시 잠근다 (Design.md 5.4 "앱 포그라운드 진입 시").
+    // 예전에는 앱을 처음 켤 때(스플래시)만 잠금을 확인해서, 홈 버튼으로 나갔다 돌아오면 PIN 없이
+    // 그대로 열렸다 — 가해자가 폰을 잠깐 집어드는 상황을 막지 못한다.
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, navController) {
+        var leftForeground = false
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> leftForeground = true
+                Lifecycle.Event.ON_START -> {
+                    val route = navController.currentBackStackEntry?.destination?.route
+                    val needsLock = leftForeground &&
+                        AppLockManager.isEnabled(context) &&
+                        route != null &&
+                        route !in startupRoutes
+                    leftForeground = false
+                    if (needsLock) {
+                        navController.navigate(Screen.Lock.route) {
+                            popUpTo(Screen.Home.route)
+                        }
+                    }
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     // 알림 딥링크 처리: 진입/잠금 화면을 지난 뒤(정상 화면에서) 해당 라우트로 이동
     LaunchedEffect(pendingRoute.value, currentRoute) {

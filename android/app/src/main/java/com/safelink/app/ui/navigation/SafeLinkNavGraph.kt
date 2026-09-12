@@ -25,6 +25,7 @@ import com.safelink.app.ui.screens.lock.LockScreen
 import com.safelink.app.ui.screens.onboarding.OnboardingScreen
 import com.safelink.app.ui.screens.record.MemoEditScreen
 import com.safelink.app.ui.screens.settings.FeatureGuideScreen
+import com.safelink.app.ui.screens.settings.PrivacyPolicyScreen
 import com.safelink.app.ui.screens.record.RecordListScreen
 import com.safelink.app.ui.screens.record.RecordListViewModel
 import com.safelink.app.ui.screens.settings.SettingsScreen
@@ -70,6 +71,7 @@ fun SafeLinkNavGraph(
         }
         composable(Screen.Settings.route) { SettingsScreen(navController) }
         composable(Screen.FeatureGuide.route) { FeatureGuideScreen(navController) }
+        composable(Screen.PrivacyPolicy.route) { PrivacyPolicyScreen(navController) }
 
         composable(Screen.Diagnosis.route) {
             DiagnosisScreen(navController, activityDiagnosisViewModel())

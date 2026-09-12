@@ -40,8 +40,23 @@ data class DetectionRecordEntity(
      * 검사 당시의 링크 판정(주소·판정만, JSON). 링크가 없거나 검사하지 못했으면 null.
      * 다시 열 때 오프라인 등으로 재검사가 실패해도 당시 판정이 남도록 저장한다([com.safelink.app.data.link.LinkResultCodec]).
      */
-    val linkResultsJson: String? = null
+    val linkResultsJson: String? = null,
+    /**
+     * 사용자가 이 판정에 대해 남긴 피드백. 남기지 않았으면 null.
+     * 오탐(위험하지 않은데 위험으로 뜬 경우)을 사용자가 알려줄 수 있게 해, 키워드·임계값을 고칠 근거로 쓴다.
+     * 기기 안에만 남으며 자동으로 어디로도 전송되지 않는다.
+     */
+    val userFeedback: RecordFeedback? = null
 )
+
+/** 분석 결과에 대한 사용자 피드백 */
+enum class RecordFeedback(val label: String) {
+    /** 판정이 맞았다 */
+    AGREED("도움이 됐어요"),
+
+    /** 위험하지 않은데 위험으로 떴다(오탐) */
+    FALSE_POSITIVE("위험하지 않았어요")
+}
 
 /** 자가진단 기록 (Design.md 3.1 DiagnosisRecord) */
 @Entity(tableName = "diagnosis_records")

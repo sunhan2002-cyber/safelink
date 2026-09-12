@@ -38,12 +38,19 @@ import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.theme.BrandBlue
 import com.safelink.app.ui.theme.BrandBlueLight
 
-/** 지원 기관 상세 (Figma 20:1236) — 기관 정보 + 전화 연결 (Task 5.4) */
+/**
+ * 지원 기관 상세 (Figma 20:1236) — 기관 정보 + 전화 연결 (Task 5.4).
+ * 목록에 없는 id 로 들어오면 다른 기관을 대신 보여주지 않는다 — 예전에는 조용히 첫 기관(경찰청)이 열려서
+ * 사용자가 엉뚱한 기관에 전화할 수 있었다.
+ */
 @Composable
 fun SupportDetailScreen(navController: NavHostController, institutionId: String) {
     val context = LocalContext.current
     val institutions = remember { InstitutionCatalog.load(context) }
-    val institution = institutions.find { it.id == institutionId } ?: institutions.first()
+    val institution = institutions.find { it.id == institutionId } ?: run {
+        InstitutionNotFound(title = "기관 정보", onBack = { navController.popBackStack() })
+        return
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(title = "기관 정보", onBack = { navController.popBackStack() })
@@ -124,6 +131,24 @@ fun SupportDetailScreen(navController: NavHostController, institutionId: String)
                         IntentActions.openWeb(context, website)
                     })
                 }
+            }
+        }
+    }
+}
+
+/** 목록에 없는 기관 id 로 들어온 경우 — 다른 기관을 대신 보여주지 않는다(기관 상세·신청 안내 공용). */
+@Composable
+internal fun InstitutionNotFound(title: String, onBack: () -> Unit) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        SafeLinkTopBar(title = title, onBack = onBack)
+        Column(modifier = Modifier.padding(20.dp)) {
+            SafeLinkCard {
+                Text(text = "기관 정보를 찾을 수 없어요", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = "도움받기 화면에서 기관을 다시 선택해 주세요.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

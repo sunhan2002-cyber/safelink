@@ -52,6 +52,8 @@ fun LockScreen(navController: NavHostController) {
     val unlock: () -> Unit = {
         navController.navigate(Screen.Home.route) {
             popUpTo(Screen.Lock.route) { inclusive = true }
+            // 잠금 해제 후 홈이 스택에 두 번 쌓이지 않게 한다(앱 복귀 시 잠금은 홈 위에 열린다)
+            launchSingleTop = true
         }
     }
 

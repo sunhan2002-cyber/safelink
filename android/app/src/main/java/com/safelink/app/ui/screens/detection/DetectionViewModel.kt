@@ -16,9 +16,12 @@ import com.safelink.app.data.link.LinkRiskResult
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.ocr.MlKitOcrService
 import com.safelink.app.data.ocr.OcrService
+import com.safelink.app.data.local.RecordFeedback
 import com.safelink.app.data.local.RecordSource
+import com.safelink.app.data.repository.ConversationTurns
 import com.safelink.app.data.repository.DetectionRepository
 import com.safelink.app.data.repository.RecordRepository
+import com.safelink.app.settings.AiConsentStore
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -111,6 +114,13 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
     var manualAiMessage by mutableStateOf<String?>(null)
         private set
 
+    /**
+     * 사용자가 이 결과에 남긴 피드백(맞음/오탐). 남기지 않았으면 null.
+     * 오탐 신고를 모아 두면 어떤 표현·점수 구간에서 헛짚는지 확인할 근거가 된다(기기 안에만 저장).
+     */
+    var feedback by mutableStateOf<RecordFeedback?>(null)
+        private set
+
     /** 지금 결과 화면의 결과가 저장된 기록 id — AI 보정이 나중에 들어오면 이 기록을 갱신한다. */
     private var currentRecordId: String? = null
 
@@ -184,6 +194,7 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         isEscalatingToAI = false
         manualAiMessage = null
         currentRecordId = null
+        feedback = null
         return generation
     }
 
@@ -230,6 +241,7 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         )
         analyzed = restored
         currentRecordId = recordId
+        feedback = record.feedback
         lastAnalysisSource = when (record.sourceLabel) {
             AnalysisSource.SCREENSHOT.label -> AnalysisSource.SCREENSHOT
             AnalysisSource.BACKGROUND.label -> AnalysisSource.BACKGROUND
@@ -272,16 +284,22 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
             lastAnalysisSource = AnalysisSource.TEXT
         }
 
-        // 1차 온디바이스 분석 (항상 동기, 즉시 완료) — 결과를 먼저 반영
-        val onDeviceResult = repository.analyze(originalText)
+        // 1차 온디바이스 분석 (항상 동기, 즉시 완료) — 결과를 먼저 반영.
+        // 붙여넣은 대화는 줄 단위로 턴을 나눠 분석한다 — 반복·장기세션 규칙은 턴이 나뉘어야 발동한다.
+        val turns = ConversationTurns.split(originalText)
+        val onDeviceResult = repository.analyzeTurns(turns)
         val gen = startNewResult()
         analyzed = onDeviceResult
         val text = originalText
+        val turnsForAi = ConversationTurns.recentForAi(turns)
 
         // 2차 AI 보조 분석: 조건 충족 시 비동기로 호출해 결과를 한 번 더 갱신(신기훈).
         // 네트워크 실패 시 escalateToAI 가 온디바이스 결과를 그대로 반환하므로 결과가 나빠지는 경우는 없음.
         // ⚠️ 한계: 단일 입력 구조라 recentTurns=[originalText] 고정 (07번 문서 "recentTurns 한계" 참고).
-        val shouldEscalate = repository.shouldEscalateToAI(onDeviceResult)
+        // 자동 호출은 사용자가 동의한 경우에만 한다 — 예전에는 회색지대 점수면 안내 없이 전송됐다.
+        // 동의 전이라도 결과 화면의 "AI 보조분석 요청"으로 한 건씩 직접 받을 수 있다([requestManualAi]).
+        val shouldEscalate = repository.shouldEscalateToAI(onDeviceResult) &&
+            AiConsentStore.isManualEnabled(getApplication())
         isEscalatingToAI = shouldEscalate
 
         // 링크 안전성 검사 — 기기 안의 차단 목록과 대조해 대개 금방 끝난다. 위험한 링크가 있으면 판정이 긴급으로
@@ -303,7 +321,8 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
                 val refined = repository.escalateToAI(
                     result = onDeviceResult,
                     sessionId = sessionId,
-                    recentTurns = listOf(text)
+                    // 대화 흐름을 함께 넘긴다 — 예전에는 전체를 한 덩어리로 1건만 넘겼다
+                    recentTurns = turnsForAi
                 )
                 if (refined !== onDeviceResult) {
                     // 그사이 사용자가 새 분석을 시작했으면 화면은 건드리지 않고 기록만 맞춘다.
@@ -359,7 +378,7 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
             val refined = repository.escalateToAI(
                 result = base,
                 sessionId = sessionId,
-                recentTurns = listOf(text)
+                recentTurns = ConversationTurns.recentForAi(ConversationTurns.split(text))
             )
             val stillShown = gen == generation
             if (refined === base) {
@@ -371,6 +390,19 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
                 recordId?.let { id -> runCatching { recordRepository.updateVerdict(id, LinkRiskPolicy.apply(refined, links)) } }
             }
             if (stillShown) isEscalatingToAI = false
+        }
+    }
+
+    /**
+     * 결과 화면에서 "이 판단이 맞았나요?"에 답한 경우. 같은 값을 다시 누르면 취소된다.
+     * 기록이 아직 저장되지 않았으면(저장 실패 등) 화면 표시만 바뀌고 남지 않는다.
+     */
+    fun submitFeedback(value: RecordFeedback) {
+        val next = if (feedback == value) null else value
+        feedback = next
+        val recordId = currentRecordId ?: return
+        viewModelScope.launch {
+            runCatching { recordRepository.updateFeedback(recordId, next) }
         }
     }
 

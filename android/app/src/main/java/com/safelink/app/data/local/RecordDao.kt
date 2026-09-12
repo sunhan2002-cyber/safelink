@@ -27,6 +27,10 @@ interface DetectionRecordDao {
     @Query("UPDATE detection_records SET riskLevel = :riskLevel, score = :score, category = :category, aiSummary = :aiSummary, aiDetectedPattern = :aiDetectedPattern WHERE id = :id")
     suspend fun updateVerdict(id: String, riskLevel: RiskLevel, score: Int, category: String, aiSummary: String?, aiDetectedPattern: String?)
 
+    /** 사용자가 남긴 피드백(맞음/오탐)을 저장한다. 취소하면 null 로 지운다. */
+    @Query("UPDATE detection_records SET userFeedback = :feedback WHERE id = :id")
+    suspend fun updateFeedback(id: String, feedback: RecordFeedback?)
+
     /** 링크 검사가 끝나면 같은 기록에 판정을 남긴다 (검사는 저장보다 늦게 끝날 수 있다). */
     @Query("UPDATE detection_records SET linkResultsJson = :linkResultsJson WHERE id = :id")
     suspend fun updateLinkResults(id: String, linkResultsJson: String)
@@ -80,6 +84,13 @@ class RecordConverters {
 
     @TypeConverter
     fun sourceToString(source: RecordSource): String = source.name
+
+    @TypeConverter
+    fun feedbackToString(feedback: RecordFeedback?): String? = feedback?.name
+
+    @TypeConverter
+    fun stringToFeedback(value: String?): RecordFeedback? =
+        value?.let { runCatching { RecordFeedback.valueOf(it) }.getOrNull() }
 
     @TypeConverter
     fun stringToSource(value: String): RecordSource =

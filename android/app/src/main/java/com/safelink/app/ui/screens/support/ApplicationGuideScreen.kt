@@ -63,7 +63,11 @@ private val requiredDocuments = listOf("신분증", "피해 관련 증거 자료
 fun ApplicationGuideScreen(navController: NavHostController, institutionId: String) {
     val context = LocalContext.current
     val institutions = remember { InstitutionCatalog.load(context) }
-    val institution = institutions.find { it.id == institutionId } ?: institutions.first()
+    // 목록에 없는 id 면 엉뚱한 기관의 신청 절차를 보여주지 않는다(예전에는 첫 기관으로 대체됐다).
+    val institution = institutions.find { it.id == institutionId } ?: run {
+        InstitutionNotFound(title = "신청 절차 안내", onBack = { navController.popBackStack() })
+        return
+    }
     val completed = remember { mutableStateListOf<Int>() } // 세션 내 유지 (Task 5.5)
     val steps = remember(institution) { applicationSteps(institution) }
 

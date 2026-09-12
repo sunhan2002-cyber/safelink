@@ -49,6 +49,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.data.link.LinkRiskResult
+import com.safelink.app.data.local.RecordFeedback
 import com.safelink.app.data.link.LinkVerdict
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.model.EvidenceText
@@ -79,8 +80,8 @@ import com.safelink.app.ui.theme.SafeLinkTheme
  *
  * ViewModel 연동 완료 (Task 6.10) — viewModel.result(mutableStateOf)를 그대로 구독하므로
  * 온디바이스 분석이 끝난 뒤 AI 보조분석(escalateToAI)이 비동기로 결과를 갱신해도 이 화면이
- * 자동으로 재구성된다(별도 StateFlow/collectAsState 불필요). 기록 재열람 등 분석 없이 직접
- * 진입한 경우에만 더미로 대체.
+ * 자동으로 재구성된다(별도 StateFlow/collectAsState 불필요). 보여줄 결과가 없으면 빈 상태
+ * 안내([ResultUnavailable])를 띄운다 — 예시 데이터로 대체하지 않는다.
  * "분석한 내용" 카드는 MatchedKeyword.startIndex/endIndex로 원문의 매칭 구간에 배경색·밑줄을
  * 입혀 보여준다([highlightMatches]) — 목록만으로는 어떤 문맥에서 걸렸는지 보이지 않기 때문.
  *
@@ -101,8 +102,21 @@ fun DetectionResultScreen(
     }
 
     // 실제 데이터 흐름 (김선한_02 문서): 공유 ViewModel의 분석 결과를 사용.
-    // 결과가 아직 없을 때만(복원 중이거나 직접 진입) 더미로 대체한다.
-    val result: DetectionResult = viewModel.result ?: DetectionResultDummyData.vpCritical
+    // 결과가 없으면(기록 복원 중, 앱이 메모리에서 정리된 뒤 복귀 등) 아무것도 지어내지 않는다.
+    // 예전에는 예시 데이터(더미 "보이스피싱 82점 긴급")로 대체해서, 분석한 적 없는 내용이 진짜
+    // 판정처럼 보일 수 있었다 — 이 앱에서 가장 해서는 안 되는 표시라 빈 상태 안내로 바꿨다.
+    val result: DetectionResult = viewModel.result ?: run {
+        ResultUnavailable(
+            onBack = { navController.popBackStack() },
+            onReanalyze = {
+                viewModel.reset()
+                navController.navigate(Screen.DetectionInput.route) {
+                    popUpTo(Screen.DetectionInput.route) { inclusive = true }
+                }
+            }
+        )
+        return
+    }
 
     DetectionResultContent(
         result = result,
@@ -112,6 +126,9 @@ fun DetectionResultScreen(
         isCheckingLinks = viewModel.isCheckingLinks,
         manualAiMessage = viewModel.manualAiMessage,
         onRequestAi = { viewModel.requestManualAi() },
+        feedback = viewModel.feedback,
+        onFeedback = { value -> viewModel.submitFeedback(value) },
+        onInstitutionClick = { id -> navController.navigate(Screen.SupportDetail.createRoute(id)) },
         onBack = { navController.popBackStack() },
         onGuideClick = { navController.navigate(Screen.ResponseGuide.createRoute(result.riskLevel)) },
         onSupportClick = {
@@ -129,6 +146,33 @@ fun DetectionResultScreen(
     )
 }
 
+/** 보여줄 분석 결과가 없을 때 — 지어낸 값 대신 상태를 그대로 알린다. */
+@Composable
+private fun ResultUnavailable(onBack: () -> Unit, onReanalyze: () -> Unit) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        SafeLinkTopBar(title = "분석 결과", onBack = onBack)
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            SafeLinkCard {
+                Text(text = "표시할 분석 결과가 없어요", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "분석 결과는 기기 안에서만 들고 있어서, 앱이 다시 시작되면 사라져요. 확인할 대화를 다시 넣어 주세요.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Column(modifier = Modifier.padding(20.dp)) {
+            SafeLinkPrimaryButton(text = "대화 분석하러 가기", onClick = onReanalyze)
+        }
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DetectionResultContent(
@@ -139,6 +183,9 @@ private fun DetectionResultContent(
     isCheckingLinks: Boolean = false,
     manualAiMessage: String? = null,
     onRequestAi: () -> Unit = {},
+    feedback: RecordFeedback? = null,
+    onFeedback: (RecordFeedback) -> Unit = {},
+    onInstitutionClick: (String) -> Unit = {},
     onBack: () -> Unit,
     onGuideClick: () -> Unit,
     onSupportClick: () -> Unit,
@@ -284,7 +331,7 @@ private fun DetectionResultContent(
             if (result.recommendedInstitutions.isNotEmpty()) {
                 val sorted = result.recommendedInstitutions.sortedBy { it.rank }
                 Text(text = "추천 기관", style = MaterialTheme.typography.titleMedium)
-                RecommendedInstitutionCard(sorted.first())
+                RecommendedInstitutionCard(sorted.first(), onClick = { onInstitutionClick(sorted.first().institutionId) })
                 if (sorted.size > 1) {
                     TextButton(onClick = onSupportClick, modifier = Modifier.fillMaxWidth()) {
                         Text("추천 기관 전체 보기 (${sorted.size}곳) ›")
@@ -298,6 +345,10 @@ private fun DetectionResultContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            // 판정이 맞았는지 사용자에게 물어 둔다. 특히 "위험하지 않았어요"(오탐)가 쌓이면
+            // 어떤 표현·점수 구간에서 헛짚는지 확인할 근거가 된다. 기기 안에만 저장된다.
+            FeedbackCard(feedback = feedback, onFeedback = onFeedback)
 
             Text(
                 text = "분석 결과는 참고 정보이며, 최종 판단은 사용자에게 있습니다.",
@@ -346,6 +397,42 @@ private fun DetectionResultContent(
                     )
                     ResultSecondaryLink(text = "대응 가이드 보기", onClick = onGuideClick)
                     ResultSecondaryLink(text = "추천 기관 전체 보기", onClick = onSupportClick)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * "이 판단이 맞았나요?" — 결과에 대한 사용자 피드백.
+ *
+ * 같은 버튼을 다시 누르면 선택이 취소된다. 답한 내용은 이 기기의 기록에만 남고 전송되지 않는다.
+ */
+@Composable
+private fun FeedbackCard(feedback: RecordFeedback?, onFeedback: (RecordFeedback) -> Unit) {
+    SafeLinkCard {
+        Text(
+            text = if (feedback == null) "이 판단이 맞았나요?" else "알려줘서 고마워요",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = if (feedback == null) {
+                "답해 주시면 판단 기준을 다듬는 데 씁니다. 이 기기에만 저장돼요."
+            } else {
+                "\"${feedback.label}\" 으로 저장했어요. 다시 누르면 취소됩니다."
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            RecordFeedback.entries.forEach { option ->
+                val selected = feedback == option
+                TextButton(onClick = { onFeedback(option) }) {
+                    Text(
+                        text = if (selected) "✓ ${option.label}" else option.label,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                    )
                 }
             }
         }
@@ -607,8 +694,8 @@ private fun UnifiedReasonList(result: DetectionResult, isEscalatingToAI: Boolean
 }
 
 @Composable
-private fun RecommendedInstitutionCard(inst: RecommendedInstitutionUi) {
-    SafeLinkCard {
+private fun RecommendedInstitutionCard(inst: RecommendedInstitutionUi, onClick: (() -> Unit)? = null) {
+    SafeLinkCard(onClick = onClick) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

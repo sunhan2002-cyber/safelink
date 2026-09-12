@@ -152,7 +152,8 @@ fun HomeScreen(
                     )
                     Spacer(modifier = Modifier.height(18.dp))
                     Text(
-                        text = "최근 위험 신호 ${todayAlertCount}건",
+                        // 이 값은 오늘 0시 이후 백그라운드 감지로 알림이 뜬 건수다(RecordRepository 참고)
+                        text = "오늘 위험 신호 ${todayAlertCount}건",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

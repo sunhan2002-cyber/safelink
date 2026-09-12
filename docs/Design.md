@@ -270,24 +270,32 @@ class FlaggedPhrase(BaseModel):
    - 반복압박: 동일 유형 키워드 3회 이상 반복 패턴
    - 고립: "가족한테 말하지 마", "친구 만나지 마" 등
 4. 정규식 보조: 패턴 변형 탐지 (예: 띄어쓰기 변형, ㅈㄱ 초성 등)
-5. 위험도 점수 산출
-   - 각 키워드 카테고리별 가중치 합산
-   - CRITICAL: 협박 카테고리 탐지 또는 총점 70 이상
-   - WARNING: 통제 + 고립 복합 탐지 또는 총점 40 이상
-   - CAUTION: 단일 카테고리 탐지 또는 총점 10 이상
+5. 위험도 점수 산출 (구현 기준: DetectionEngine + RiskLevel.fromScore)
+   - 각 키워드 가중치 합산 + 반복감쇠 + 조합 보너스 + 문장/상황 직접 규칙
+   - CRITICAL: 총점 66 이상 (또는 확인된 악성 링크 — LinkRiskPolicy)
+   - WARNING: 총점 31~65
+   - CAUTION: 총점 16~30
+   - SAFE: 총점 15 이하
+   ※ 초안의 70/40/10 은 3단계(낮음/중간/높음) 기준을 4단계 라벨에 옮기면서 66/31/16 으로 확정됨.
 6. 결과 반환 (텍스트 서버 저장 없음, 즉시 응답)
 ```
 
 ### 5.3 배너 알림 발송 로직
 
 ```
-위험 감지 결과 수신
-  └─ CAUTION  → 무음 알림 (NotificationCompat.PRIORITY_LOW)
-  └─ WARNING  → 진동 알림 (NotificationCompat.PRIORITY_DEFAULT)
-  └─ CRITICAL → 진동 + 알림음 (NotificationCompat.PRIORITY_HIGH)
-                + 알림 탭 시 EmergencyScreen 직접 이동
+위험 감지 결과 수신 (백그라운드 감지는 WARNING 이상일 때만 알린다 —
+                     일상 대화까지 알리면 "오늘의 알림"이 부풀고 알림 피로가 커짐)
+  └─ WARNING  → 진동 알림 (채널 safelink_alert_warning, IMPORTANCE_DEFAULT)
+  └─ CRITICAL → 진동 + 알림음 (채널 safelink_alert, IMPORTANCE_HIGH)
+  └─ CAUTION 이하 → 알림 없음 (무음 채널 safelink_alert_low 는 준비만 되어 있음)
 
-알림 채널 ID: "safelink_alert" (외부 노출명: 중립 문구로 설정)
+알림 탭 → 그 감지가 저장된 기록의 분석 결과 화면으로 이동한다.
+          (무엇이 왜 감지됐는지 먼저 보여주고, 거기서 긴급 도움·대응 가이드로 이어짐.
+           기록 저장에 실패한 경우에만 예전처럼 긴급/대응 가이드 화면으로 직행)
+
+알림 채널: 위험도별로 분리한다 — 안드로이드 8 이상에서는 소리·진동을 채널이 정하므로
+          채널 하나에 setPriority 만 다르게 주면 전부 같은 소리로 울린다.
+          채널 이름(시스템 설정 노출)은 "긴급 알림/중요 알림/일반 알림" 으로 중립 표기.
 알림 제목/본문: SharedPreferences neutral_notif_title / neutral_notif_body 값 사용
 ```
 

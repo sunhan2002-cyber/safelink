@@ -5,6 +5,7 @@ import com.google.gson.Gson
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.model.raw.InstitutionData
 import com.safelink.app.data.model.raw.KeywordData
+import com.safelink.app.data.privacy.PrivacyMasker
 import com.safelink.app.data.remote.AnalyzeApiClient
 import com.safelink.app.data.remote.ClaudeDirectAnalyzer
 import com.safelink.app.data.remote.AnalyzeApiService
@@ -28,13 +29,12 @@ class DetectionRepository @Inject constructor(
 ) {
     private val gson = Gson()
 
-    private val engine: DetectionEngine by lazy {
-        DetectionEngine(
-            keywordData = loadAsset("keyword.json", KeywordData::class.java),
-            institutionData = loadAsset("institutions.json", InstitutionData::class.java),
-            gson = gson
-        )
-    }
+    /**
+     * 규칙 엔진. 화면·서비스마다 이 클래스를 새로 만들어 쓰기 때문에(아직 Hilt 주입을 안 씀),
+     * 엔진 자체는 프로세스에서 한 번만 만들어 공유한다 — 인스턴스마다 keyword.json(키워드 234개)과
+     * institutions.json 을 다시 파싱하면 화면 진입·백그라운드 감지마다 같은 비용을 또 치른다.
+     */
+    private val engine: DetectionEngine get() = sharedEngine(context, gson)
 
     /** 2차 AI 보조 분석 서버 클라이언트. 지금은 목 서버(backend/) 기준 기본 주소로 연결됨
      *  — 실제 배포 서버가 생기면 baseUrl만 바꾸면 됨(요청/응답 계약은 그대로). */
@@ -43,13 +43,33 @@ class DetectionRepository @Inject constructor(
     /** 발표용 구성: API 키가 빌드에 들어 있으면 앱이 Claude 를 직접 호출한다(ClaudeDirectAnalyzer KDoc 참고). */
     private val claudeDirect: ClaudeDirectAnalyzer by lazy { ClaudeDirectAnalyzer() }
 
-    private fun <T> loadAsset(fileName: String, clazz: Class<T>): T {
-        val json = context.assets.open(fileName).bufferedReader().use(BufferedReader::readText)
-        return gson.fromJson(json, clazz)
+    private companion object {
+        @Volatile
+        private var cachedEngine: DetectionEngine? = null
+
+        fun sharedEngine(context: Context, gson: Gson): DetectionEngine =
+            cachedEngine ?: synchronized(this) {
+                cachedEngine ?: DetectionEngine(
+                    keywordData = loadAsset(context, gson, "keyword.json", KeywordData::class.java),
+                    institutionData = loadAsset(context, gson, "institutions.json", InstitutionData::class.java),
+                    gson = gson
+                ).also { cachedEngine = it }
+            }
+
+        private fun <T> loadAsset(context: Context, gson: Gson, fileName: String, clazz: Class<T>): T {
+            val json = context.assets.open(fileName).bufferedReader().use(BufferedReader::readText)
+            return gson.fromJson(json, clazz)
+        }
     }
 
-    /** 원문 텍스트 1건을 분석해서 [DetectionResult]로 변환. ViewModel에서는 이거 하나만 호출하면 됨. */
-    fun analyze(originalText: String): DetectionResult = engine.analyze(originalText)
+    /**
+     * 원문 텍스트 1건을 분석해서 [DetectionResult]로 변환.
+     * 여러 줄이면 줄 단위로 턴을 나눠 분석한다([ConversationTurns]) — 반복·장기세션 규칙이 실제로 동작하도록.
+     */
+    fun analyze(originalText: String): DetectionResult = analyzeTurns(ConversationTurns.split(originalText))
+
+    /** 이미 턴으로 나뉜 대화를 분석한다. */
+    fun analyzeTurns(turns: List<String>): DetectionResult = engine.analyze(turns)
 
     /**
      * [analyze] 결과를 가지고 2차 AI API 보조 분석이 필요한지 판단한다. true가 나오면
@@ -65,7 +85,8 @@ class DetectionRepository @Inject constructor(
 
     /**
      * [shouldEscalateToAI]가 true일 때 실제로 서버를 호출해서 온디바이스 결과를 보정한다.
-     * 원문은 [DetectionEngine.maskSensitiveInfo]로 전화번호/URL을 마스킹한 뒤에만 전송하고,
+     * 원문은 [PrivacyMasker]로 개인정보(전화번호·계좌번호·주민등록번호·카드번호·이메일·링크 경로)를
+     * 가린 뒤에만 전송하고,
      * 병합 규칙 자체는 [DetectionEngine.mergeAiResponse]에 있음(점수/riskLevel/추천기관/
      * AI 요약 문구 — 신기훈 4주차 07번 문서 "AI 응답 반영 범위" 참고). 이 함수는 네트워크
      * 호출과 성공/실패 분기만 책임진다.
@@ -83,11 +104,9 @@ class DetectionRepository @Inject constructor(
      *
      * @param result 온디바이스 [analyze] 결과
      * @param sessionId 세션(대화방) 식별자
-     * @param recentTurns 최근 턴 원문 목록(마스킹 전) — 최근 10턴 이내로 호출부에서 잘라서 넘길 것.
-     *   **한계**: 지금 유일한 호출부인 [com.safelink.app.ui.screens.detection.DetectionViewModel]은
-     *   `listOf(originalText)`(입력 1건)만 넘긴다 — 진짜 다중 턴 세션이 아니라 단일 입력
-     *   기준이라는 뜻. 실제 다중 턴 추적이 생기면 그 상태를 그대로 넘기면 됨(이 함수 자체는
-     *   턴 개수와 무관하게 동작).
+     * @param recentTurns 최근 턴 원문 목록(마스킹 전). 호출부는 [ConversationTurns.recentForAi] 로
+     *   최근 10턴까지만 잘라서 넘긴다 — 붙여넣은 대화와 백그라운드에서 읽은 화면 모두 줄 단위로 턴을 나눈다.
+     *   **남은 한계**: 대화방을 오가며 시간에 걸쳐 쌓인 진짜 세션은 아직 추적하지 않는다(화면·입력 단위).
      */
     suspend fun escalateToAI(
         result: DetectionResult,
@@ -95,14 +114,15 @@ class DetectionRepository @Inject constructor(
         recentTurns: List<String>
     ): DetectionResult {
         return try {
-            val maskedTurns = recentTurns.map { engine.maskSensitiveInfo(it) }
-            val maskedText = maskedTurns.lastOrNull() ?: engine.maskSensitiveInfo(result.originalText)
+            val maskedTurns = recentTurns.map { PrivacyMasker.mask(it) }
+            val maskedText = maskedTurns.lastOrNull() ?: PrivacyMasker.mask(result.originalText)
             val request = AnalyzeRequestDto(
                 sessionId = sessionId,
                 maskedText = maskedText,
                 recentTurns = maskedTurns,
                 deviceBaseScore = result.score.toDouble(),
-                deviceMatchedIds = result.matchedKeywords.map { it.keywordId },
+                // 겹쳐 잡힌 같은 키워드를 여러 번 보내지 않는다 — 모델에 "여러 번 걸렸다"는 잘못된 신호가 된다
+                deviceMatchedIds = result.matchedKeywords.map { it.keywordId }.distinct(),
                 deviceAppliedComboIds = result.appliedComboIds,
                 categoryHint = result.category.ifBlank { null }
             )

@@ -9,6 +9,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.model.RiskLevel
 import com.safelink.app.data.local.RecordSource
+import com.safelink.app.data.repository.ConversationTurns
 import com.safelink.app.data.repository.DetectionRepository
 import com.safelink.app.data.repository.RecordRepository
 import kotlinx.coroutines.CoroutineScope
@@ -51,13 +52,16 @@ import java.util.UUID
  * ※ 감지 대상 패키지([MONITORED_PACKAGES])와 "감지 후 어떤 화면으로 연결할지" 기준은
  *   기능확장 담당(김선한)과 협의해 확정한다. 라우팅 매핑은 [RiskNotifier.routeFor] 한 곳에 모아둠.
  *
- * ── 개인정보: 서버로 전송되지 않음 (7주차 확인) ─────────────────────────────
- *   백그라운드 감지 경로는 [DetectionRepository.analyze]만 호출하고
- *   [DetectionRepository.escalateToAI]는 호출하지 않는다 — 즉 이 경로로 읽은 화면 텍스트는
- *   네트워크로 나갈 방법 자체가 없다(마스킹 이전에 애초에 전송 경로가 없음).
+ * ── 개인정보: 기본은 기기 안, 동의한 경우에만 AI 전송 ─────────────────────
+ *   판정([DetectionRepository.analyze])은 항상 기기 안에서 끝난다. 여기서 읽은 화면 텍스트가
+ *   밖으로 나가는 경로는 **사용자가 설정에서 "백그라운드 AI 정밀 분석"에 동의한 경우** 하나뿐이며
+ *   ([AiConsentStore], [escalateToAiIfConsented]), 그때도 개인정보를 가린 사본만 보낸다
+ *   ([com.safelink.app.data.privacy.PrivacyMasker] — 전화번호·계좌번호·주민등록번호·카드번호·이메일·링크 경로).
+ *   동의 전에는 전송 자체가 일어나지 않는다.
+ *
  *   화면 표시용 [BackgroundDetectionState]에는 매칭된 짧은 구간(`matchedText`)만 메모리에 두고,
  *   경고 이상으로 알림이 뜬 건은 [RecordRepository]를 통해 기기 내 DB에 기록으로 남긴다
- *   (Task 7.1 — 기록 탭 재열람용. 서버 전송 없음, 설정에서 전체 삭제 가능).
+ *   (Task 7.1 — 기록 탭 재열람용. 설정에서 전체 삭제 가능).
  */
 class MessageDetectionService : AccessibilityService() {
 
@@ -84,6 +88,9 @@ class MessageDetectionService : AccessibilityService() {
     /** 직전에 알림을 띄운 건 — 앱과 매칭된 키워드 id 집합 */
     private var lastAlertPkg: String? = null
     private var lastAlertKeywords: Set<String>? = null
+
+    /** 직전 알림에서 실제로 걸린 문구들 — 같은 키워드라도 문구가 다르면 새 메시지로 본다 */
+    private var lastAlertPhrases: Set<String>? = null
     private var lastAlertAt: Long = 0L
     /** 직전 알림이 발생한 창(화면) id — 화면이 바뀌면 새 확인 행동으로 본다 */
     private var lastAlertWindowId: Int = -1
@@ -129,6 +136,19 @@ class MessageDetectionService : AccessibilityService() {
         lastText = text
         lastAnalyzedAt = now
 
+        // 화면 텍스트를 읽는 것까지는 접근성 콜백(메인 스레드)에서 해야 하지만, 분석부터는 넘긴다.
+        // 키워드 234개를 최대 5,000자에 대조하는 작업을 메인 스레드에서 돌리면 화면 전환마다
+        // 사용자 조작이 잠깐씩 멈추고, 느린 기기에서는 ANR 로 이어진다.
+        serviceScope.launch { analyzeText(text, pkg, windowId, now) }
+    }
+
+    /**
+     * 실제 분석과 알림·기록 처리. 백그라운드 스코프에서만 호출한다.
+     *
+     * 중복 억제용 상태(lastAlert*)도 이 함수 안에서만 건드린다 — 한 곳에서만 바뀌도록 모아 두면
+     * 이벤트가 겹쳐도 최악의 경우가 "알림이 한 번 더 뜬다" 수준에 머문다.
+     */
+    private suspend fun analyzeText(text: String, pkg: String, windowId: Int, now: Long) {
         // 기존 온디바이스 엔진 재사용 — 실제 감지/분석은 여기서 일어난다
         val result = repository.analyze(text)
 
@@ -140,6 +160,7 @@ class MessageDetectionService : AccessibilityService() {
 
             lastAlertPkg = pkg
             lastAlertKeywords = keywordsOf(result)
+            lastAlertPhrases = phrasesOf(result)
             lastAlertAt = now
             lastAlertWindowId = windowId
 
@@ -150,7 +171,7 @@ class MessageDetectionService : AccessibilityService() {
             //
             // 기록을 먼저 저장하고 그 id 로 알림을 띄운다 — 알림을 누르면 이 기록의 분석 결과 화면이 열리게 하기
             // 위해서다. 기기 내 DB 한 줄 쓰기라 알림이 체감될 만큼 늦어지지 않는다. 저장에 실패해도 알림은 띄운다.
-            serviceScope.launch {
+            run {
                 val recordId = runCatching { recordRepository.saveDetection(result, RecordSource.BACKGROUND) }.getOrNull()
                 notifier.notifyRisk(
                     result.riskLevel,
@@ -158,8 +179,24 @@ class MessageDetectionService : AccessibilityService() {
                     result.matchedKeywords.firstOrNull()?.matchedText,
                     recordId
                 )
+
+                // 링크도 함께 확인한다. 예전에는 키워드로 위험이 잡히면 링크 검사를 아예 건너뛰어서,
+                // "택배 조회하세요 + 악성 링크" 같은 전형적인 스미싱에서 정작 링크 판정이 빠졌다.
+                // 알림을 먼저 띄운 뒤에 검사하므로 경고가 늦어지지는 않는다.
+                val links = inspectLinks(text)
+                if (links.isNotEmpty()) {
+                    recordId?.let { runCatching { recordRepository.updateLinkResults(it, links) } }
+                }
+                val withLinks = LinkRiskPolicy.apply(result, links)
+                if (withLinks !== result) {
+                    // 위험한 링크가 확인되면 판정이 긴급으로 올라간다 — 화면·기록·알림을 함께 맞춘다.
+                    BackgroundDetectionState.refine(withLinks, sourceApp = pkg)
+                    recordId?.let { runCatching { recordRepository.updateVerdict(it, withLinks) } }
+                    notifier.notifyRisk(withLinks.riskLevel, withLinks.category, dangerousLinkLabel(links), recordId)
+                }
+
                 // AI 보조분석이 반영되면 방금 저장한 기록도 최종 판정으로 맞춘다 (결과 화면과 기록 불일치 방지).
-                escalateToAiIfConsented(result, pkg, text, recordId)
+                escalateToAiIfConsented(result, pkg, text, recordId, links)
             }
             return
         }
@@ -169,6 +206,17 @@ class MessageDetectionService : AccessibilityService() {
         // 없이 링크만 툭 던지는 수법이 실제로 흔해서, 키워드 판정만으로는 이런 건이 그대로 지나간다.
         checkLinks(text, pkg, now)
     }
+
+    /** 원문의 링크를 모두 검사한다. 키 미설정·링크 없음·검사 실패는 전부 빈 목록으로 돌려준다. */
+    private suspend fun inspectLinks(text: String): List<LinkRiskResult> {
+        if (!linkRiskChecker.isConfigured) return emptyList()
+        if (LinkExtractor.extract(text).isEmpty()) return emptyList()
+        return runCatching { linkRiskChecker.checkText(text) }.getOrDefault(emptyList())
+    }
+
+    /** 알림에 보여줄 위험 링크 주소(원문 표기 그대로). 위험한 링크가 없으면 null. */
+    private fun dangerousLinkLabel(links: List<LinkRiskResult>): String? =
+        links.firstOrNull { it.verdict == LinkVerdict.DANGEROUS }?.link?.displayText
 
     /**
      * 화면에 있는 링크가 알려진 악성 주소인지 확인하고, 맞으면 알린다.
@@ -246,7 +294,8 @@ class MessageDetectionService : AccessibilityService() {
         result: DetectionResult,
         pkg: String,
         text: String,
-        recordId: String?
+        recordId: String?,
+        links: List<LinkRiskResult> = emptyList()
     ) {
         if (!AiConsentStore.isEnabled(applicationContext)) return
         if (!repository.shouldEscalateToAI(result)) return
@@ -255,20 +304,27 @@ class MessageDetectionService : AccessibilityService() {
             repository.escalateToAI(
                 result = result,
                 sessionId = UUID.randomUUID().toString(),
-                recentTurns = listOf(text)
+                // 화면에서 읽은 대화를 줄 단위 턴으로 넘긴다 (마스킹은 escalateToAI 안에서 수행)
+                recentTurns = ConversationTurns.recentForAi(ConversationTurns.split(text))
             )
         }.getOrNull() ?: return
 
         // 실패하면 escalateToAI 가 원본을 그대로 돌려준다 — 그때는 갈아끼울 게 없다.
         if (refined !== result) {
-            BackgroundDetectionState.refine(refined, sourceApp = pkg)
-            recordId?.let { id -> runCatching { recordRepository.updateVerdict(id, refined) } }
+            // 링크 판정까지 얹은 값으로 맞춘다 — AI 가 점수를 낮춰도 위험 링크로 올라간 긴급은 유지된다.
+            val verdict = LinkRiskPolicy.apply(refined, links)
+            BackgroundDetectionState.refine(verdict, sourceApp = pkg)
+            recordId?.let { id -> runCatching { recordRepository.updateVerdict(id, verdict) } }
         }
     }
 
     /** 매칭된 키워드 id 집합 — 같은 내용을 다시 본 것인지 판단하는 기준 */
     private fun keywordsOf(result: DetectionResult): Set<String> =
         result.matchedKeywords.mapTo(mutableSetOf()) { it.keywordId }
+
+    /** 실제로 걸린 문구들 — 키워드는 같아도 문구가 다르면 다른 메시지다 */
+    private fun phrasesOf(result: DetectionResult): Set<String> =
+        result.matchedKeywords.mapTo(mutableSetOf()) { it.matchedText }
 
     /**
      * 같은 사건인지 판정.
@@ -278,8 +334,12 @@ class MessageDetectionService : AccessibilityService() {
      * 알림이 두 번 뜬다. 한쪽이 다른 쪽을 포함하기만 하면 같은 화면을 보고 있는 것이므로
      * 같은 사건으로 취급한다.
      */
-    private fun isSameEvent(pkg: String, keywords: Set<String>): Boolean {
+    private fun isSameEvent(pkg: String, keywords: Set<String>, phrases: Set<String>): Boolean {
         if (pkg != lastAlertPkg) return false
+        // 키워드가 같아도 새로 걸린 문구가 있으면 다른 메시지다 — 예전에는 같은 대화방에서 같은 유형의
+        // 새 사기 문자가 와도 30분 동안 알림이 뜨지 않았다.
+        val lastPhrases = lastAlertPhrases ?: return false
+        if (!lastPhrases.containsAll(phrases)) return false
         val last = lastAlertKeywords ?: return false
         if (keywords.isEmpty() || last.isEmpty()) return keywords == last
         return keywords.containsAll(last) || last.containsAll(keywords)
@@ -301,7 +361,7 @@ class MessageDetectionService : AccessibilityService() {
         windowId: Int,
         now: Long
     ): Boolean {
-        if (!isSameEvent(pkg, keywordsOf(result))) return false
+        if (!isSameEvent(pkg, keywordsOf(result), phrasesOf(result))) return false
         val elapsed = now - lastAlertAt
         return if (windowId == lastAlertWindowId) {
             elapsed < SAME_SCREEN_MUTE_MS
@@ -372,6 +432,7 @@ class MessageDetectionService : AccessibilityService() {
         lastAnalyzedAt = 0L
         lastAlertPkg = null
         lastAlertKeywords = null
+        lastAlertPhrases = null
         lastAlertAt = 0L
         lastAlertWindowId = -1
     }
