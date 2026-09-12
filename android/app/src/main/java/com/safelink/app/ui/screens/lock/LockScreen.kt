@@ -50,6 +50,8 @@ fun LockScreen(navController: NavHostController) {
     var lockoutRemaining by remember { mutableLongStateOf(AppLockManager.remainingLockoutMs(context)) }
 
     val unlock: () -> Unit = {
+        // 이번 실행에서는 다시 묻지 않는다 (앱을 껐다 켜면 초기화된다)
+        AppLockManager.markUnlocked()
         navController.navigate(Screen.Home.route) {
             popUpTo(Screen.Lock.route) { inclusive = true }
             // 잠금 해제 후 홈이 스택에 두 번 쌓이지 않게 한다(앱 복귀 시 잠금은 홈 위에 열린다)

@@ -37,6 +37,23 @@ object AppLockManager {
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
+    /**
+     * 이번 실행에서 이미 잠금을 푼 적이 있는지 (메모리에만 둔다).
+     *
+     * 잠금은 **앱을 새로 켤 때만** 묻는다. 잠깐 다른 앱에 갔다 돌아올 때마다 PIN 을 요구하면
+     * 정작 급한 상황에서 대화를 확인하지 못해 앱을 안 쓰게 된다(사용자 요청).
+     * 값이 메모리에만 있으므로 앱을 완전히 종료하거나 시스템이 프로세스를 정리하면 자동으로 false 가 되고,
+     * 다시 켤 때 잠금 화면을 거친다.
+     */
+    @Volatile
+    var isUnlockedInProcess: Boolean = false
+        private set
+
+    /** 잠금 화면을 통과했을 때(또는 PIN 을 새로 설정했을 때) 호출한다. */
+    fun markUnlocked() {
+        isUnlockedInProcess = true
+    }
+
     /** 앱 잠금이 켜져 있고 PIN 이 설정된 상태인지. */
     fun isEnabled(context: Context): Boolean {
         val p = prefs(context)
@@ -45,6 +62,8 @@ object AppLockManager {
 
     /** PIN 설정 + 잠금 활성화. */
     fun setPin(context: Context, pin: String) {
+        // 방금 PIN 을 정한 사람에게 곧바로 PIN 을 다시 묻지 않는다
+        markUnlocked()
         val salt = ByteArray(SALT_BYTES).also { SecureRandom().nextBytes(it) }
         prefs(context).edit()
             .putString(KEY_PIN_SALT, salt.toBase64())
