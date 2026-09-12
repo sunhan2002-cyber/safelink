@@ -635,6 +635,14 @@
       ],
       "weight": 22,
       "standalone_recommend": true
+    },
+    "7-6": {
+      "risk_types": [
+        "협박",
+        "개인정보탈취"
+      ],
+      "weight": 15,
+      "standalone_recommend": false
     }
   },
   "keyword_risk_type_additions": {
