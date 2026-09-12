@@ -22,10 +22,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Warning
@@ -60,8 +62,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.safelink.app.data.repository.RecordRepository
+import com.safelink.app.settings.AiConsentStore
 import com.safelink.app.settings.BackgroundDetectionAccess
 import com.safelink.app.ui.components.BackgroundDetectionConsentDialog
+import com.safelink.app.ui.components.BackgroundDetectionDisableDialog
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.screens.detection.DetectionViewModel
 import com.safelink.app.ui.theme.BackgroundGray
@@ -98,10 +102,17 @@ fun HomeScreen(
     // 앱이 보호하고 있다고 말했다. 설정에서 켜고 돌아오면 바로 반영되도록 화면이 다시 보일 때마다 확인한다.
     val lifecycleOwner = LocalLifecycleOwner.current
     var protectionOn by remember { mutableStateOf(BackgroundDetectionAccess.isEnabled(context)) }
+    // AI 보조분석 동의 여부도 같이 본다 — 카드가 "무엇으로" 보고 있는지까지 말해 주기 위해서다.
+    // 설정 화면에서 껐다 켜고 돌아오는 경우가 있으므로 권한과 같은 시점에 다시 읽는다.
+    var aiOn by remember { mutableStateOf(AiConsentStore.isEnabled(context)) }
     var showBackgroundConsent by remember { mutableStateOf(false) }
+    var showBackgroundDisable by remember { mutableStateOf(false) }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) protectionOn = BackgroundDetectionAccess.isEnabled(context)
+            if (event == Lifecycle.Event.ON_RESUME) {
+                protectionOn = BackgroundDetectionAccess.isEnabled(context)
+                aiOn = AiConsentStore.isEnabled(context)
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
@@ -110,8 +121,21 @@ fun HomeScreen(
     if (showBackgroundConsent) {
         BackgroundDetectionConsentDialog(
             onDismiss = { showBackgroundConsent = false },
-            onGoToSettings = {
+            onDecide = { aiEnabled ->
                 showBackgroundConsent = false
+                // 허용/거부 어느 쪽이든 여기서 결정을 확정한다. 거부를 눌렀는데 예전 동의가 남아
+                // 그대로 켜져 있으면 "거부했는데 왜 전송되냐"가 되므로, 거부는 명시적으로 철회한다.
+                if (aiEnabled) AiConsentStore.agree(context) else AiConsentStore.revoke(context)
+                aiOn = aiEnabled
+                BackgroundDetectionAccess.openAccessibilitySettings(context)
+            }
+        )
+    }
+    if (showBackgroundDisable) {
+        BackgroundDetectionDisableDialog(
+            onDismiss = { showBackgroundDisable = false },
+            onGoToSettings = {
+                showBackgroundDisable = false
                 BackgroundDetectionAccess.openAccessibilitySettings(context)
             }
         )
@@ -160,7 +184,10 @@ fun HomeScreen(
             onClick = {
                 when {
                     snapshot != null -> navController.navigate(Screen.ResponseGuide.createRoute(statusLevel))
+                    // 꺼져 있으면 켜기, 켜져 있으면 끄기 — 같은 자리를 다시 누르면 되돌아가는 게 자연스럽다.
+                    // (켜고 끄는 것 자체는 시스템 접근성 설정에서만 가능해 그쪽으로 보낸다)
                     protectionOff -> showBackgroundConsent = true
+                    else -> showBackgroundDisable = true
                 }
             }
         ) {
@@ -214,6 +241,25 @@ fun HomeScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    // 무엇으로 보고 있는지 — 규칙만인지, AI 보조분석까지인지.
+                    // 보호가 켜져 있을 때만 의미가 있는 정보라 그때만 보여준다.
+                    if (!protectionOff) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (aiOn) Icons.Filled.AutoAwesome else Icons.Filled.PhoneAndroid,
+                                contentDescription = null,
+                                tint = if (aiOn) BrandBlueDark else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (aiOn) "AI 보조분석 켜짐" else "기기 안에서만 분석 중",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (aiOn) BrandBlueDark else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
                 Box(
                     contentAlignment = Alignment.Center,
@@ -246,8 +292,10 @@ fun HomeScreen(
                         Icon(
                             imageVector = when {
                                 protectionOff -> Icons.Filled.Shield
-                                statusLevel == RiskLevel.SAFE -> Icons.Filled.Check
-                                else -> Icons.Filled.Warning
+                                // 위험이 잡힌 상태에서는 경고가 우선 — AI 표시는 평상시에만 의미가 있다
+                                statusLevel != RiskLevel.SAFE -> Icons.Filled.Warning
+                                aiOn -> Icons.Filled.AutoAwesome
+                                else -> Icons.Filled.Check
                             },
                             contentDescription = null,
                             tint = SurfaceWhite,

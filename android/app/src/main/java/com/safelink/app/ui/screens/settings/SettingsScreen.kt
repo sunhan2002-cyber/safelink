@@ -113,6 +113,7 @@ fun SettingsScreen(navController: NavHostController) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 backgroundDetection = BackgroundDetectionAccess.isEnabled(context)
+                aiConsent = AiConsentStore.isEnabled(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -122,8 +123,12 @@ fun SettingsScreen(navController: NavHostController) {
     if (showBackgroundConsent) {
         BackgroundDetectionConsentDialog(
             onDismiss = { showBackgroundConsent = false },
-            onGoToSettings = {
+            onDecide = { aiEnabled ->
                 showBackgroundConsent = false
+                // 보호를 켜는 자리에서 AI 보조분석 동의까지 함께 받는다.
+                // 아래 "백그라운드 AI 보조분석" 토글과 같은 값이라, 이 선택이 그 토글에도 바로 반영된다.
+                if (aiEnabled) AiConsentStore.agree(context) else AiConsentStore.revoke(context)
+                aiConsent = aiEnabled
                 BackgroundDetectionAccess.openAccessibilitySettings(context)
             }
         )
