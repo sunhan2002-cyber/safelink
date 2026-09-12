@@ -15,12 +15,14 @@ import com.safelink.app.ui.navigation.Screen
 class RiskNotifier(private val context: Context) {
 
     init {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "SafeLink 알림",
-            NotificationManager.IMPORTANCE_HIGH
-        )
-        manager().createNotificationChannel(channel)
+        // 위험도별로 채널을 나눈다 (Design.md 5.3: 주의=무음, 경고=진동, 긴급=진동+소리).
+        // 안드로이드 8 이상에서는 소리·진동을 채널이 정하고 setPriority 는 무시되므로, 채널 하나로는
+        // 어떤 우선순위를 줘도 전부 같은 소리로 울렸다.
+        // 채널 이름은 시스템 설정에도 그대로 보이므로 위험·폭력 같은 민감한 단어를 넣지 않는다(Design.md 7장).
+        CHANNELS.forEach { (id, spec) ->
+            val channel = NotificationChannel(id, spec.displayName, spec.importance)
+            manager().createNotificationChannel(channel)
+        }
     }
 
     /**
@@ -42,7 +44,7 @@ class RiskNotifier(private val context: Context) {
         // 사용자가 중립 문구를 켜 두었으면 위험도·감지 내용을 드러내지 않는 문구로 대체한다
         // (가해자와 화면을 공유하는 상황 대비 — Design.md 7장)
         if (NotificationTextStore.isCustomEnabled(context)) {
-            val neutral = NotificationCompat.Builder(context, CHANNEL_ID)
+            val neutral = NotificationCompat.Builder(context, channelIdOf(level))
                 .setSmallIcon(R.drawable.ic_stat_warning)
                 .setContentTitle(NotificationTextStore.title(context))
                 .setContentText(NotificationTextStore.body(context))
@@ -59,7 +61,7 @@ class RiskNotifier(private val context: Context) {
             ?.let { "감지된 표현: \"$it\"" }
             ?: "확인이 필요한 표현이 감지되었습니다. 내용을 확인해 보세요."
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(context, channelIdOf(level))
             // 앱 아이콘 대신 경고 삼각형(느낌표) — 상태바/알림에서 "경고"임이 바로 보이도록
             .setSmallIcon(R.drawable.ic_stat_warning)
             // 위험도별 강조색: 알림 서랍에서 아이콘 배경이 빨강(치명)·주황(경고)으로 물듦
@@ -111,8 +113,30 @@ class RiskNotifier(private val context: Context) {
         else -> NotificationCompat.PRIORITY_LOW
     }
 
+    private fun channelIdOf(level: RiskLevel): String = when (level) {
+        RiskLevel.CRITICAL -> CHANNEL_CRITICAL
+        RiskLevel.WARNING -> CHANNEL_WARNING
+        else -> CHANNEL_LOW
+    }
+
+    private data class ChannelSpec(val displayName: String, val importance: Int)
+
     companion object {
-        const val CHANNEL_ID = "safelink_alert"
+        /** 긴급 — 진동 + 알림음 */
+        const val CHANNEL_CRITICAL = "safelink_alert"
+
+        /** 경고 — 진동 */
+        const val CHANNEL_WARNING = "safelink_alert_warning"
+
+        /** 주의 이하 — 무음 */
+        const val CHANNEL_LOW = "safelink_alert_low"
+
+        private val CHANNELS = mapOf(
+            CHANNEL_CRITICAL to ChannelSpec("긴급 알림", NotificationManager.IMPORTANCE_HIGH),
+            CHANNEL_WARNING to ChannelSpec("중요 알림", NotificationManager.IMPORTANCE_DEFAULT),
+            CHANNEL_LOW to ChannelSpec("일반 알림", NotificationManager.IMPORTANCE_LOW)
+        )
+
         private const val NOTIF_ID = 1001
     }
 }

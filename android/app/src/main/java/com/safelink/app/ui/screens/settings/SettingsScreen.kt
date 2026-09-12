@@ -49,6 +49,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
+import com.safelink.app.BuildConfig
 import com.safelink.app.background.MessageDetectionService
 import com.safelink.app.settings.AiConsentStore
 import com.safelink.app.settings.NotificationTextStore
@@ -393,7 +394,7 @@ fun SettingsScreen(navController: NavHostController) {
                     label = "스크린샷 분석 사용",
                     caption = "끄면 대화 분석에서 스크린샷 탭이 숨겨지고 텍스트 입력만 사용합니다.",
                     checked = screenshotAnalysis,
-                    onChange = { FeatureToggleState.setScreenshotAnalysisEnabled(it) }
+                    onChange = { FeatureToggleState.setScreenshotAnalysisEnabled(context, it) }
                 )
                 ToggleRow(
                     label = "백그라운드 감지 설정",
@@ -533,7 +534,7 @@ fun SettingsScreen(navController: NavHostController) {
             }
 
             Text(
-                text = "SafeLink v0.1.0",
+                text = "SafeLink v${BuildConfig.VERSION_NAME}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.align(Alignment.CenterHorizontally)

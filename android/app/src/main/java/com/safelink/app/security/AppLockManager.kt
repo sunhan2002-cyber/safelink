@@ -1,13 +1,20 @@
 package com.safelink.app.security
 
 import android.content.Context
+import android.util.Base64
 import java.security.MessageDigest
+import java.security.SecureRandom
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
 
 /**
  * 앱 잠금(PIN) 실제 동작 관리.
  *
  * - 설정에서 앱 잠금을 켜면 4자리 PIN 을 저장하고, 앱 실행 시 잠금 화면을 거치게 한다.
- * - PIN 은 평문 대신 SHA-256 해시로 저장한다.
+ * - PIN 은 평문 대신 **기기마다 다른 무작위 솔트 + PBKDF2** 로 저장한다.
+ *   4자리 숫자는 경우의 수가 1만 개뿐이라, 솔트 없는 단순 SHA-256 은 저장값만 보면
+ *   미리 계산한 표로 즉시 되돌릴 수 있었다. 반복 연산을 넣어 한 번의 대조에도 비용이 들게 한다.
+ *   예전 방식(솔트 없는 SHA-256)으로 저장된 PIN 은 다음 로그인 성공 시 자동으로 새 방식으로 바꿔 둔다.
  * - 저장소는 지금은 SharedPreferences 를 쓴다. 실제 배포 시 EncryptedSharedPreferences 로
  *   교체하면 되며(같은 키/인터페이스 유지), 이 클래스만 바꾸면 화면 코드는 그대로 동작한다(Task 5.15).
  */
@@ -16,6 +23,7 @@ object AppLockManager {
     private const val PREFS = "safelink_security"
     private const val KEY_ENABLED = "app_lock_enabled"
     private const val KEY_PIN_HASH = "app_lock_pin_hash"
+    private const val KEY_PIN_SALT = "app_lock_pin_salt"
     private const val KEY_FAIL_COUNT = "pin_fail_count"
     private const val KEY_LOCK_UNTIL = "pin_lock_until"
     private const val KEY_BIOMETRIC = "biometric_enabled"
@@ -37,8 +45,10 @@ object AppLockManager {
 
     /** PIN 설정 + 잠금 활성화. */
     fun setPin(context: Context, pin: String) {
+        val salt = ByteArray(SALT_BYTES).also { SecureRandom().nextBytes(it) }
         prefs(context).edit()
-            .putString(KEY_PIN_HASH, hash(pin))
+            .putString(KEY_PIN_SALT, salt.toBase64())
+            .putString(KEY_PIN_HASH, pbkdf2(pin, salt))
             .putBoolean(KEY_ENABLED, true)
             .apply()
     }
@@ -50,8 +60,17 @@ object AppLockManager {
      * [MAX_FAIL_COUNT]회 연속 실패하면 [LOCKOUT_MS] 동안 입력을 막는다.
      */
     fun verify(context: Context, pin: String): Boolean {
-        val saved = prefs(context).getString(KEY_PIN_HASH, null) ?: return false
-        val matched = saved == hash(pin)
+        val prefs = prefs(context)
+        val saved = prefs.getString(KEY_PIN_HASH, null) ?: return false
+        val salt = prefs.getString(KEY_PIN_SALT, null)?.fromBase64()
+
+        val matched = if (salt != null) {
+            constantTimeEquals(saved, pbkdf2(pin, salt))
+        } else {
+            // 예전 방식(솔트 없는 SHA-256)으로 저장된 PIN — 맞으면 새 방식으로 다시 저장한다.
+            constantTimeEquals(saved, legacyHash(pin)).also { if (it) setPin(context, pin) }
+        }
+
         if (matched) resetFailState(context) else recordFailure(context)
         return matched
     }
@@ -98,14 +117,36 @@ object AppLockManager {
         prefs(context).edit()
             .putBoolean(KEY_ENABLED, false)
             .remove(KEY_PIN_HASH)
+            .remove(KEY_PIN_SALT)
             .putBoolean(KEY_BIOMETRIC, false)
             .putInt(KEY_FAIL_COUNT, 0)
             .putLong(KEY_LOCK_UNTIL, 0L)
             .apply()
     }
 
-    private fun hash(pin: String): String =
+    /** 저장용 해시 — 솔트를 섞어 [ITERATIONS] 번 반복한다. */
+    private fun pbkdf2(pin: String, salt: ByteArray): String {
+        val spec = PBEKeySpec(pin.toCharArray(), salt, ITERATIONS, KEY_LENGTH_BITS)
+        val key = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec)
+        return key.encoded.joinToString("") { "%02x".format(it) }
+    }
+
+    /** 예전 저장 방식(솔트 없는 SHA-256) — 기존 사용자의 PIN 을 한 번 더 받기 위해서만 남겨 둔다. */
+    private fun legacyHash(pin: String): String =
         MessageDigest.getInstance("SHA-256")
             .digest(pin.toByteArray(Charsets.UTF_8))
             .joinToString("") { "%02x".format(it) }
+
+    /** 문자열 비교 시간으로 정답을 추측할 수 없도록 길이와 무관하게 같은 시간에 비교한다. */
+    private fun constantTimeEquals(a: String, b: String): Boolean =
+        MessageDigest.isEqual(a.toByteArray(Charsets.UTF_8), b.toByteArray(Charsets.UTF_8))
+
+    private fun ByteArray.toBase64(): String = Base64.encodeToString(this, Base64.NO_WRAP)
+
+    private fun String.fromBase64(): ByteArray? = runCatching { Base64.decode(this, Base64.NO_WRAP) }.getOrNull()
+
+    /** 4자리 PIN 이라 반복 횟수로 시간을 벌어야 한다. 기기에서 한 번 대조에 수십 ms 수준. */
+    private const val ITERATIONS = 120_000
+    private const val KEY_LENGTH_BITS = 256
+    private const val SALT_BYTES = 16
 }

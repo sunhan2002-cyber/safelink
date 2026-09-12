@@ -28,13 +28,12 @@ class DetectionRepository @Inject constructor(
 ) {
     private val gson = Gson()
 
-    private val engine: DetectionEngine by lazy {
-        DetectionEngine(
-            keywordData = loadAsset("keyword.json", KeywordData::class.java),
-            institutionData = loadAsset("institutions.json", InstitutionData::class.java),
-            gson = gson
-        )
-    }
+    /**
+     * 규칙 엔진. 화면·서비스마다 이 클래스를 새로 만들어 쓰기 때문에(아직 Hilt 주입을 안 씀),
+     * 엔진 자체는 프로세스에서 한 번만 만들어 공유한다 — 인스턴스마다 keyword.json(키워드 234개)과
+     * institutions.json 을 다시 파싱하면 화면 진입·백그라운드 감지마다 같은 비용을 또 치른다.
+     */
+    private val engine: DetectionEngine get() = sharedEngine(context, gson)
 
     /** 2차 AI 보조 분석 서버 클라이언트. 지금은 목 서버(backend/) 기준 기본 주소로 연결됨
      *  — 실제 배포 서버가 생기면 baseUrl만 바꾸면 됨(요청/응답 계약은 그대로). */
@@ -43,9 +42,23 @@ class DetectionRepository @Inject constructor(
     /** 발표용 구성: API 키가 빌드에 들어 있으면 앱이 Claude 를 직접 호출한다(ClaudeDirectAnalyzer KDoc 참고). */
     private val claudeDirect: ClaudeDirectAnalyzer by lazy { ClaudeDirectAnalyzer() }
 
-    private fun <T> loadAsset(fileName: String, clazz: Class<T>): T {
-        val json = context.assets.open(fileName).bufferedReader().use(BufferedReader::readText)
-        return gson.fromJson(json, clazz)
+    private companion object {
+        @Volatile
+        private var cachedEngine: DetectionEngine? = null
+
+        fun sharedEngine(context: Context, gson: Gson): DetectionEngine =
+            cachedEngine ?: synchronized(this) {
+                cachedEngine ?: DetectionEngine(
+                    keywordData = loadAsset(context, gson, "keyword.json", KeywordData::class.java),
+                    institutionData = loadAsset(context, gson, "institutions.json", InstitutionData::class.java),
+                    gson = gson
+                ).also { cachedEngine = it }
+            }
+
+        private fun <T> loadAsset(context: Context, gson: Gson, fileName: String, clazz: Class<T>): T {
+            val json = context.assets.open(fileName).bufferedReader().use(BufferedReader::readText)
+            return gson.fromJson(json, clazz)
+        }
     }
 
     /** 원문 텍스트 1건을 분석해서 [DetectionResult]로 변환. ViewModel에서는 이거 하나만 호출하면 됨. */

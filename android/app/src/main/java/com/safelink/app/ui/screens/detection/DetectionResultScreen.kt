@@ -125,6 +125,7 @@ fun DetectionResultScreen(
         isCheckingLinks = viewModel.isCheckingLinks,
         manualAiMessage = viewModel.manualAiMessage,
         onRequestAi = { viewModel.requestManualAi() },
+        onInstitutionClick = { id -> navController.navigate(Screen.SupportDetail.createRoute(id)) },
         onBack = { navController.popBackStack() },
         onGuideClick = { navController.navigate(Screen.ResponseGuide.createRoute(result.riskLevel)) },
         onSupportClick = {
@@ -179,6 +180,7 @@ private fun DetectionResultContent(
     isCheckingLinks: Boolean = false,
     manualAiMessage: String? = null,
     onRequestAi: () -> Unit = {},
+    onInstitutionClick: (String) -> Unit = {},
     onBack: () -> Unit,
     onGuideClick: () -> Unit,
     onSupportClick: () -> Unit,
@@ -324,7 +326,7 @@ private fun DetectionResultContent(
             if (result.recommendedInstitutions.isNotEmpty()) {
                 val sorted = result.recommendedInstitutions.sortedBy { it.rank }
                 Text(text = "추천 기관", style = MaterialTheme.typography.titleMedium)
-                RecommendedInstitutionCard(sorted.first())
+                RecommendedInstitutionCard(sorted.first(), onClick = { onInstitutionClick(sorted.first().institutionId) })
                 if (sorted.size > 1) {
                     TextButton(onClick = onSupportClick, modifier = Modifier.fillMaxWidth()) {
                         Text("추천 기관 전체 보기 (${sorted.size}곳) ›")
@@ -647,8 +649,8 @@ private fun UnifiedReasonList(result: DetectionResult, isEscalatingToAI: Boolean
 }
 
 @Composable
-private fun RecommendedInstitutionCard(inst: RecommendedInstitutionUi) {
-    SafeLinkCard {
+private fun RecommendedInstitutionCard(inst: RecommendedInstitutionUi, onClick: (() -> Unit)? = null) {
+    SafeLinkCard(onClick = onClick) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
