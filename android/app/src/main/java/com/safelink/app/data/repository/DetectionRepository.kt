@@ -102,7 +102,8 @@ class DetectionRepository @Inject constructor(
                 maskedText = maskedText,
                 recentTurns = maskedTurns,
                 deviceBaseScore = result.score.toDouble(),
-                deviceMatchedIds = result.matchedKeywords.map { it.keywordId },
+                // 겹쳐 잡힌 같은 키워드를 여러 번 보내지 않는다 — 모델에 "여러 번 걸렸다"는 잘못된 신호가 된다
+                deviceMatchedIds = result.matchedKeywords.map { it.keywordId }.distinct(),
                 deviceAppliedComboIds = result.appliedComboIds,
                 categoryHint = result.category.ifBlank { null }
             )

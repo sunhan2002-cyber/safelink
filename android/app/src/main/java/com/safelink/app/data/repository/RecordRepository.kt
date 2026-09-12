@@ -114,7 +114,9 @@ class RecordRepository(context: Context) {
                     .map { it.subcategoryName }
                     .distinct()
                     .joinToString(","),
-                matchedKeywordCount = result.matchedKeywords.size,
+                // 같은 표현이 여러 규칙에 겹쳐 잡히므로 고유 키워드 기준으로 센다
+                // (예: "300만원만 보내"와 "300만원만"은 한 건이다)
+                matchedKeywordCount = result.matchedKeywords.distinctBy { it.keywordId }.size,
                 linkResultsJson = LinkResultCodec.encode(linkResults)
             )
         )

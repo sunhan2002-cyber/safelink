@@ -79,8 +79,8 @@ import com.safelink.app.ui.theme.SafeLinkTheme
  *
  * ViewModel 연동 완료 (Task 6.10) — viewModel.result(mutableStateOf)를 그대로 구독하므로
  * 온디바이스 분석이 끝난 뒤 AI 보조분석(escalateToAI)이 비동기로 결과를 갱신해도 이 화면이
- * 자동으로 재구성된다(별도 StateFlow/collectAsState 불필요). 기록 재열람 등 분석 없이 직접
- * 진입한 경우에만 더미로 대체.
+ * 자동으로 재구성된다(별도 StateFlow/collectAsState 불필요). 보여줄 결과가 없으면 빈 상태
+ * 안내([ResultUnavailable])를 띄운다 — 예시 데이터로 대체하지 않는다.
  * "분석한 내용" 카드는 MatchedKeyword.startIndex/endIndex로 원문의 매칭 구간에 배경색·밑줄을
  * 입혀 보여준다([highlightMatches]) — 목록만으로는 어떤 문맥에서 걸렸는지 보이지 않기 때문.
  *
@@ -101,8 +101,21 @@ fun DetectionResultScreen(
     }
 
     // 실제 데이터 흐름 (김선한_02 문서): 공유 ViewModel의 분석 결과를 사용.
-    // 결과가 아직 없을 때만(복원 중이거나 직접 진입) 더미로 대체한다.
-    val result: DetectionResult = viewModel.result ?: DetectionResultDummyData.vpCritical
+    // 결과가 없으면(기록 복원 중, 앱이 메모리에서 정리된 뒤 복귀 등) 아무것도 지어내지 않는다.
+    // 예전에는 예시 데이터(더미 "보이스피싱 82점 긴급")로 대체해서, 분석한 적 없는 내용이 진짜
+    // 판정처럼 보일 수 있었다 — 이 앱에서 가장 해서는 안 되는 표시라 빈 상태 안내로 바꿨다.
+    val result: DetectionResult = viewModel.result ?: run {
+        ResultUnavailable(
+            onBack = { navController.popBackStack() },
+            onReanalyze = {
+                viewModel.reset()
+                navController.navigate(Screen.DetectionInput.route) {
+                    popUpTo(Screen.DetectionInput.route) { inclusive = true }
+                }
+            }
+        )
+        return
+    }
 
     DetectionResultContent(
         result = result,
@@ -127,6 +140,33 @@ fun DetectionResultScreen(
             }
         }
     )
+}
+
+/** 보여줄 분석 결과가 없을 때 — 지어낸 값 대신 상태를 그대로 알린다. */
+@Composable
+private fun ResultUnavailable(onBack: () -> Unit, onReanalyze: () -> Unit) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        SafeLinkTopBar(title = "분석 결과", onBack = onBack)
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            SafeLinkCard {
+                Text(text = "표시할 분석 결과가 없어요", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "분석 결과는 기기 안에서만 들고 있어서, 앱이 다시 시작되면 사라져요. 확인할 대화를 다시 넣어 주세요.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Column(modifier = Modifier.padding(20.dp)) {
+            SafeLinkPrimaryButton(text = "대화 분석하러 가기", onClick = onReanalyze)
+        }
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)

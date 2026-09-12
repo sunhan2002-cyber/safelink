@@ -158,8 +158,24 @@ class MessageDetectionService : AccessibilityService() {
                     result.matchedKeywords.firstOrNull()?.matchedText,
                     recordId
                 )
+
+                // 링크도 함께 확인한다. 예전에는 키워드로 위험이 잡히면 링크 검사를 아예 건너뛰어서,
+                // "택배 조회하세요 + 악성 링크" 같은 전형적인 스미싱에서 정작 링크 판정이 빠졌다.
+                // 알림을 먼저 띄운 뒤에 검사하므로 경고가 늦어지지는 않는다.
+                val links = inspectLinks(text)
+                if (links.isNotEmpty()) {
+                    recordId?.let { runCatching { recordRepository.updateLinkResults(it, links) } }
+                }
+                val withLinks = LinkRiskPolicy.apply(result, links)
+                if (withLinks !== result) {
+                    // 위험한 링크가 확인되면 판정이 긴급으로 올라간다 — 화면·기록·알림을 함께 맞춘다.
+                    BackgroundDetectionState.refine(withLinks, sourceApp = pkg)
+                    recordId?.let { runCatching { recordRepository.updateVerdict(it, withLinks) } }
+                    notifier.notifyRisk(withLinks.riskLevel, withLinks.category, dangerousLinkLabel(links), recordId)
+                }
+
                 // AI 보조분석이 반영되면 방금 저장한 기록도 최종 판정으로 맞춘다 (결과 화면과 기록 불일치 방지).
-                escalateToAiIfConsented(result, pkg, text, recordId)
+                escalateToAiIfConsented(result, pkg, text, recordId, links)
             }
             return
         }
@@ -169,6 +185,17 @@ class MessageDetectionService : AccessibilityService() {
         // 없이 링크만 툭 던지는 수법이 실제로 흔해서, 키워드 판정만으로는 이런 건이 그대로 지나간다.
         checkLinks(text, pkg, now)
     }
+
+    /** 원문의 링크를 모두 검사한다. 키 미설정·링크 없음·검사 실패는 전부 빈 목록으로 돌려준다. */
+    private suspend fun inspectLinks(text: String): List<LinkRiskResult> {
+        if (!linkRiskChecker.isConfigured) return emptyList()
+        if (LinkExtractor.extract(text).isEmpty()) return emptyList()
+        return runCatching { linkRiskChecker.checkText(text) }.getOrDefault(emptyList())
+    }
+
+    /** 알림에 보여줄 위험 링크 주소(원문 표기 그대로). 위험한 링크가 없으면 null. */
+    private fun dangerousLinkLabel(links: List<LinkRiskResult>): String? =
+        links.firstOrNull { it.verdict == LinkVerdict.DANGEROUS }?.link?.displayText
 
     /**
      * 화면에 있는 링크가 알려진 악성 주소인지 확인하고, 맞으면 알린다.
@@ -246,7 +273,8 @@ class MessageDetectionService : AccessibilityService() {
         result: DetectionResult,
         pkg: String,
         text: String,
-        recordId: String?
+        recordId: String?,
+        links: List<LinkRiskResult> = emptyList()
     ) {
         if (!AiConsentStore.isEnabled(applicationContext)) return
         if (!repository.shouldEscalateToAI(result)) return
@@ -261,8 +289,10 @@ class MessageDetectionService : AccessibilityService() {
 
         // 실패하면 escalateToAI 가 원본을 그대로 돌려준다 — 그때는 갈아끼울 게 없다.
         if (refined !== result) {
-            BackgroundDetectionState.refine(refined, sourceApp = pkg)
-            recordId?.let { id -> runCatching { recordRepository.updateVerdict(id, refined) } }
+            // 링크 판정까지 얹은 값으로 맞춘다 — AI 가 점수를 낮춰도 위험 링크로 올라간 긴급은 유지된다.
+            val verdict = LinkRiskPolicy.apply(refined, links)
+            BackgroundDetectionState.refine(verdict, sourceApp = pkg)
+            recordId?.let { id -> runCatching { recordRepository.updateVerdict(id, verdict) } }
         }
     }
 
