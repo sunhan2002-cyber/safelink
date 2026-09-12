@@ -428,8 +428,12 @@ private fun ScreenshotArea(
 @Composable
 private fun ScreenshotThumb(uri: Uri, onRemove: () -> Unit) {
     val context = LocalContext.current
+    // lint(ProduceStateDoesNotAssignValue)가 이 블록이 value를 대입한다는 걸 못 찾아 오탐을 낸다
+    // (withContext로 감싼 대입 형태로 바꿔봐도 동일 — lint 쪽 한계로 보임). 실제로는 아래에서
+    // 매 uri 변경마다 value = decoded로 대입하고 있어 정상 동작한다(에뮬레이터에서 확인 완료).
+    @Suppress("ProduceStateDoesNotAssignValue")
     val bitmap by produceState<ImageBitmap?>(initialValue = null, uri) {
-        value = withContext(Dispatchers.IO) {
+        val decoded = withContext(Dispatchers.IO) {
             runCatching {
                 context.contentResolver.openInputStream(uri)?.use { input ->
                     val opts = BitmapFactory.Options().apply { inSampleSize = 4 }
@@ -437,6 +441,7 @@ private fun ScreenshotThumb(uri: Uri, onRemove: () -> Unit) {
                 }
             }.getOrNull()
         }
+        value = decoded
     }
 
     Box(modifier = Modifier.size(84.dp)) {
