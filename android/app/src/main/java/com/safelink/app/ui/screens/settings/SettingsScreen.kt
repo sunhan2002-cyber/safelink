@@ -420,7 +420,7 @@ fun SettingsScreen(navController: NavHostController) {
                     }
                 )
                 ToggleRow(
-                    label = "백그라운드 AI 정밀 분석",
+                    label = "백그라운드 AI 보조분석",
                     caption = "켜면 판단이 애매한 경우 대화 내용이 AI 제공사(Anthropic)로 전송됩니다. 끄면 기기 안에서만 판단합니다.",
                     checked = aiConsent,
                     onChange = { on ->
@@ -538,7 +538,7 @@ fun SettingsScreen(navController: NavHostController) {
                             showDeleteDialog = false
                             deleteScope.launch {
                                 runCatching { RecordRepository(deleteContext).deleteAll() }
-                                deletedMessage = "검사 기록을 모두 삭제했습니다."
+                                deletedMessage = "분석 기록을 모두 삭제했습니다."
                             }
                         }) { Text("삭제", color = RiskCritical) }
                     },

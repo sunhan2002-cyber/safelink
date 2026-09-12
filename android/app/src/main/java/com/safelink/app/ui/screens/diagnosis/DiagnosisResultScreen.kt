@@ -144,7 +144,7 @@ fun DiagnosisResultScreen(
                 onClick = { navController.navigate(Screen.SupportMatch.createRoute(matchedRiskTypes)) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("지원 기관 찾기")
+                Text("지원 기관 보기")
             }
             TextButton(
                 onClick = {
@@ -154,7 +154,7 @@ fun DiagnosisResultScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("홈으로 돌아가기")
+                Text("메인 화면으로 돌아가기")
             }
         }
     }

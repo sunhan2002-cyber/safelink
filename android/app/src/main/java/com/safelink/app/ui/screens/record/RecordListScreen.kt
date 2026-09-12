@@ -85,7 +85,7 @@ fun RecordListScreen(
     var recordPendingDelete by remember { mutableStateOf<RecordItem?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        SafeLinkTopBar(title = "검사 기록", actions = {
+        SafeLinkTopBar(title = "분석 기록", actions = {
             IconButton(onClick = { menuOpen = true }) {
                 Icon(imageVector = Icons.Filled.FilterList, contentDescription = "위험도별 필터")
             }
@@ -223,7 +223,7 @@ private fun EmptyRecords(isFiltered: Boolean) {
             }
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = if (isFiltered) "해당 위험도의 기록이 없습니다" else "아직 검사 기록이 없습니다",
+                text = if (isFiltered) "해당 위험도의 기록이 없습니다" else "아직 분석 기록이 없습니다",
                 style = MaterialTheme.typography.titleMedium
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -231,7 +231,7 @@ private fun EmptyRecords(isFiltered: Boolean) {
                 text = if (isFiltered) {
                     "필터를 '전체'로 바꾸면 모든 기록을 볼 수 있어요."
                 } else {
-                    "대화 분석이나 자가 진단을 하면 결과가 이곳에 자동으로 저장됩니다."
+                    "대화 분석이나 자가진단을 하면 결과가 이곳에 자동으로 저장됩니다."
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -254,7 +254,7 @@ private fun RegularCheckTip() {
             )
             Spacer(modifier = Modifier.size(12.dp))
             Text(
-                text = "의심스러운 대화를 받으면 바로 검사해보세요. 기록이 쌓일수록 반복되는 위험 패턴을 알아차리기 쉬워져요.",
+                text = "의심스러운 대화를 받으면 바로 분석해 보세요. 기록이 쌓일수록 반복되는 위험 패턴을 알아차리기 쉬워져요.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

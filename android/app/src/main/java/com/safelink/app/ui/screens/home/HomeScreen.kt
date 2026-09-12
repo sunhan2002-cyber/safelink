@@ -280,7 +280,7 @@ fun HomeScreen(
                 modifier = Modifier.weight(1f)
             )
             QuickActionCard(
-                title = "자가 진단",
+                title = "자가진단",
                 icon = Icons.Filled.Checklist,
                 onClick = { navController.navigate(Screen.Diagnosis.route) },
                 modifier = Modifier.weight(1f)
@@ -319,7 +319,7 @@ fun HomeScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "오늘 정밀 검사 ${todayScanCount}건 · 전체 기록 보기 ›",
+                    text = "오늘 분석 ${todayScanCount}건 · 전체 기록 보기 ›",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )

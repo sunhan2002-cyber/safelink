@@ -40,7 +40,7 @@ object AiConsentStore {
      *
      * 모델 제공사를 바꾸면 이 문구도 반드시 다시 확인해야 한다.
      */
-    const val CONSENT_TITLE = "AI 정밀 분석을 사용할까요?"
+    const val CONSENT_TITLE = "AI 보조분석을 사용할까요?"
 
     const val CONSENT_BODY =
         "기기 안에서 판단하기 애매한 경우에 한해, 감지된 대화 내용이 AI 제공사(Anthropic)로 전송됩니다.\n\n" +
@@ -91,7 +91,7 @@ object AiConsentStore {
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    /** 백그라운드 감지에서 AI 정밀 분석을 써도 되는지. 기본값은 꺼짐. */
+    /** 백그라운드 감지에서 AI 보조분석을 써도 되는지. 기본값은 꺼짐. */
     fun isEnabled(context: Context): Boolean =
         prefs(context).getBoolean(KEY_ENABLED, false)
 

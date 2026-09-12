@@ -145,7 +145,7 @@ internal fun InstitutionNotFound(title: String, onBack: () -> Unit) {
             SafeLinkCard {
                 Text(text = "기관 정보를 찾을 수 없어요", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = "도움받기 화면에서 기관을 다시 선택해 주세요.",
+                    text = "지원 기관 화면에서 기관을 다시 선택해 주세요.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

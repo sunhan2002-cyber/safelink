@@ -196,7 +196,7 @@ fun DetectionInputScreen(
                 )
             }
             SafeLinkPrimaryButton(
-                text = "위험 신호 확인하기",
+                text = "분석 시작하기",
                 enabled = canAnalyze,
                 onClick = {
                     // 스크린샷 모드면 Analyzing 화면에서 OCR 후 분석까지 수행한다

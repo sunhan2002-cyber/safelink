@@ -174,12 +174,12 @@ fun ResponseGuideScreen(
                     onClick = { navController.navigate(Screen.Emergency.route) }
                 )
                 GuideSecondaryLink(
-                    text = "추천 기관 목록 보기",
+                    text = "지원 기관 보기",
                     onClick = { navController.navigate(Screen.SupportMatch.createRoute(matchedRiskTypes)) }
                 )
             } else {
                 SafeLinkPrimaryButton(
-                    text = "추천 기관 목록 보기",
+                    text = "지원 기관 보기",
                     onClick = { navController.navigate(Screen.SupportMatch.createRoute(matchedRiskTypes)) }
                 )
             }

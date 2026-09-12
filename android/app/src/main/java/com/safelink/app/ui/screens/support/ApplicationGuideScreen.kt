@@ -39,14 +39,6 @@ import com.safelink.app.ui.theme.RiskSafe
 import com.safelink.app.ui.theme.SurfaceWhite
 import com.safelink.app.ui.theme.TextSecondary
 
-private val applicationSteps = listOf(
-    "상담 예약하기 — 대표번호에 전화하여 상담을 예약합니다",
-    "필요 서류 준비하기 — 아래 서류 목록을 확인하세요",
-    "방문 또는 전화 상담 진행",
-    "지원 결정 및 후속 절차 안내 받기"
-)
-
-private val requiredDocuments = listOf("신분증", "피해 관련 증거 자료 (문자 캡처 등)", "관련 계좌 거래 내역")
 
 /** 신청 절차 안내 (Figma 20:1332) — 단계 타임라인 + 완료 체크 (Task 5.5) */
 @Composable
@@ -58,6 +50,8 @@ fun ApplicationGuideScreen(navController: NavHostController, institutionId: Stri
         InstitutionNotFound(title = "신청 절차 안내", onBack = { navController.popBackStack() })
         return
     }
+    // 절차·서류는 기관마다 다르다 — 예전에는 모든 기관에 같은 4단계와 같은 서류가 나왔다.
+    val guide = remember(institution.id) { ApplicationGuideContent.forInstitution(institution.id) }
     val completed = remember { mutableStateListOf<Int>() } // 세션 내 유지 (Task 5.5)
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -73,7 +67,7 @@ fun ApplicationGuideScreen(navController: NavHostController, institutionId: Stri
             SafeLinkCard {
                 Text(text = institution.name, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = "${completed.size}단계 / ${applicationSteps.size}단계 완료",
+                    text = "${completed.size}단계 / ${guide.steps.size}단계 완료",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -82,7 +76,7 @@ fun ApplicationGuideScreen(navController: NavHostController, institutionId: Stri
             // 수직 타임라인 — 단계마다 따로 카드로 감싸던 것을 하나의 카드 안에 구분선으로
             // 나누는 패턴(기록 화면과 동일)으로 정리해 "카드 남용"을 줄임
             SafeLinkCard {
-                applicationSteps.forEachIndexed { index, step ->
+                guide.steps.forEachIndexed { index, step ->
                     val isDone = index in completed
                     val isCurrent = !isDone && index == (completed.maxOrNull()?.plus(1) ?: 0)
                     if (index != 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -134,7 +128,7 @@ fun ApplicationGuideScreen(navController: NavHostController, institutionId: Stri
             SafeLinkCard {
                 Text(text = "필요한 서류", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.size(8.dp))
-                requiredDocuments.forEach { doc ->
+                guide.documents.forEach { doc ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(vertical = 6.dp)
@@ -152,7 +146,7 @@ fun ApplicationGuideScreen(navController: NavHostController, institutionId: Stri
             }
 
             Text(
-                text = "천천히 따라 하시면 됩니다. 막히는 단계가 있다면 기관에 직접 문의하세요.",
+                text = "절차와 서류는 사건 유형·지역에 따라 다를 수 있어요. 방문 전에 기관에 전화로 먼저 확인하세요.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

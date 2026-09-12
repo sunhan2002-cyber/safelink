@@ -92,7 +92,7 @@ fun SupportMatchScreen(navController: NavHostController, matchedRiskTypes: List<
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        SafeLinkTopBar(title = "도움받기")
+        SafeLinkTopBar(title = "지원 기관")
 
         Column(
             modifier = Modifier
@@ -115,12 +115,12 @@ fun SupportMatchScreen(navController: NavHostController, matchedRiskTypes: List<
             }
 
             if (urgent.isNotEmpty()) {
-                Text(text = "즉시 대응기관", style = MaterialTheme.typography.titleMedium)
+                Text(text = "즉시 대응 기관", style = MaterialTheme.typography.titleMedium)
                 urgent.forEach { InstitutionRow(it, navController, recommended = it.id in recommendedRank) }
             }
 
             if (others.isNotEmpty()) {
-                Text(text = "추가 지원기관", style = MaterialTheme.typography.titleMedium)
+                Text(text = "추가 지원 기관", style = MaterialTheme.typography.titleMedium)
                 others.forEach { InstitutionRow(it, navController, recommended = it.id in recommendedRank) }
             }
 
@@ -135,7 +135,12 @@ fun SupportMatchScreen(navController: NavHostController, matchedRiskTypes: List<
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "\"의심되는 연락을 받았고, 이미 송금했는지 확인이 필요해요.\"",
+                    text = "\"의심스러운 연락을 받았는데, 사기가 맞는지 확인하고 싶어요.\"",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "\"이미 송금했습니다. 지급정지를 신청하고 싶어요.\"",
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
