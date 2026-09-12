@@ -199,7 +199,10 @@ fun HomeScreen(
                     .fillMaxWidth()
                     .padding(vertical = 10.dp)
             ) {
-                Column(modifier = Modifier.fillMaxWidth(0.78f)) {
+                // 0.78 은 우상단 배지(76dp)가 차지하는 폭과 거의 정확히 맞물려서 사이 여백이 0 이었다.
+                // "탭해서 실시간 보호를 켜세요"처럼 한 줄로 꽉 차는 문구에서 글자가 배지에 닿아 보였다.
+                // 배지 폭에 여유를 더 줘서, 긴 문구는 두 줄로 접히고 배지와 사이가 벌어지게 한다.
+                Column(modifier = Modifier.fillMaxWidth(0.70f)) {
                     Text(
                         text = when {
                             snapshot != null -> "위험 신호 감지됨"
@@ -223,7 +226,9 @@ fun HomeScreen(
                     Text(
                         text = when {
                             snapshot != null -> "최근 감지된 표현이 있어요 · ${snapshot!!.category}"
-                            protectionOff -> "탭해서 실시간 보호를 켜세요"
+                            // 한글은 기본적으로 글자 단위로 줄이 넘어가서 "켜 / 세요"처럼 단어가 쪼개진다.
+                            // 다른 상태 문구와 같은 두 줄 리듬이 되도록 끊는 자리를 직접 정한다.
+                            protectionOff -> "탭해서 실시간\n보호를 켜세요"
                             else -> homeStatusHeadline(statusLevel)
                         },
                         style = MaterialTheme.typography.headlineSmall,
