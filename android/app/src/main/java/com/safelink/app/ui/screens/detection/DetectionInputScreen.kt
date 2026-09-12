@@ -111,7 +111,7 @@ fun DetectionInputScreen(
         // 안에서 별도 Text로 추가.
         SafeLinkTopBar(title = "무엇을 확인할까요?", onBack = { navController.popBackStack() })
         Text(
-            text = "받은 내용을 그대로 넣어도 괜찮아요. 전화번호와 링크는 서버로 보내기 전 자동으로 가려집니다.",
+            text = "받은 내용을 그대로 넣어도 괜찮아요. 분석은 기기 안에서 끝나고, AI 보조분석을 쓸 때만 전화번호·링크를 가린 내용이 전송됩니다.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)

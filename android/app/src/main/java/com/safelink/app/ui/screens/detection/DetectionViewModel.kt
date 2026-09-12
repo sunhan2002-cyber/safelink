@@ -19,6 +19,7 @@ import com.safelink.app.data.ocr.OcrService
 import com.safelink.app.data.local.RecordSource
 import com.safelink.app.data.repository.DetectionRepository
 import com.safelink.app.data.repository.RecordRepository
+import com.safelink.app.settings.AiConsentStore
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -281,7 +282,10 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         // 2차 AI 보조 분석: 조건 충족 시 비동기로 호출해 결과를 한 번 더 갱신(신기훈).
         // 네트워크 실패 시 escalateToAI 가 온디바이스 결과를 그대로 반환하므로 결과가 나빠지는 경우는 없음.
         // ⚠️ 한계: 단일 입력 구조라 recentTurns=[originalText] 고정 (07번 문서 "recentTurns 한계" 참고).
-        val shouldEscalate = repository.shouldEscalateToAI(onDeviceResult)
+        // 자동 호출은 사용자가 동의한 경우에만 한다 — 예전에는 회색지대 점수면 안내 없이 전송됐다.
+        // 동의 전이라도 결과 화면의 "AI 보조분석 요청"으로 한 건씩 직접 받을 수 있다([requestManualAi]).
+        val shouldEscalate = repository.shouldEscalateToAI(onDeviceResult) &&
+            AiConsentStore.isManualEnabled(getApplication())
         isEscalatingToAI = shouldEscalate
 
         // 링크 안전성 검사 — 기기 안의 차단 목록과 대조해 대개 금방 끝난다. 위험한 링크가 있으면 판정이 긴급으로

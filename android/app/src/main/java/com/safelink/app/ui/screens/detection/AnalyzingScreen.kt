@@ -44,7 +44,12 @@ import com.safelink.app.ui.theme.RiskSafe
  *  - 고정 딜레이 대신 최소 표시 시간(ANIM_MS)만 두어 진행 상황을 사용자가 인지하게 함.
  *  - TODO: 서버 연동(비동기) 시 진행률을 실제 응답 상태에 연동 (Task 6.11).
  */
-private const val ANIM_MS = 1800
+/**
+ * 진행률 애니메이션 길이 = 결과 화면으로 넘어가기까지의 최소 대기 시간.
+ * 온디바이스 분석은 대개 이보다 훨씬 빨리 끝나므로, 예전 값(1.8초)은 사실상 일부러 기다리는 시간이었다.
+ * 분석이 진행 중이라는 걸 알아볼 수 있는 최소한만 남긴다.
+ */
+private const val ANIM_MS = 900
 
 @Composable
 fun AnalyzingScreen(

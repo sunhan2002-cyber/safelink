@@ -54,9 +54,10 @@ abstract class SafeLinkDatabase : RoomDatabase() {
                 SafeLinkDatabase::class.java,
                 "safelink.db"
             )
-                // 개발 중 스키마 변경 시 기록을 유지할 필요가 없어 재생성으로 둔다.
+                // 스키마를 바꿀 때는 반드시 위처럼 마이그레이션을 추가한다.
+                // 예전에는 fallbackToDestructiveMigration() 이 붙어 있어, 마이그레이션을 빠뜨리면
+                // 사용자의 검사 기록이 조용히 전부 지워졌다(복구 불가). 지금은 그런 경우 개발 중에 바로 드러난다.
                 .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
-                .fallbackToDestructiveMigration()
                 .build()
                 .also { instance = it }
         }

@@ -12,6 +12,7 @@ import com.safelink.app.data.model.raw.InstitutionPriorityEntry
 import com.safelink.app.data.model.raw.KeywordData
 import com.safelink.app.data.model.raw.KeywordEntry
 import com.safelink.app.data.remote.dto.AnalyzeResponseDto
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.min
 
 /**
@@ -36,6 +37,16 @@ class DetectionEngine(
     private val keywordAdditions = institutionData.keywordAdditions(gson)
     private val institutionsById = institutionData.institutions.associateBy { it.id }
     private val riskTypePriority: Map<String, List<InstitutionPriorityEntry>> = institutionData.riskTypePriority
+
+    /**
+     * 컴파일해 둔 정규식.
+     * 예전에는 분석할 때마다 keyword.json 패턴과 콤보 규칙 패턴을 Regex 로 새로 컴파일했다.
+     * 백그라운드 감지는 화면이 바뀔 때마다 분석하므로 같은 패턴을 반복 컴파일하는 비용이 그대로 쌓인다.
+     * 엔진은 프로세스에서 하나만 쓰고 여러 스레드에서 부를 수 있어 ConcurrentHashMap 으로 둔다.
+     */
+    private val compiledPatterns = ConcurrentHashMap<String, Regex>()
+
+    private fun regexOf(pattern: String): Regex = compiledPatterns.getOrPut(pattern) { Regex(pattern) }
 
     private enum class DirectRuleKind { SENTENCE, SITUATION }
 
@@ -199,8 +210,8 @@ class DetectionEngine(
         val phonePattern = keywordData.keywords.first { it.id == "VP-1-3-003" }.pattern!!
         val urlPattern = keywordData.keywords.first { it.id == "VP-1-6-004" }.pattern!!
         return text
-            .replace(Regex(phonePattern), "[전화번호]")
-            .replace(Regex(urlPattern), "[링크]")
+            .replace(regexOf(phonePattern), "[전화번호]")
+            .replace(regexOf(urlPattern), "[링크]")
     }
 
     /** 여러 턴(대화)을 이어서 분석. 콤보 판정 등 세션 단위 로직 검증에 사용. */
@@ -297,7 +308,7 @@ class DetectionEngine(
                 }
                 "regex-simple" -> {
                     val pattern = entry.pattern ?: continue
-                    Regex(pattern).findAll(turnText).forEach { m ->
+                    regexOf(pattern).findAll(turnText).forEach { m ->
                         matches += RawMatch(
                             entry = entry,
                             turnIndex = turnIndex,
@@ -312,7 +323,7 @@ class DetectionEngine(
                     // 조건에 넣어야 하는 패턴 - 예: "100만원만요"는 소액한정 요구(SMALL_ASK)
                     // 신호지만 "1000만원만요"는 오히려 큰 금액이라 같은 신호로 볼 수 없음.
                     val pattern = entry.pattern ?: continue
-                    Regex(pattern).findAll(turnText).forEach { m ->
+                    regexOf(pattern).findAll(turnText).forEach { m ->
                         val numberGroup = m.groups[entry.numericCaptureGroup]?.value?.toIntOrNull()
                         val inRange = numberGroup != null &&
                             (entry.numericMin == null || numberGroup >= entry.numericMin) &&
@@ -492,7 +503,7 @@ class DetectionEngine(
         keywordData.comboBonusRules
             .filter { it.type == "numeric_ratio_pattern" && it.pattern != null && it.minGrowthRatePercent != null }
             .forEach { rule ->
-                val match = Regex(rule.pattern!!).find(originalText)
+                val match = regexOf(rule.pattern!!).find(originalText)
                 val before = match?.groups?.get(1)?.value?.toDoubleOrNull()
                 val after = match?.groups?.get(2)?.value?.toDoubleOrNull()
                 if (before != null && after != null && before > 0) {

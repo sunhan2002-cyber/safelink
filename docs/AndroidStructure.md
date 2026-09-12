@@ -53,6 +53,10 @@ com.safelink.app
 
 **원칙**
 - 단일 Activity + Navigation Compose. 화면당 하나의 `@Composable` Screen 함수.
+- **DI 현황(2026-09 기준)**: Hilt 는 Application/Activity 진입점에만 적용돼 있고, 저장소는 아직
+  화면·서비스에서 직접 생성한다(`DetectionRepository(context)`). 대신 비용이 큰 규칙 엔진과
+  기관 목록은 프로세스에서 한 번만 만들어 공유한다(`DetectionRepository.sharedEngine`,
+  `InstitutionCatalog`). 모듈을 만들어 주입으로 바꾸는 건 남은 과제.
 - 화면 패키지 안에 Screen과 ViewModel을 함께 둔다 (대회 규모에서 layer별 분리보다 추적이 쉬움).
 - domain 계층은 생략 — 위험도 산출 등 로직은 ViewModel/Repository에 둔다 (Design.md 계층 그대로).
 

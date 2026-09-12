@@ -22,6 +22,8 @@ object AiConsentStore {
     private const val PREFS = "safelink_settings"
     private const val KEY_ENABLED = "ai_background_consent"
     private const val KEY_AGREED_AT = "ai_background_consent_at"
+    private const val KEY_MANUAL_ENABLED = "ai_manual_consent"
+    private const val KEY_MANUAL_AGREED_AT = "ai_manual_consent_at"
 
     /**
      * 동의 화면에 그대로 띄우는 문구.
@@ -48,6 +50,41 @@ object AiConsentStore {
             "· 분석 외의 목적으로는 일절 사용하지 않습니다\n" +
             "· AI 제공사(Anthropic)는 이 내용을 모델 학습에 사용하지 않으며, 오·남용 확인 목적으로 일정 기간 보관될 수 있습니다\n\n" +
             "끄면 지금처럼 기기 안에서만 판단합니다."
+
+    /**
+     * 직접 분석(대화 붙여넣기·스크린샷)에서 판단이 애매할 때 AI 를 자동으로 부를지에 대한 동의.
+     *
+     * 직접 분석은 사용자가 "이걸 검사한다"는 건 알지만, 그 내용이 **외부로 나간다**는 것까지 아는 건
+     * 아니다. 예전에는 회색지대 점수(20~40, 55~70)에 걸리면 아무 안내 없이 자동으로 전송됐다.
+     * 지금은 동의하기 전까지 자동 호출을 하지 않고, 결과 화면의 "AI 보조분석 요청"으로 한 건씩만 받는다
+     * (그 버튼에는 무엇이 전송되는지 문구가 붙어 있다).
+     */
+    const val MANUAL_CONSENT_TITLE = "직접 분석에도 AI 보조분석을 쓸까요?"
+
+    const val MANUAL_CONSENT_BODY =
+        "켜면 기기 안에서 판단하기 애매한 경우에 한해, 분석한 대화 내용이 AI 제공사(Anthropic)로 자동 전송됩니다.\n\n" +
+            "전화번호와 링크는 가려서 보내지만, 대화 본문은 그대로 전송됩니다.\n\n" +
+            "· 전송된 대화 내용을 SafeLink가 따로 수집하거나 보관하지 않습니다\n" +
+            "· AI 제공사는 이 내용을 모델 학습에 사용하지 않으며, 오·남용 확인 목적으로 일정 기간 보관될 수 있습니다\n\n" +
+            "끄면 기기 안에서만 판단하고, 필요할 때 결과 화면에서 직접 요청할 수 있습니다."
+
+    /** 직접 분석에서 AI 를 자동으로 불러도 되는지. 기본값은 꺼짐. */
+    fun isManualEnabled(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_MANUAL_ENABLED, false)
+
+    fun agreeManual(context: Context) {
+        prefs(context).edit()
+            .putBoolean(KEY_MANUAL_ENABLED, true)
+            .putLong(KEY_MANUAL_AGREED_AT, System.currentTimeMillis())
+            .apply()
+    }
+
+    fun revokeManual(context: Context) {
+        prefs(context).edit()
+            .putBoolean(KEY_MANUAL_ENABLED, false)
+            .remove(KEY_MANUAL_AGREED_AT)
+            .apply()
+    }
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

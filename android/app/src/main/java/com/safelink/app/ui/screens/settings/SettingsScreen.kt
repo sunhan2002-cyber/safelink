@@ -103,6 +103,9 @@ fun SettingsScreen(navController: NavHostController) {
     // 백그라운드 AI 정밀 분석 동의 — 기본 꺼짐, 켤 때 무엇이 전송되는지 보여주고 동의를 받는다
     var aiConsent by remember { mutableStateOf(AiConsentStore.isEnabled(context)) }
     var showAiConsentDialog by remember { mutableStateOf(false) }
+    // 직접 분석(붙여넣기·스크린샷)에서 AI 를 자동으로 부를지 — 기본 꺼짐, 켤 때 동의를 받는다
+    var manualAiConsent by remember { mutableStateOf(AiConsentStore.isManualEnabled(context)) }
+    var showManualAiDialog by remember { mutableStateOf(false) }
 
     DisposableEffect(context, lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -269,6 +272,24 @@ fun SettingsScreen(navController: NavHostController) {
         )
     }
 
+    if (showManualAiDialog) {
+        AlertDialog(
+            onDismissRequest = { showManualAiDialog = false },
+            title = { Text(AiConsentStore.MANUAL_CONSENT_TITLE) },
+            text = { Text(AiConsentStore.MANUAL_CONSENT_BODY) },
+            confirmButton = {
+                TextButton(onClick = {
+                    AiConsentStore.agreeManual(context)
+                    manualAiConsent = true
+                    showManualAiDialog = false
+                }) { Text("동의하고 사용") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showManualAiDialog = false }) { Text("사용 안 함") }
+            }
+        )
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         SafeLinkTopBar(title = "설정")
 
@@ -427,6 +448,19 @@ fun SettingsScreen(navController: NavHostController) {
                         }
                     }
                 )
+                ToggleRow(
+                    label = "직접 분석 AI 보조분석",
+                    caption = "켜면 붙여넣은 대화도 판단이 애매할 때 AI 제공사(Anthropic)로 전송됩니다. 꺼도 결과 화면에서 직접 요청할 수 있어요.",
+                    checked = manualAiConsent,
+                    onChange = { on ->
+                        if (on) {
+                            showManualAiDialog = true
+                        } else {
+                            AiConsentStore.revokeManual(context)
+                            manualAiConsent = false
+                        }
+                    }
+                )
                 LinkRow(
                     label = "감지 기능 안내",
                     caption = "스크린샷 분석, 감지 후 이동 기준, 접근성 흐름을 확인할 수 있어요"
@@ -446,7 +480,12 @@ fun SettingsScreen(navController: NavHostController) {
                         .clickable { showDeleteDialog = true }
                         .padding(vertical = 12.dp)
                 )
-                LinkRow(label = "개인정보 처리방침") { /* TODO */ }
+                LinkRow(
+                    label = "개인정보 처리방침",
+                    caption = "무엇이 기기에만 남고 무엇이 전송되는지 정리했어요"
+                ) {
+                    navController.navigate(Screen.PrivacyPolicy.route)
+                }
             }
 
             if (showNotifTextDialog) {

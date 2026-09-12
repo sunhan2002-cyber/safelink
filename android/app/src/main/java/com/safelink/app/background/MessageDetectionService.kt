@@ -84,6 +84,9 @@ class MessageDetectionService : AccessibilityService() {
     /** 직전에 알림을 띄운 건 — 앱과 매칭된 키워드 id 집합 */
     private var lastAlertPkg: String? = null
     private var lastAlertKeywords: Set<String>? = null
+
+    /** 직전 알림에서 실제로 걸린 문구들 — 같은 키워드라도 문구가 다르면 새 메시지로 본다 */
+    private var lastAlertPhrases: Set<String>? = null
     private var lastAlertAt: Long = 0L
     /** 직전 알림이 발생한 창(화면) id — 화면이 바뀌면 새 확인 행동으로 본다 */
     private var lastAlertWindowId: Int = -1
@@ -129,6 +132,19 @@ class MessageDetectionService : AccessibilityService() {
         lastText = text
         lastAnalyzedAt = now
 
+        // 화면 텍스트를 읽는 것까지는 접근성 콜백(메인 스레드)에서 해야 하지만, 분석부터는 넘긴다.
+        // 키워드 234개를 최대 5,000자에 대조하는 작업을 메인 스레드에서 돌리면 화면 전환마다
+        // 사용자 조작이 잠깐씩 멈추고, 느린 기기에서는 ANR 로 이어진다.
+        serviceScope.launch { analyzeText(text, pkg, windowId, now) }
+    }
+
+    /**
+     * 실제 분석과 알림·기록 처리. 백그라운드 스코프에서만 호출한다.
+     *
+     * 중복 억제용 상태(lastAlert*)도 이 함수 안에서만 건드린다 — 한 곳에서만 바뀌도록 모아 두면
+     * 이벤트가 겹쳐도 최악의 경우가 "알림이 한 번 더 뜬다" 수준에 머문다.
+     */
+    private suspend fun analyzeText(text: String, pkg: String, windowId: Int, now: Long) {
         // 기존 온디바이스 엔진 재사용 — 실제 감지/분석은 여기서 일어난다
         val result = repository.analyze(text)
 
@@ -140,6 +156,7 @@ class MessageDetectionService : AccessibilityService() {
 
             lastAlertPkg = pkg
             lastAlertKeywords = keywordsOf(result)
+            lastAlertPhrases = phrasesOf(result)
             lastAlertAt = now
             lastAlertWindowId = windowId
 
@@ -150,7 +167,7 @@ class MessageDetectionService : AccessibilityService() {
             //
             // 기록을 먼저 저장하고 그 id 로 알림을 띄운다 — 알림을 누르면 이 기록의 분석 결과 화면이 열리게 하기
             // 위해서다. 기기 내 DB 한 줄 쓰기라 알림이 체감될 만큼 늦어지지 않는다. 저장에 실패해도 알림은 띄운다.
-            serviceScope.launch {
+            run {
                 val recordId = runCatching { recordRepository.saveDetection(result, RecordSource.BACKGROUND) }.getOrNull()
                 notifier.notifyRisk(
                     result.riskLevel,
@@ -300,6 +317,10 @@ class MessageDetectionService : AccessibilityService() {
     private fun keywordsOf(result: DetectionResult): Set<String> =
         result.matchedKeywords.mapTo(mutableSetOf()) { it.keywordId }
 
+    /** 실제로 걸린 문구들 — 키워드는 같아도 문구가 다르면 다른 메시지다 */
+    private fun phrasesOf(result: DetectionResult): Set<String> =
+        result.matchedKeywords.mapTo(mutableSetOf()) { it.matchedText }
+
     /**
      * 같은 사건인지 판정.
      *
@@ -308,8 +329,12 @@ class MessageDetectionService : AccessibilityService() {
      * 알림이 두 번 뜬다. 한쪽이 다른 쪽을 포함하기만 하면 같은 화면을 보고 있는 것이므로
      * 같은 사건으로 취급한다.
      */
-    private fun isSameEvent(pkg: String, keywords: Set<String>): Boolean {
+    private fun isSameEvent(pkg: String, keywords: Set<String>, phrases: Set<String>): Boolean {
         if (pkg != lastAlertPkg) return false
+        // 키워드가 같아도 새로 걸린 문구가 있으면 다른 메시지다 — 예전에는 같은 대화방에서 같은 유형의
+        // 새 사기 문자가 와도 30분 동안 알림이 뜨지 않았다.
+        val lastPhrases = lastAlertPhrases ?: return false
+        if (!lastPhrases.containsAll(phrases)) return false
         val last = lastAlertKeywords ?: return false
         if (keywords.isEmpty() || last.isEmpty()) return keywords == last
         return keywords.containsAll(last) || last.containsAll(keywords)
@@ -331,7 +356,7 @@ class MessageDetectionService : AccessibilityService() {
         windowId: Int,
         now: Long
     ): Boolean {
-        if (!isSameEvent(pkg, keywordsOf(result))) return false
+        if (!isSameEvent(pkg, keywordsOf(result), phrasesOf(result))) return false
         val elapsed = now - lastAlertAt
         return if (windowId == lastAlertWindowId) {
             elapsed < SAME_SCREEN_MUTE_MS
@@ -402,6 +427,7 @@ class MessageDetectionService : AccessibilityService() {
         lastAnalyzedAt = 0L
         lastAlertPkg = null
         lastAlertKeywords = null
+        lastAlertPhrases = null
         lastAlertAt = 0L
         lastAlertWindowId = -1
     }
