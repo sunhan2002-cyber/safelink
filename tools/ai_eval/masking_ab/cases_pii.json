@@ -1,0 +1,267 @@
+[
+  {
+    "id": "PII-VP-01",
+    "truth": "사기",
+    "text": "안녕하세요 서울중앙지검 김민수 수사관입니다\n귀하 명의 계좌가 대포통장으로 사용되어 조사가 필요합니다\n지금 010-3456-7890 으로 바로 전화 주세요",
+    "score": 52,
+    "category": "보이스피싱",
+    "matched_ids": [
+      "VP-1-1-010",
+      "VP-1-1-009",
+      "VP-1-2-006",
+      "VP-1-3-003"
+    ],
+    "combo_ids": [
+      "COMBO-GENERAL-3CAT"
+    ],
+    "should_escalate": false,
+    "masked_current": [
+      "안녕하세요 서울중앙지검 김민수 수사관입니다",
+      "귀하 명의 계좌가 대포통장으로 사용되어 조사가 필요합니다",
+      "지금 [전화번호] 으로 바로 전화 주세요"
+    ],
+    "masked_extended": [
+      "안녕하세요 서울중앙지검 김민수 수사관입니다",
+      "귀하 명의 계좌가 대포통장으로 사용되어 조사가 필요합니다",
+      "지금 [전화번호] 으로 바로 전화 주세요"
+    ]
+  },
+  {
+    "id": "PII-VP-02",
+    "truth": "사기",
+    "text": "금융감독원입니다. 계좌 안전조치가 필요합니다\n국민은행 123456-78-901234 로 3,000,000원을 이체해 두시면 조사 후 반환됩니다\n오늘 안에 처리하지 않으면 계좌가 동결됩니다",
+    "score": 80,
+    "category": "보이스피싱",
+    "matched_ids": [
+      "VP-1-1-005",
+      "VP-1-1-010",
+      "VP-1-4-003",
+      "VP-1-2-008"
+    ],
+    "combo_ids": [
+      "COMBO-GENERAL-3CAT",
+      "COMBO-VP-AUTHORITY-ISOLATION"
+    ],
+    "should_escalate": false,
+    "masked_current": [
+      "금융감독원입니다. 계좌 안전조치가 필요합니다",
+      "국민은행 123456-78-901234 로 3,000,000원을 이체해 두시면 조사 후 반환됩니다",
+      "오늘 안에 처리하지 않으면 계좌가 동결됩니다"
+    ],
+    "masked_extended": [
+      "금융감독원입니다. 계좌 안전조치가 필요합니다",
+      "국민은행 [계좌번호] 로 3,000,000원을 이체해 두시면 조사 후 반환됩니다",
+      "오늘 안에 처리하지 않으면 계좌가 동결됩니다"
+    ]
+  },
+  {
+    "id": "PII-SMS-01",
+    "truth": "사기",
+    "text": "[Web발신] 택배 주소 불일치로 반송 예정입니다\nbit.ly/kr-delivery 에서 주소를 다시 입력해 주세요",
+    "score": 0,
+    "category": "",
+    "matched_ids": [],
+    "combo_ids": [],
+    "should_escalate": false,
+    "masked_current": [
+      "[Web발신] 택배 주소 불일치로 반송 예정입니다",
+      "bit.ly/kr-delivery 에서 주소를 다시 입력해 주세요"
+    ],
+    "masked_extended": [
+      "[Web발신] 택배 주소 불일치로 반송 예정입니다",
+      "[링크: bit.ly] 에서 주소를 다시 입력해 주세요"
+    ]
+  },
+  {
+    "id": "PII-SMS-02",
+    "truth": "사기",
+    "text": "부고를 전합니다. 아버님께서 별세하셨습니다\n장례식장 안내 www.funeral-notice.top/view 확인 부탁드립니다",
+    "score": 0,
+    "category": "",
+    "matched_ids": [],
+    "combo_ids": [],
+    "should_escalate": false,
+    "masked_current": [
+      "부고를 전합니다. 아버님께서 별세하셨습니다",
+      "장례식장 안내 www.funeral-notice.top/view 확인 부탁드립니다"
+    ],
+    "masked_extended": [
+      "부고를 전합니다. 아버님께서 별세하셨습니다",
+      "장례식장 안내 [링크: funeral-notice.top] 확인 부탁드립니다"
+    ]
+  },
+  {
+    "id": "PII-SMS-03",
+    "truth": "사기",
+    "text": "고객님 카드가 해외에서 결제되었습니다\n본인이 아니면 hxxp://kb-secure[.]com/check 로 접속해 카드번호 1234-5678-9012-3456 을 확인하세요",
+    "score": 0,
+    "category": "보이스피싱",
+    "matched_ids": [
+      "VP-1-3-003"
+    ],
+    "combo_ids": [],
+    "should_escalate": false,
+    "masked_current": [
+      "고객님 카드가 해외에서 결제되었습니다",
+      "본인이 아니면 hxxp://kb-secure[.]com/check 로 접속해 카드번호 1[전화번호]-3456 을 확인하세요"
+    ],
+    "masked_extended": [
+      "고객님 카드가 해외에서 결제되었습니다",
+      "본인이 아니면 [링크: kb-secure.com] 로 접속해 카드번호 [카드번호] 을 확인하세요"
+    ]
+  },
+  {
+    "id": "PII-RS-01",
+    "truth": "사기",
+    "text": "자기야 나 지금 해외 파병 중인데 통관비가 급하게 필요해\n우리 결혼하면 다 갚을게. 신한 110-234-567890 으로 300만원만 보내줘\n아무한테도 말하지 말고 조용히 처리해줘",
+    "score": 68,
+    "category": "로맨스스캠",
+    "matched_ids": [
+      "RS-2-4-091",
+      "VP-1-3-003",
+      "RS-2-4-004",
+      "RS-2-9-003",
+      "TH-7-3-002"
+    ],
+    "combo_ids": [
+      "COMBO-RS-SMALL-LARGE-REQUEST"
+    ],
+    "should_escalate": true,
+    "masked_current": [
+      "자기야 나 지금 해외 파병 중인데 통관비가 급하게 필요해",
+      "우리 결혼하면 다 갚을게. 신한 [전화번호]90 으로 300만원만 보내줘",
+      "아무한테도 말하지 말고 조용히 처리해줘"
+    ],
+    "masked_extended": [
+      "자기야 나 지금 해외 파병 중인데 통관비가 급하게 필요해",
+      "우리 결혼하면 다 갚을게. 신한 [계좌번호] 으로 300만원만 보내줘",
+      "아무한테도 말하지 말고 조용히 처리해줘"
+    ]
+  },
+  {
+    "id": "PII-FM-01",
+    "truth": "사기",
+    "text": "엄마 나야 폰 액정이 깨져서 새 번호로 연락해\n01087654321 로 저장해줘. 지금 통화가 안 돼서 문자로만 돼\n급하게 결제할 게 있는데 200만원만 보내줄 수 있어?",
+    "score": 84,
+    "category": "가족사칭",
+    "matched_ids": [
+      "FM-4-1-001",
+      "FM-4-1-008",
+      "FM-4-2-001",
+      "RS-2-4-004",
+      "RS-2-9-003"
+    ],
+    "combo_ids": [
+      "COMBO-RS-SMALL-LARGE-REQUEST"
+    ],
+    "should_escalate": true,
+    "masked_current": [
+      "엄마 나야 폰 액정이 깨져서 새 번호로 연락해",
+      "01087654321 로 저장해줘. 지금 통화가 안 돼서 문자로만 돼",
+      "급하게 결제할 게 있는데 200만원만 보내줄 수 있어?"
+    ],
+    "masked_extended": [
+      "엄마 나야 폰 액정이 깨져서 새 번호로 연락해",
+      "[전화번호] 로 저장해줘. 지금 통화가 안 돼서 문자로만 돼",
+      "급하게 결제할 게 있는데 200만원만 보내줄 수 있어?"
+    ]
+  },
+  {
+    "id": "PII-LOAN-01",
+    "truth": "사기",
+    "text": "정부지원 저금리 대환대출 안내입니다\n심사를 위해 주민등록번호 앞뒤 990101-1234567 과 신분증 사진을 loan.help@fastmail.com 로 보내주세요",
+    "score": 15,
+    "category": "대출사기",
+    "matched_ids": [
+      "LN-6-1-003"
+    ],
+    "combo_ids": [],
+    "should_escalate": false,
+    "masked_current": [
+      "정부지원 저금리 대환대출 안내입니다",
+      "심사를 위해 주민등록번호 앞뒤 990101-1234567 과 신분증 사진을 loan.help@fastmail.com 로 보내주세요"
+    ],
+    "masked_extended": [
+      "정부지원 저금리 대환대출 안내입니다",
+      "심사를 위해 주민등록번호 앞뒤 [주민등록번호] 과 신분증 사진을 [이메일] 로 보내주세요"
+    ]
+  },
+  {
+    "id": "PII-NEG-01",
+    "truth": "일상",
+    "text": "내일 약속 시간 바뀌었어\n혹시 못 보면 010-2222-3333 으로 전화해줘",
+    "score": 0,
+    "category": "보이스피싱",
+    "matched_ids": [
+      "VP-1-3-003"
+    ],
+    "combo_ids": [],
+    "should_escalate": false,
+    "masked_current": [
+      "내일 약속 시간 바뀌었어",
+      "혹시 못 보면 [전화번호] 으로 전화해줘"
+    ],
+    "masked_extended": [
+      "내일 약속 시간 바뀌었어",
+      "혹시 못 보면 [전화번호] 으로 전화해줘"
+    ]
+  },
+  {
+    "id": "PII-NEG-02",
+    "truth": "일상",
+    "text": "이번 주 회의자료 공유드립니다\nhttps://docs.company.co.kr/meeting/2026-09 에서 확인 부탁드려요",
+    "score": 0,
+    "category": "보이스피싱",
+    "matched_ids": [
+      "VP-1-6-004"
+    ],
+    "combo_ids": [],
+    "should_escalate": false,
+    "masked_current": [
+      "이번 주 회의자료 공유드립니다",
+      "[링크] 에서 확인 부탁드려요"
+    ],
+    "masked_extended": [
+      "이번 주 회의자료 공유드립니다",
+      "[링크: docs.company.co.kr] 에서 확인 부탁드려요"
+    ]
+  },
+  {
+    "id": "PII-NEG-03",
+    "truth": "일상",
+    "text": "엄마 이번 달 용돈 보냈어\n농협 302-1234-5678-91 로 30만원 넣었으니까 확인해봐",
+    "score": 0,
+    "category": "보이스피싱",
+    "matched_ids": [
+      "VP-1-3-003"
+    ],
+    "combo_ids": [],
+    "should_escalate": false,
+    "masked_current": [
+      "엄마 이번 달 용돈 보냈어",
+      "농협 [전화번호]-91 로 30만원 넣었으니까 확인해봐"
+    ],
+    "masked_extended": [
+      "엄마 이번 달 용돈 보냈어",
+      "농협 [계좌번호]-91 로 30만원 넣었으니까 확인해봐"
+    ]
+  },
+  {
+    "id": "PII-NEG-04",
+    "truth": "일상",
+    "text": "지난번 문의하신 견적서는 hong.gildong@shop.co.kr 로 보내드렸습니다\n확인 후 회신 부탁드립니다",
+    "score": 0,
+    "category": "",
+    "matched_ids": [],
+    "combo_ids": [],
+    "should_escalate": false,
+    "masked_current": [
+      "지난번 문의하신 견적서는 hong.gildong@shop.co.kr 로 보내드렸습니다",
+      "확인 후 회신 부탁드립니다"
+    ],
+    "masked_extended": [
+      "지난번 문의하신 견적서는 [이메일] 로 보내드렸습니다",
+      "확인 후 회신 부탁드립니다"
+    ]
+  }
+]

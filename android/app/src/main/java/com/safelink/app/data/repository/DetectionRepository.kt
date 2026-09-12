@@ -5,6 +5,7 @@ import com.google.gson.Gson
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.model.raw.InstitutionData
 import com.safelink.app.data.model.raw.KeywordData
+import com.safelink.app.data.privacy.PrivacyMasker
 import com.safelink.app.data.remote.AnalyzeApiClient
 import com.safelink.app.data.remote.ClaudeDirectAnalyzer
 import com.safelink.app.data.remote.AnalyzeApiService
@@ -84,7 +85,8 @@ class DetectionRepository @Inject constructor(
 
     /**
      * [shouldEscalateToAI]가 true일 때 실제로 서버를 호출해서 온디바이스 결과를 보정한다.
-     * 원문은 [DetectionEngine.maskSensitiveInfo]로 전화번호/URL을 마스킹한 뒤에만 전송하고,
+     * 원문은 [PrivacyMasker]로 개인정보(전화번호·계좌번호·주민등록번호·카드번호·이메일·링크 경로)를
+     * 가린 뒤에만 전송하고,
      * 병합 규칙 자체는 [DetectionEngine.mergeAiResponse]에 있음(점수/riskLevel/추천기관/
      * AI 요약 문구 — 신기훈 4주차 07번 문서 "AI 응답 반영 범위" 참고). 이 함수는 네트워크
      * 호출과 성공/실패 분기만 책임진다.
@@ -112,8 +114,8 @@ class DetectionRepository @Inject constructor(
         recentTurns: List<String>
     ): DetectionResult {
         return try {
-            val maskedTurns = recentTurns.map { engine.maskSensitiveInfo(it) }
-            val maskedText = maskedTurns.lastOrNull() ?: engine.maskSensitiveInfo(result.originalText)
+            val maskedTurns = recentTurns.map { PrivacyMasker.mask(it) }
+            val maskedText = maskedTurns.lastOrNull() ?: PrivacyMasker.mask(result.originalText)
             val request = AnalyzeRequestDto(
                 sessionId = sessionId,
                 maskedText = maskedText,

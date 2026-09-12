@@ -52,13 +52,16 @@ import java.util.UUID
  * ※ 감지 대상 패키지([MONITORED_PACKAGES])와 "감지 후 어떤 화면으로 연결할지" 기준은
  *   기능확장 담당(김선한)과 협의해 확정한다. 라우팅 매핑은 [RiskNotifier.routeFor] 한 곳에 모아둠.
  *
- * ── 개인정보: 서버로 전송되지 않음 (7주차 확인) ─────────────────────────────
- *   백그라운드 감지 경로는 [DetectionRepository.analyze]만 호출하고
- *   [DetectionRepository.escalateToAI]는 호출하지 않는다 — 즉 이 경로로 읽은 화면 텍스트는
- *   네트워크로 나갈 방법 자체가 없다(마스킹 이전에 애초에 전송 경로가 없음).
+ * ── 개인정보: 기본은 기기 안, 동의한 경우에만 AI 전송 ─────────────────────
+ *   판정([DetectionRepository.analyze])은 항상 기기 안에서 끝난다. 여기서 읽은 화면 텍스트가
+ *   밖으로 나가는 경로는 **사용자가 설정에서 "백그라운드 AI 정밀 분석"에 동의한 경우** 하나뿐이며
+ *   ([AiConsentStore], [escalateToAiIfConsented]), 그때도 개인정보를 가린 사본만 보낸다
+ *   ([com.safelink.app.data.privacy.PrivacyMasker] — 전화번호·계좌번호·주민등록번호·카드번호·이메일·링크 경로).
+ *   동의 전에는 전송 자체가 일어나지 않는다.
+ *
  *   화면 표시용 [BackgroundDetectionState]에는 매칭된 짧은 구간(`matchedText`)만 메모리에 두고,
  *   경고 이상으로 알림이 뜬 건은 [RecordRepository]를 통해 기기 내 DB에 기록으로 남긴다
- *   (Task 7.1 — 기록 탭 재열람용. 서버 전송 없음, 설정에서 전체 삭제 가능).
+ *   (Task 7.1 — 기록 탭 재열람용. 설정에서 전체 삭제 가능).
  */
 class MessageDetectionService : AccessibilityService() {
 
