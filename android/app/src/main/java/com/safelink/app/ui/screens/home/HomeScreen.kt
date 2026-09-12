@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -35,6 +36,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
@@ -52,9 +56,15 @@ import androidx.compose.runtime.getValue
 import com.safelink.app.background.BackgroundDetectionState
 import com.safelink.app.ui.components.color
 import com.safelink.app.ui.components.containerColor
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.safelink.app.data.repository.RecordRepository
+import com.safelink.app.settings.BackgroundDetectionAccess
+import com.safelink.app.ui.components.BackgroundDetectionConsentDialog
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.screens.detection.DetectionViewModel
+import com.safelink.app.ui.theme.BackgroundGray
 import com.safelink.app.ui.theme.BrandBlueDark
 import com.safelink.app.ui.theme.SurfaceWhite
 import com.safelink.app.ui.theme.TextPrimary
@@ -82,6 +92,30 @@ fun HomeScreen(
     val todayScanCount by recordRepository.observeTodayManualCount().collectAsState(initial = 0)
     val recentRecords by recordRepository.observeRecords().collectAsState(initial = emptyList())
     val statusLevel = snapshot?.riskLevel ?: RiskLevel.SAFE
+
+    // 실시간 보호가 실제로 켜져 있는지는 접근성 권한으로만 알 수 있다.
+    // 예전에는 이 확인 없이 항상 "실시간 보호 중"이라고 표시해서, 권한을 켜지 않은 사용자에게도
+    // 앱이 보호하고 있다고 말했다. 설정에서 켜고 돌아오면 바로 반영되도록 화면이 다시 보일 때마다 확인한다.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var protectionOn by remember { mutableStateOf(BackgroundDetectionAccess.isEnabled(context)) }
+    var showBackgroundConsent by remember { mutableStateOf(false) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) protectionOn = BackgroundDetectionAccess.isEnabled(context)
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    if (showBackgroundConsent) {
+        BackgroundDetectionConsentDialog(
+            onDismiss = { showBackgroundConsent = false },
+            onGoToSettings = {
+                showBackgroundConsent = false
+                BackgroundDetectionAccess.openAccessibilitySettings(context)
+            }
+        )
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -105,7 +139,7 @@ fun HomeScreen(
         val pulse = rememberInfiniteTransition(label = "status-pulse")
         val pulseScale by pulse.animateFloat(
             initialValue = 1f,
-            targetValue = if (snapshot == null) 1.18f else 1f,
+            targetValue = if (snapshot == null && protectionOn) 1.18f else 1f,
             animationSpec = infiniteRepeatable(
                 animation = tween(1400, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Reverse
@@ -116,10 +150,18 @@ fun HomeScreen(
         // 9주차 - Figma "Concept B" B02(Protection Home) 구조로 재배치: 아이콘을 카드
         // 우상단 배지로, 상태 문구 아래에 "최근 위험 신호 N건" 통계 줄 추가. 펄스·색·클릭
         // 로직은 기존 그대로 유지 — 배치만 Figma 기준으로 바꿈.
+        // 카드가 말하는 상태는 세 가지다.
+        //  1) 위험 감지됨       — 탭하면 대응 가이드
+        //  2) 실시간 보호 중    — 접근성 권한이 켜져 있고 최근 감지가 없음
+        //  3) 실시간 보호 OFF   — 권한이 꺼져 있음. 탭하면 바로 켜러 갈 수 있다
+        val protectionOff = snapshot == null && !protectionOn
         SafeLinkCard(
-            containerColor = statusLevel.containerColor(),
+            containerColor = if (protectionOff) BackgroundGray else statusLevel.containerColor(),
             onClick = {
-                snapshot?.let { navController.navigate(Screen.ResponseGuide.createRoute(statusLevel)) }
+                when {
+                    snapshot != null -> navController.navigate(Screen.ResponseGuide.createRoute(statusLevel))
+                    protectionOff -> showBackgroundConsent = true
+                }
             }
         ) {
             // Figma 카드는 화면 세로 비율의 약 29%를 차지하는데 기존 구현은 12%밖에 안 돼
@@ -132,20 +174,31 @@ fun HomeScreen(
             ) {
                 Column(modifier = Modifier.fillMaxWidth(0.78f)) {
                     Text(
-                        text = if (snapshot == null) "실시간 보호 중" else "위험 신호 감지됨",
+                        text = when {
+                            snapshot != null -> "위험 신호 감지됨"
+                            protectionOn -> "실시간 보호 중"
+                            else -> "실시간 보호 OFF"
+                        },
                         style = MaterialTheme.typography.bodyLarge,
                         // Figma 픽셀 샘플링 결과 라벨 글자는 아이콘과 같은 밝은 그린(#16C79A)이
                         // 아니라 더 진한 그린(#078465 계열, BrandBlueDark에 가까움)이었음 —
                         // 옅은 민트 배경 위에서 대비를 확보하기 위한 톤 차이로 보임
-                        color = if (statusLevel == RiskLevel.SAFE) BrandBlueDark else statusLevel.color()
+                        color = when {
+                            protectionOff -> MaterialTheme.colorScheme.onSurfaceVariant
+                            statusLevel == RiskLevel.SAFE -> BrandBlueDark
+                            else -> statusLevel.color()
+                        }
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     // Figma B02: 짧은 상태 단어("안전함") 없이 이 문장 자체가 굵은 큰 헤드라인 —
                     // homeStatusTitle()의 짧은 단어와 이 설명 문장을 굳이 나눠 두 줄로 보여주던 걸
                     // Figma대로 한 줄(헤드라인)로 합침
                     Text(
-                        text = snapshot?.let { "최근 감지된 표현이 있어요 · ${it.category}" }
-                            ?: homeStatusHeadline(statusLevel),
+                        text = when {
+                            snapshot != null -> "최근 감지된 표현이 있어요 · ${snapshot!!.category}"
+                            protectionOff -> "탭해서 실시간 보호를 켜세요"
+                            else -> homeStatusHeadline(statusLevel)
+                        },
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
@@ -153,7 +206,11 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(18.dp))
                     Text(
                         // 이 값은 오늘 0시 이후 백그라운드 감지로 알림이 뜬 건수다(RecordRepository 참고)
-                        text = "오늘 위험 신호 ${todayAlertCount}건",
+                        text = if (protectionOff) {
+                            "지금은 직접 넣은 내용만 검사해요"
+                        } else {
+                            "오늘 위험 신호 ${todayAlertCount}건"
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -169,18 +226,29 @@ fun HomeScreen(
                         modifier = Modifier
                             .size(76.dp)
                             .scale(pulseScale)
-                            .background(statusLevel.color().copy(alpha = 0.18f), CircleShape)
+                            .background(
+                                if (protectionOff) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f)
+                                else statusLevel.color().copy(alpha = 0.18f),
+                                CircleShape
+                            )
                     )
                     // 아이콘 원형 배지 — Figma는 상태색 원 안에 흰색 아이콘(SAFE는 체크),
                     // 카드 대비 원 크기도 더 큼(사용자 확인 후 44dp -> 64dp로 확대)
                     Box(
                         modifier = Modifier
                             .size(64.dp)
-                            .background(statusLevel.color(), CircleShape),
+                            .background(
+                                if (protectionOff) MaterialTheme.colorScheme.onSurfaceVariant else statusLevel.color(),
+                                CircleShape
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = if (statusLevel == RiskLevel.SAFE) Icons.Filled.Check else Icons.Filled.Warning,
+                            imageVector = when {
+                                protectionOff -> Icons.Filled.Shield
+                                statusLevel == RiskLevel.SAFE -> Icons.Filled.Check
+                                else -> Icons.Filled.Warning
+                            },
                             contentDescription = null,
                             tint = SurfaceWhite,
                             modifier = Modifier.size(32.dp)
