@@ -334,7 +334,7 @@ private fun DetectionResultContent(
                 RecommendedInstitutionCard(sorted.first(), onClick = { onInstitutionClick(sorted.first().institutionId) })
                 if (sorted.size > 1) {
                     TextButton(onClick = onSupportClick, modifier = Modifier.fillMaxWidth()) {
-                        Text("추천 기관 전체 보기 (${sorted.size}곳) ›")
+                        Text("지원 기관 보기 (${sorted.size}곳) ›")
                     }
                 }
             } else if (result.riskLevel != RiskLevel.SAFE) {
@@ -387,7 +387,7 @@ private fun DetectionResultContent(
                         containerColor = result.riskLevel.color(),
                         onClick = onGuideClick
                     )
-                    ResultSecondaryLink(text = "추천 기관 전체 보기", onClick = onSupportClick)
+                    ResultSecondaryLink(text = "지원 기관 보기", onClick = onSupportClick)
                 }
                 RiskLevel.CRITICAL -> {
                     SafeLinkPrimaryButton(
@@ -396,7 +396,7 @@ private fun DetectionResultContent(
                         onClick = onEmergencyClick
                     )
                     ResultSecondaryLink(text = "대응 가이드 보기", onClick = onGuideClick)
-                    ResultSecondaryLink(text = "추천 기관 전체 보기", onClick = onSupportClick)
+                    ResultSecondaryLink(text = "지원 기관 보기", onClick = onSupportClick)
                 }
             }
         }

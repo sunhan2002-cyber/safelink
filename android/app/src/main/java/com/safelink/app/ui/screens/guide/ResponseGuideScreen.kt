@@ -174,12 +174,12 @@ fun ResponseGuideScreen(
                     onClick = { navController.navigate(Screen.Emergency.route) }
                 )
                 GuideSecondaryLink(
-                    text = "추천 기관 목록 보기",
+                    text = "지원 기관 보기",
                     onClick = { navController.navigate(Screen.SupportMatch.createRoute(matchedRiskTypes)) }
                 )
             } else {
                 SafeLinkPrimaryButton(
-                    text = "추천 기관 목록 보기",
+                    text = "지원 기관 보기",
                     onClick = { navController.navigate(Screen.SupportMatch.createRoute(matchedRiskTypes)) }
                 )
             }
@@ -252,7 +252,21 @@ private fun riskLevelExtraCheck(level: RiskLevel): String = when (level) {
     RiskLevel.CRITICAL -> "피해가 발생했거나 급박하면 즉시 112 또는 관련 기관에 도움을 요청하세요."
 }
 
+/**
+ * 감지된 앱 이름. 목록에 없으면 패키지명 대신 "다른 앱"으로 둔다 —
+ * 예전에는 카카오톡 외에는 "com.instagram.android" 같은 패키지명이 사용자 화면에 그대로 보였다.
+ * 감지 대상 목록은 MessageDetectionService.MONITORED_PACKAGES 와 같다.
+ */
 private fun sourceAppLabel(snapshot: BackgroundDetectionSnapshot): String = when (snapshot.sourceApp) {
     "com.kakao.talk" -> "카카오톡"
-    else -> snapshot.sourceApp
+    "com.samsung.android.messaging" -> "삼성 메시지"
+    "com.google.android.apps.messaging" -> "메시지"
+    "com.instagram.android" -> "인스타그램"
+    "com.discord" -> "디스코드"
+    "org.telegram.messenger" -> "텔레그램"
+    "com.nhn.android.band" -> "네이버 밴드"
+    "jp.naver.line.android" -> "라인"
+    "com.facebook.orca" -> "페이스북 메신저"
+    "com.tencent.mm" -> "위챗"
+    else -> "다른 앱"
 }

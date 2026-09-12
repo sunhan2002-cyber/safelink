@@ -67,7 +67,7 @@ fun SplashScreen(navController: NavHostController) {
         // 온보딩은 최초 1회만 - 이미 봤으면 기존 그대로 잠금/홈으로 (사용자 요청)
         val destination = when {
             !OnboardingManager.hasCompleted(context) -> Screen.Onboarding.route
-            AppLockManager.isEnabled(context) -> Screen.Lock.route
+            AppLockManager.isEnabled(context) && !AppLockManager.isUnlockedInProcess -> Screen.Lock.route
             else -> Screen.Home.route
         }
         navController.navigate(destination) {

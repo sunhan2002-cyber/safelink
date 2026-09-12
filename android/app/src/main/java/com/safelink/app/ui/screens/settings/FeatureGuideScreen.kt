@@ -47,18 +47,18 @@ fun FeatureGuideScreen(navController: NavHostController) {
             SafeLinkCard {
                 SectionTitle("백그라운드 감지 흐름")
                 BodyText("백그라운드 감지는 사용자가 접근성 권한을 직접 허용한 뒤에만 동작합니다.")
-                BodyText("감지된 텍스트는 앱의 분석 기준으로 점검되고, 위험도가 높으면 알림으로 대응 가이드 또는 긴급 화면으로 이어집니다.")
+                BodyText("감지된 텍스트는 기기 안에서 점검되고, 경고 이상이면 알림을 보냅니다.")
             }
 
             SafeLinkCard {
-                SectionTitle("감지 후 이동 기준")
-                BodyText("현재 팀 기준은 위험도가 CRITICAL이면 긴급 화면으로, 그 외 WARNING 이상이면 대응 가이드 화면으로 이동하는 것입니다.")
-                BodyText("즉시 신고가 필요한 경우에는 긴급 화면, 우선 행동 요령 확인이 필요한 경우에는 대응 가이드 화면을 먼저 보여줍니다.")
+                SectionTitle("알림을 누르면")
+                BodyText("그 감지가 저장된 분석 결과 화면이 열립니다. 무엇이 왜 위험한지 먼저 확인한 뒤, 그 화면에서 긴급 도움 요청이나 대응 가이드로 넘어갈 수 있습니다.")
+                BodyText("위험도가 긴급이면 결과 화면의 첫 버튼이 긴급 도움 요청으로 바뀝니다.")
             }
 
             SafeLinkCard {
-                SectionTitle("현재 팀 기준")
-                BodyText("1차 분석은 키워드, 문장 규칙, 상황 규칙을 함께 반영하는 구조를 목표로 합니다.")
+                SectionTitle("분석 방식")
+                BodyText("1차 분석은 기기 안에서 키워드·문장 규칙·상황 규칙을 함께 보고 위험도를 계산합니다.")
                 BodyText("2차 AI 보조분석은 1차 분석만으로 애매한 경우에만 추가로 사용합니다.")
             }
         }

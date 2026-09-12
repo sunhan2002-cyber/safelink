@@ -131,7 +131,11 @@ fun AnalyzingScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             SafeLinkCard {
-                StepRow(label = "텍스트 추출", done = progress >= 0.33f)
+                // 텍스트를 직접 넣은 경우엔 추출할 게 없다 — 입력 방식에 맞는 단어를 쓴다
+                StepRow(
+                    label = if (viewModel.inputMethod == "스크린샷 업로드") "텍스트 추출" else "내용 확인",
+                    done = progress >= 0.33f
+                )
                 Spacer(modifier = Modifier.height(12.dp))
                 StepRow(label = "위험 요소 탐지", done = progress >= 0.66f)
                 Spacer(modifier = Modifier.height(12.dp))
@@ -140,7 +144,7 @@ fun AnalyzingScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
             Text(
-                text = "안전한 결과를 위해 조금만 기다려 주세요.",
+                text = "기기 안에서 분석하고 있어요. 잠시만 기다려 주세요.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

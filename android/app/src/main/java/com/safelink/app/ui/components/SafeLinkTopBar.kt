@@ -30,7 +30,7 @@ fun SafeLinkTopBar(
                     Icon(
                         imageVector = if (useCloseIcon) Icons.Filled.Close
                         else Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = if (useCloseIcon) "닫기" else "뒤로가기"
+                        contentDescription = if (useCloseIcon) "닫기" else "뒤로 가기"
                     )
                 }
             }

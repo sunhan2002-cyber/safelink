@@ -103,7 +103,7 @@ fun OnboardingScreen(navController: NavHostController) {
         })
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "시작하면 SafeLink 이용약관에 동의하게 됩니다",
+            text = "분석 내용은 이 기기에만 저장됩니다. 자세한 내용은 설정 > 개인정보 처리방침에서 볼 수 있어요.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

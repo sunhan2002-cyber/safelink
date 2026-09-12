@@ -40,12 +40,13 @@ object AiConsentStore {
      *
      * 모델 제공사를 바꾸면 이 문구도 반드시 다시 확인해야 한다.
      */
-    const val CONSENT_TITLE = "AI 정밀 분석을 사용할까요?"
+    const val CONSENT_TITLE = "AI 보조분석을 사용할까요?"
 
     const val CONSENT_BODY =
         "기기 안에서 판단하기 애매한 경우에 한해, 감지된 대화 내용이 AI 제공사(Anthropic)로 전송됩니다.\n\n" +
             "⚠️ 전송되는 내용에 상대방이 보낸 메시지가 포함됩니다. " +
-            "전화번호와 링크는 가려서 보내지만, 대화 본문은 그대로 전송됩니다.\n\n" +
+            "전화번호·계좌번호·주민등록번호·카드번호·이메일은 가리고, 링크는 도메인만 남긴 채 보냅니다. " +
+            "다만 금액과 이름은 판단에 필요해 그대로 전송됩니다.\n\n" +
             "· 전송된 대화 내용을 SafeLink가 따로 수집하거나 보관하지 않습니다\n" +
             "· 분석 외의 목적으로는 일절 사용하지 않습니다\n" +
             "· AI 제공사(Anthropic)는 이 내용을 모델 학습에 사용하지 않으며, 오·남용 확인 목적으로 일정 기간 보관될 수 있습니다\n\n" +
@@ -63,7 +64,8 @@ object AiConsentStore {
 
     const val MANUAL_CONSENT_BODY =
         "켜면 기기 안에서 판단하기 애매한 경우에 한해, 분석한 대화 내용이 AI 제공사(Anthropic)로 자동 전송됩니다.\n\n" +
-            "전화번호와 링크는 가려서 보내지만, 대화 본문은 그대로 전송됩니다.\n\n" +
+            "전화번호·계좌번호·주민등록번호·카드번호·이메일은 가리고, 링크는 도메인만 남긴 채 보냅니다. " +
+            "다만 금액과 이름은 판단에 필요해 그대로 전송됩니다.\n\n" +
             "· 전송된 대화 내용을 SafeLink가 따로 수집하거나 보관하지 않습니다\n" +
             "· AI 제공사는 이 내용을 모델 학습에 사용하지 않으며, 오·남용 확인 목적으로 일정 기간 보관될 수 있습니다\n\n" +
             "끄면 기기 안에서만 판단하고, 필요할 때 결과 화면에서 직접 요청할 수 있습니다."
@@ -89,7 +91,7 @@ object AiConsentStore {
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    /** 백그라운드 감지에서 AI 정밀 분석을 써도 되는지. 기본값은 꺼짐. */
+    /** 백그라운드 감지에서 AI 보조분석을 써도 되는지. 기본값은 꺼짐. */
     fun isEnabled(context: Context): Boolean =
         prefs(context).getBoolean(KEY_ENABLED, false)
 

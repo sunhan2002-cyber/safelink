@@ -37,7 +37,7 @@ fun DiagnosisScreen(
     val checked = viewModel.checkedIndices
 
     Column(modifier = Modifier.fillMaxSize()) {
-        SafeLinkTopBar(title = "자가 진단", onBack = { navController.popBackStack() })
+        SafeLinkTopBar(title = "자가진단", onBack = { navController.popBackStack() })
 
         Column(
             modifier = Modifier

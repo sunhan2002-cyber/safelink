@@ -52,12 +52,14 @@ import androidx.navigation.NavHostController
 import com.safelink.app.BuildConfig
 import com.safelink.app.background.MessageDetectionService
 import com.safelink.app.settings.AiConsentStore
+import com.safelink.app.settings.BackgroundDetectionAccess
 import com.safelink.app.settings.NotificationTextStore
 import com.safelink.app.security.AppLockManager
 import com.safelink.app.security.BiometricAuth
 import com.safelink.app.settings.EmergencyContactStore
 import com.safelink.app.settings.FeatureToggleState
 import com.safelink.app.data.repository.RecordRepository
+import com.safelink.app.ui.components.BackgroundDetectionConsentDialog
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkTopBar
 import kotlinx.coroutines.launch
@@ -96,7 +98,7 @@ fun SettingsScreen(navController: NavHostController) {
     var messageInput by remember { mutableStateOf("") }
     // 스크린샷 분석 사용 — 앱 레벨 토글(FeatureToggleState)에 연결해 실제 기능(스크린샷 탭)을 제어
     val screenshotAnalysis by FeatureToggleState.screenshotAnalysisEnabled.collectAsState()
-    var backgroundDetection by remember { mutableStateOf(isBackgroundDetectionEnabled(context)) }
+    var backgroundDetection by remember { mutableStateOf(BackgroundDetectionAccess.isEnabled(context)) }
     // 백그라운드 감지 켜기 전 동의·권한 안내 다이얼로그 (최종 가이드 v1.0)
     var showBackgroundConsent by remember { mutableStateOf(false) }
 
@@ -110,7 +112,7 @@ fun SettingsScreen(navController: NavHostController) {
     DisposableEffect(context, lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                backgroundDetection = isBackgroundDetectionEnabled(context)
+                backgroundDetection = BackgroundDetectionAccess.isEnabled(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -118,31 +120,14 @@ fun SettingsScreen(navController: NavHostController) {
     }
 
     if (showBackgroundConsent) {
-        AlertDialog(
-            onDismissRequest = { showBackgroundConsent = false },
-            title = { Text("백그라운드 감지 사용 안내") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("사용자가 명시적으로 동의하고 허용한 범위의 텍스트를 기기에서 분석합니다.")
-                    Text("백그라운드 감지를 사용하려면 접근성 권한이 필요합니다. 설정에서 Safe Link를 켜면 언제든지 해제할 수 있습니다.")
-                    Text("감지 결과를 알려드리려면 알림 권한을 허용해 주세요.")
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showBackgroundConsent = false
-                    // 접근성 설정 화면으로 이동 (사용자가 직접 Safe Link 켜기)
-                    runCatching {
-                        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                    }
-                }) { Text("설정으로 이동") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showBackgroundConsent = false }) { Text("나중에") }
+        BackgroundDetectionConsentDialog(
+            onDismiss = { showBackgroundConsent = false },
+            onGoToSettings = {
+                showBackgroundConsent = false
+                BackgroundDetectionAccess.openAccessibilitySettings(context)
             }
         )
     }
-
     if (showPinDialog) {
         AlertDialog(
             onDismissRequest = { showPinDialog = false; pinInput = "" },
@@ -435,7 +420,7 @@ fun SettingsScreen(navController: NavHostController) {
                     }
                 )
                 ToggleRow(
-                    label = "백그라운드 AI 정밀 분석",
+                    label = "백그라운드 AI 보조분석",
                     caption = "켜면 판단이 애매한 경우 대화 내용이 AI 제공사(Anthropic)로 전송됩니다. 끄면 기기 안에서만 판단합니다.",
                     checked = aiConsent,
                     onChange = { on ->
@@ -553,7 +538,7 @@ fun SettingsScreen(navController: NavHostController) {
                             showDeleteDialog = false
                             deleteScope.launch {
                                 runCatching { RecordRepository(deleteContext).deleteAll() }
-                                deletedMessage = "검사 기록을 모두 삭제했습니다."
+                                deletedMessage = "분석 기록을 모두 삭제했습니다."
                             }
                         }) { Text("삭제", color = RiskCritical) }
                     },
@@ -644,16 +629,4 @@ private fun LinkRow(label: String, caption: String? = null, onClick: () -> Unit)
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
-}
-
-private fun isBackgroundDetectionEnabled(context: Context): Boolean {
-    val enabledServices = Settings.Secure.getString(
-        context.contentResolver,
-        Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-    ) ?: return false
-
-    val serviceName = ComponentName(context, MessageDetectionService::class.java).flattenToString()
-    return enabledServices
-        .split(':')
-        .any { it.equals(serviceName, ignoreCase = true) }
 }

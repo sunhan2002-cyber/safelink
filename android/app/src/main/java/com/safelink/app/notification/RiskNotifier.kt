@@ -132,9 +132,11 @@ class RiskNotifier(private val context: Context) {
         const val CHANNEL_LOW = "safelink_alert_low"
 
         private val CHANNELS = mapOf(
-            CHANNEL_CRITICAL to ChannelSpec("긴급 알림", NotificationManager.IMPORTANCE_HIGH),
-            CHANNEL_WARNING to ChannelSpec("중요 알림", NotificationManager.IMPORTANCE_DEFAULT),
-            CHANNEL_LOW to ChannelSpec("일반 알림", NotificationManager.IMPORTANCE_LOW)
+            // 채널 이름은 시스템 설정(앱 알림 설정)에 그대로 노출된다. 가해자와 화면을 함께 보는 상황을
+            // 감안해 "긴급" 같은 단어 대신 중요도만 밝힌다(Design.md 7장).
+            CHANNEL_CRITICAL to ChannelSpec("중요도 높음", NotificationManager.IMPORTANCE_HIGH),
+            CHANNEL_WARNING to ChannelSpec("중요도 보통", NotificationManager.IMPORTANCE_DEFAULT),
+            CHANNEL_LOW to ChannelSpec("중요도 낮음", NotificationManager.IMPORTANCE_LOW)
         )
 
         private const val NOTIF_ID = 1001
