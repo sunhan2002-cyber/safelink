@@ -172,6 +172,19 @@ class DetectionEngine(
             )
         ),
         DirectRiskRule(
+            id = "DIRECT-TH-SEXTORTION",
+            category = "협박·갈취",
+            bonus = 24,
+            kind = DirectRuleKind.SITUATION,
+            label = "영상통화 유도 후 유포 위협 조합 감지",
+            detail = "영상통화·앱 설치 유도와 촬영물 유포 위협이 함께 확인되었습니다.",
+            requiredPatterns = listOf(
+                Regex("(?:영상\\s*통화|화상\\s*통화|영상통화|얼굴\\s*보고)"),
+                Regex("(?:앱\\s*설치|어플\\s*설치|APK|권한\\s*(?:허용|승인)|연락처\\s*(?:동기화|접근))", RegexOption.IGNORE_CASE),
+                Regex("(?:녹화|촬영(?:본|물)?|영상).{0,20}(?:유포|뿌리|보낸다|올린|퍼뜨)|(?:유포|뿌리|보낸다|올린).{0,20}(?:녹화|영상)")
+            )
+        ),
+        DirectRiskRule(
             id = "DIRECT-GL-DENY-BLAME",
             category = "가스라이팅",
             bonus = 16,
