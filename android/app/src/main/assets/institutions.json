@@ -619,6 +619,22 @@
       ],
       "weight": 12,
       "standalone_recommend": false
+    },
+    "7-4": {
+      "risk_types": [
+        "협박",
+        "스토킹위협"
+      ],
+      "weight": 25,
+      "standalone_recommend": true
+    },
+    "7-5": {
+      "risk_types": [
+        "개인정보탈취",
+        "협박"
+      ],
+      "weight": 22,
+      "standalone_recommend": true
     }
   },
   "keyword_risk_type_additions": {
