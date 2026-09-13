@@ -104,7 +104,8 @@ fun HomeScreen(
     // 예전에는 이 확인 없이 항상 "실시간 보호 중"이라고 표시해서, 권한을 켜지 않은 사용자에게도
     // 앱이 보호하고 있다고 말했다. 설정에서 켜고 돌아오면 바로 반영되도록 화면이 다시 보일 때마다 확인한다.
     val lifecycleOwner = LocalLifecycleOwner.current
-    var protectionOn by remember { mutableStateOf(BackgroundDetectionAccess.isEnabled(context)) }
+    // 보호가 꺼져 있으면 AI 동의도 함께 푼다 — 그래서 aiOn 보다 먼저 읽는다
+    var protectionOn by remember { mutableStateOf(BackgroundDetectionAccess.syncAiConsent(context)) }
     // AI 보조분석 동의 여부도 같이 본다 — 카드가 "무엇으로" 보고 있는지까지 말해 주기 위해서다.
     // 설정 화면에서 껐다 켜고 돌아오는 경우가 있으므로 권한과 같은 시점에 다시 읽는다.
     var aiOn by remember { mutableStateOf(AiConsentStore.isEnabled(context)) }
@@ -113,7 +114,7 @@ fun HomeScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                protectionOn = BackgroundDetectionAccess.isEnabled(context)
+                protectionOn = BackgroundDetectionAccess.syncAiConsent(context)
                 aiOn = AiConsentStore.isEnabled(context)
             }
         }
@@ -123,11 +124,14 @@ fun HomeScreen(
 
     if (showBackgroundConsent) {
         BackgroundDetectionConsentDialog(
+            initialAiConsent = AiConsentStore.isEnabled(context),
             onDismiss = { showBackgroundConsent = false },
-            onAllow = {
+            onDecide = { aiEnabled ->
                 showBackgroundConsent = false
-                AiConsentStore.agree(context)
-                aiOn = true
+                // [허용]을 눌렀을 때만 온다. AI 동의 체크 여부를 그대로 확정한다 — 체크를 풀고 허용했는데
+                // 예전 동의가 남아 전송되면 "동의 안 했는데 왜 보내냐"가 되므로, 미체크는 명시적으로 철회한다.
+                if (aiEnabled) AiConsentStore.agree(context) else AiConsentStore.revoke(context)
+                aiOn = aiEnabled
                 BackgroundDetectionAccess.openAccessibilitySettings(context)
             }
         )
@@ -301,9 +305,24 @@ fun HomeScreen(
                     Box(
                         modifier = Modifier
                             .size(64.dp)
-                            .background(
-                                if (protectionOff) MaterialTheme.colorScheme.onSurfaceVariant else statusLevel.color(),
-                                CircleShape
+                            .then(
+                                if (!protectionOff && snapshot == null && aiOn) {
+                                    Modifier.background(
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(BrandBlue, TipBlue)
+                                        ),
+                                        shape = CircleShape
+                                    )
+                                } else {
+                                    Modifier.background(
+                                        color = if (protectionOff) {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        } else {
+                                            statusLevel.color()
+                                        },
+                                        shape = CircleShape
+                                    )
+                                }
                             ),
                         contentAlignment = Alignment.Center
                     ) {
