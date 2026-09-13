@@ -20,7 +20,7 @@ class RecordGroupingTest {
 
     @Test
     fun `같은 위험 유형끼리 묶이고 묶음 안은 최신순이다`() {
-        val groups = groupBySituation(
+        val groups = groupByRiskType(
             listOf(
                 detection("a", "보이스피싱", RiskLevel.WARNING, 100),
                 detection("b", "협박·갈취", RiskLevel.WARNING, 200),
@@ -34,7 +34,7 @@ class RecordGroupingTest {
 
     @Test
     fun `가장 위험했던 묶음이 먼저, 같으면 최근 묶음이 먼저 온다`() {
-        val groups = groupBySituation(
+        val groups = groupByRiskType(
             listOf(
                 detection("old-critical", "보이스피싱", RiskLevel.CRITICAL, 100),
                 detection("new-warning", "투자사기", RiskLevel.WARNING, 900),
@@ -46,7 +46,7 @@ class RecordGroupingTest {
 
     @Test
     fun `위험 신호 없는 검사와 자가진단은 수법 묶음과 섞이지 않는다`() {
-        val groups = groupBySituation(
+        val groups = groupByRiskType(
             listOf(
                 detection("safe", "", RiskLevel.SAFE, 100),
                 diagnosis("diag", RiskLevel.WARNING, 200),
@@ -59,7 +59,7 @@ class RecordGroupingTest {
 
     @Test
     fun `유형이 채워져 있어도 안전 판정이면 수법 묶음에 세지 않는다`() {
-        val groups = groupBySituation(
+        val groups = groupByRiskType(
             listOf(
                 detection("safe-but-tagged", "보이스피싱", RiskLevel.SAFE, 100),
                 detection("real", "보이스피싱", RiskLevel.WARNING, 50)
@@ -71,7 +71,7 @@ class RecordGroupingTest {
 
     @Test
     fun `위험도별 건수는 높은 위험도부터 0건을 빼고 센다`() {
-        val group = groupBySituation(
+        val group = groupByRiskType(
             listOf(
                 detection("1", "보이스피싱", RiskLevel.CAUTION, 1),
                 detection("2", "보이스피싱", RiskLevel.CRITICAL, 2),

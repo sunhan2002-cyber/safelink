@@ -9,12 +9,12 @@ enum class RecordViewMode(val label: String) {
     /** 모든 기록을 최신순으로 */
     LATEST("최신순"),
 
-    /** 같은 상황(위험 유형)끼리 묶어서 */
-    BY_SITUATION("상황별")
+    /** 같은 위험 유형끼리 묶어서 */
+    BY_TYPE("유형별")
 }
 
 /**
- * 같은 상황으로 묶인 기록 묶음.
+ * 같은 위험 유형으로 묶인 기록 묶음.
  *
  * @param key 묶음을 구분하는 값 — 펼침 상태를 기억할 때 쓴다
  * @param records 최신순
@@ -37,9 +37,9 @@ data class RecordGroup(
 }
 
 /**
- * 기록을 상황(위험 유형)별로 묶는다.
+ * 기록을 위험 유형별로 묶는다.
  *
- * ── 무엇을 "같은 상황"으로 보는가 ─────────────────────────────────────
+ * ── 무엇을 "같은 유형"으로 보는가 ─────────────────────────────────────
  * 대화 분석 기록은 판정 당시의 위험 유형(보이스피싱, 협박·갈취 …)이 저장돼 있어 그 값으로 묶는다.
  * 새로 저장할 것 없이 이미 있는 값만 쓰므로 예전 기록도 그대로 묶인다.
  *
@@ -49,15 +49,15 @@ data class RecordGroup(
  *
  * ── 순서 ─────────────────────────────────────────────────────────────
  * 가장 위험했던 묶음이 먼저, 같으면 최근에 기록된 묶음이 먼저.
- * 사용자가 이 화면에서 제일 먼저 알아야 하는 건 "가장 심각하게, 가장 최근에 겪은 상황"이다.
+ * 사용자가 이 화면에서 제일 먼저 알아야 하는 건 "가장 심각하게, 가장 최근에 겪은 유형"이다.
  */
-fun groupBySituation(records: List<RecordItem>): List<RecordGroup> =
+fun groupByRiskType(records: List<RecordItem>): List<RecordGroup> =
     records
-        .groupBy { situationKey(it) }
+        .groupBy { riskTypeKey(it) }
         .map { (key, items) ->
             RecordGroup(
                 key = key,
-                title = situationTitle(key),
+                title = riskTypeTitle(key),
                 records = items.sortedByDescending { it.timestamp }
             )
         }
@@ -69,13 +69,13 @@ fun groupBySituation(records: List<RecordItem>): List<RecordGroup> =
 internal const val GROUP_KEY_NO_SIGNAL = "__no_signal__"
 internal const val GROUP_KEY_DIAGNOSIS = "__diagnosis__"
 
-private fun situationKey(record: RecordItem): String = when {
+private fun riskTypeKey(record: RecordItem): String = when {
     record.type == RecordType.DIAGNOSIS -> GROUP_KEY_DIAGNOSIS
     record.riskLevel == RiskLevel.SAFE || record.category.isBlank() -> GROUP_KEY_NO_SIGNAL
     else -> record.category
 }
 
-private fun situationTitle(key: String): String = when (key) {
+private fun riskTypeTitle(key: String): String = when (key) {
     GROUP_KEY_DIAGNOSIS -> "자가진단"
     GROUP_KEY_NO_SIGNAL -> "안전 판정"
     else -> key

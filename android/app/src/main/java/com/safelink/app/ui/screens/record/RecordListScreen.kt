@@ -145,13 +145,13 @@ fun RecordListScreen(
                         }
                     }
 
-                    // 같은 상황(위험 유형)끼리 묶는다. 한 수법에 여러 번 노출됐는지가 한눈에 보이고,
-                    // 기관에 설명하거나 신고할 때 같은 상황의 기록을 모아 볼 수 있다.
-                    RecordViewMode.BY_SITUATION -> {
+                    // 같은 위험 유형끼리 묶는다. 한 수법에 여러 번 노출됐는지가 한눈에 보이고,
+                    // 기관에 설명하거나 신고할 때 같은 유형의 기록을 모아 볼 수 있다.
+                    RecordViewMode.BY_TYPE -> {
                         groups.forEach { group ->
                             val expanded = group.key in expandedGroups
                             SafeLinkCard {
-                                SituationGroupHeader(
+                                RiskTypeGroupHeader(
                                     group = group,
                                     expanded = expanded,
                                     onToggle = { viewModel.toggleGroup(group.key, expandedGroups) }
@@ -163,7 +163,7 @@ fun RecordListScreen(
                                             record = record,
                                             navController = navController,
                                             onDeleteClick = { recordPendingDelete = record },
-                                            // 묶음 제목이 이미 상황 이름이라 행마다 반복하지 않는다
+                                            // 묶음 제목이 이미 유형 이름이라 행마다 반복하지 않는다
                                             showCategoryInTitle = false
                                         )
                                     }
@@ -226,7 +226,7 @@ fun RecordListScreen(
     }
 }
 
-/** 최신순 / 상황별 보기 전환 — 두 칸짜리 세그먼트. */
+/** 최신순 / 유형별 보기 전환 — 두 칸짜리 세그먼트. */
 @Composable
 private fun ViewModeSelector(selected: RecordViewMode, onSelect: (RecordViewMode) -> Unit) {
     Row(
@@ -261,11 +261,11 @@ private fun ViewModeSelector(selected: RecordViewMode, onSelect: (RecordViewMode
 }
 
 /**
- * 상황 묶음의 머리 — 상황 이름, 건수, 가장 최근 기록 시각, 위험도별 건수, 가장 높은 위험도.
+ * 유형 묶음의 머리 — 유형 이름, 건수, 가장 최근 기록 시각, 위험도별 건수, 가장 높은 위험도.
  * 누르면 접고 펼친다.
  */
 @Composable
-private fun SituationGroupHeader(group: RecordGroup, expanded: Boolean, onToggle: () -> Unit) {
+private fun RiskTypeGroupHeader(group: RecordGroup, expanded: Boolean, onToggle: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -479,7 +479,7 @@ private fun RecordRow(
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                // 제목은 "백그라운드 감지 · 보이스피싱" 형태다. 상황별 묶음 안에서는 뒤쪽이 묶음 제목과 같으므로
+                // 제목은 "백그라운드 감지 · 보이스피싱" 형태다. 유형별 묶음 안에서는 뒤쪽이 묶음 제목과 같으므로
                 // 입력 경로만 남긴다(자가진단처럼 경로 라벨이 없는 기록은 원래 제목 그대로).
                 text = if (showCategoryInTitle) record.title else (record.sourceLabel ?: record.title),
                 style = if (isCritical) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,

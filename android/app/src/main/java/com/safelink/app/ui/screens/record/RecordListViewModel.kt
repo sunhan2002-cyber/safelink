@@ -39,7 +39,7 @@ class RecordListViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     /**
-     * 보기 방식 — 최신순 / 상황별.
+     * 보기 방식 — 최신순 / 유형별.
      * 탭을 옮겼다 돌아와도 고른 방식이 유지되도록 화면이 아니라 여기(액티비티 범위 ViewModel)에 둔다.
      */
     private val _viewMode = MutableStateFlow(RecordViewMode.LATEST)
@@ -49,9 +49,9 @@ class RecordListViewModel(application: Application) : AndroidViewModel(applicati
         _viewMode.value = mode
     }
 
-    /** 상황별로 묶은 목록 — 위험도 필터가 적용된 [records] 를 그대로 묶는다. */
+    /** 유형별로 묶은 목록 — 위험도 필터가 적용된 [records] 를 그대로 묶는다. */
     val groups: StateFlow<List<RecordGroup>> =
-        records.map { groupBySituation(it) }
+        records.map { groupByRiskType(it) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /**
