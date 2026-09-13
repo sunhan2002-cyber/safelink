@@ -41,6 +41,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -83,9 +84,13 @@ fun RecordListScreen(
     val filter by viewModel.filter.collectAsState()
     var menuOpen by remember { mutableStateOf(false) }
     var recordPendingDelete by remember { mutableStateOf<RecordItem?>(null) }
+    val scrollState = rememberScrollState()
+    val topBarCollapse by remember {
+        derivedStateOf { (scrollState.value / 96f).coerceIn(0f, 1f) }
+    }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        SafeLinkTopBar(title = "분석 기록", actions = {
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
+        SafeLinkTopBar(title = "분석 기록", collapseFraction = topBarCollapse, actions = {
             IconButton(onClick = { menuOpen = true }) {
                 Icon(imageVector = Icons.Filled.FilterList, contentDescription = "위험도별 필터")
             }
@@ -104,7 +109,6 @@ fun RecordListScreen(
 
         Column(
             modifier = Modifier
-                .verticalScroll(rememberScrollState())
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {

@@ -35,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
@@ -74,6 +75,10 @@ import com.safelink.app.ui.theme.TextPrimary
 /** 설정 (Figma 20:1061) — 토글은 로컬 상태. 실제 저장은 EncryptedSharedPreferences (Task 5.15) */
 @Composable
 fun SettingsScreen(navController: NavHostController) {
+    val scrollState = rememberScrollState()
+    val topBarCollapse by remember {
+        derivedStateOf { (scrollState.value / 96f).coerceIn(0f, 1f) }
+    }
     val deleteScope = rememberCoroutineScope()
     val deleteContext = LocalContext.current
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -280,12 +285,11 @@ fun SettingsScreen(navController: NavHostController) {
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        SafeLinkTopBar(title = "설정")
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
+        SafeLinkTopBar(title = "설정", collapseFraction = topBarCollapse)
 
         Column(
             modifier = Modifier
-                .verticalScroll(rememberScrollState())
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {

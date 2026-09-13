@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
@@ -42,7 +43,10 @@ fun BackgroundDetectionConsentDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("실시간 보호를 켤까요?") },
+        title = {
+            EnableBlurBehindDialog()
+            Text("실시간 보호를 켤까요?")
+        },
         text = {
             Column(
                 modifier = Modifier
@@ -88,7 +92,10 @@ fun BackgroundDetectionConsentDialog(
         },
         dismissButton = {
             TextButton(onClick = { onDecide(false) }) { Text("거부") }
-        }
+        },
+        shape = RoundedCornerShape(24.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp
     )
 }
 

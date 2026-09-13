@@ -72,6 +72,7 @@ import com.safelink.app.ui.screens.detection.DetectionViewModel
 import com.safelink.app.ui.theme.BackgroundGray
 import com.safelink.app.ui.theme.BrandBlue
 import com.safelink.app.ui.theme.BrandBlueDark
+import com.safelink.app.ui.theme.BrandBlueLight
 import com.safelink.app.ui.theme.SurfaceWhite
 import com.safelink.app.ui.theme.TextPrimary
 import com.safelink.app.ui.theme.TipBlue
@@ -184,8 +185,17 @@ fun HomeScreen(
         //  2) 실시간 보호 중    — 접근성 권한이 켜져 있고 최근 감지가 없음
         //  3) 실시간 보호 OFF   — 권한이 꺼져 있음. 탭하면 바로 켜러 갈 수 있다
         val protectionOff = snapshot == null && !protectionOn
+        // 기본 백그라운드 감지만 켜진 상태는 기존 민트 단색을 그대로 유지한다.
+        // AI 보조분석까지 켠 평상시 상태에서만 SafeLink 워드마크와 같은 초록→파랑 방향으로
+        // 카드 배경을 확장한다. 위험이 감지되면 그라데이션보다 위험도 색상을 우선한다.
+        val aiGradient = if (!protectionOff && snapshot == null && aiOn) {
+            Brush.horizontalGradient(colors = listOf(BrandBlueLight, TipBlueContainer))
+        } else {
+            null
+        }
         SafeLinkCard(
             containerColor = if (protectionOff) BackgroundGray else statusLevel.containerColor(),
+            containerBrush = aiGradient,
             onClick = {
                 when {
                     snapshot != null -> navController.navigate(Screen.ResponseGuide.createRoute(statusLevel))
@@ -328,18 +338,21 @@ fun HomeScreen(
             QuickActionCard(
                 title = "대화 분석",
                 icon = Icons.Filled.Search,
+                helpDescription = "받은 메시지에서 사기·협박·개인정보 요구 같은 위험 신호를 확인하고 대응 방법을 안내합니다.",
                 onClick = startAnalysis,
                 modifier = Modifier.weight(1f)
             )
             QuickActionCard(
                 title = "링크 검사",
                 icon = Icons.Filled.Link,
+                helpDescription = "메시지에 포함된 링크가 피싱이나 악성 주소로 의심되는지 함께 확인합니다.",
                 onClick = startAnalysis,
                 modifier = Modifier.weight(1f)
             )
             QuickActionCard(
                 title = "자가진단",
                 icon = Icons.Filled.Checklist,
+                helpDescription = "간단한 질문에 답하면 현재 상황에서 주의할 위험 신호를 스스로 점검할 수 있습니다.",
                 onClick = { navController.navigate(Screen.Diagnosis.route) },
                 modifier = Modifier.weight(1f)
             )
@@ -435,10 +448,16 @@ private fun homeStatusHeadline(level: RiskLevel): String = when (level) {
 private fun QuickActionCard(
     title: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    helpDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    SafeLinkCard(modifier = modifier, onClick = onClick) {
+    SafeLinkCard(
+        modifier = modifier,
+        onClick = onClick,
+        helpTitle = title,
+        helpDescription = helpDescription
+    ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
