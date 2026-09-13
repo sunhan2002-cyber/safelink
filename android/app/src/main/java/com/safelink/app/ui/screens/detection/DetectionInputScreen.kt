@@ -220,7 +220,7 @@ private fun ScreenshotAnalysisGuideCard() {
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = "선명한 대화 화면을 선택하면 OCR이 더 안정적으로 작동합니다.",
+                text = "대화 글자가 선명한 화면일수록 사진 속 글자를 더 정확하게 읽을 수 있어요.",
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
@@ -341,7 +341,7 @@ private fun OcrNoTextBanner(
     SafeLinkCard(containerColor = TipBlueContainer) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                text = "OCR 안내",
+                text = "사진 속 글자 읽기 안내",
                 style = MaterialTheme.typography.titleMedium
             )
             Text(

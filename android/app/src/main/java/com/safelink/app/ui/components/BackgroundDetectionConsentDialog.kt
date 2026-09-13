@@ -75,7 +75,7 @@ fun BackgroundDetectionConsentDialog(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text("켜면 카카오톡·문자 같은 대화 앱의 화면 내용을 기기 안에서 분석해, 위험한 표현이 보이면 알려드립니다.")
-                    Text("이 기능에는 접근성 권한이 필요합니다. 이어지는 시스템 설정에서 SafeLink를 켜 주세요. 언제든 같은 자리에서 다시 끌 수 있습니다.")
+                    Text("이 기능은 휴대폰 설정의 '접근성' 메뉴에서 켭니다. 허용을 누르면 그 화면이 열리니, 목록에서 SafeLink를 찾아 켜 주세요. 끌 때도 같은 곳에서 끌 수 있습니다.")
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
@@ -91,7 +91,7 @@ fun BackgroundDetectionConsentDialog(
                     Text(
                         "대신 이런 점이 있습니다 — 그 경우에 한해 대화 내용이 AI 제공사(Anthropic)로 전송됩니다. " +
                             "여기에는 상대방이 보낸 메시지도 포함됩니다. 전화번호·계좌번호·주민등록번호·카드번호·이메일은 " +
-                            "가리고 링크는 도메인만 남겨 보내지만, 금액과 이름은 판단에 필요해 그대로 전송됩니다. " +
+                            "가리고 링크는 사이트 주소 앞부분(예: naver.com)만 남겨 보내지만, 금액과 이름은 판단에 필요해 그대로 전송됩니다. " +
                             "인터넷 연결이 필요하고 결과가 나오기까지 몇 초 걸립니다."
                     )
                     Text(

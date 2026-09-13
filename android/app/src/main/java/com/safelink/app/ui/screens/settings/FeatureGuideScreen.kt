@@ -46,7 +46,7 @@ fun FeatureGuideScreen(navController: NavHostController) {
 
             SafeLinkCard {
                 SectionTitle("백그라운드 감지 흐름")
-                BodyText("백그라운드 감지는 사용자가 접근성 권한을 직접 허용한 뒤에만 동작합니다.")
+                BodyText("백그라운드 감지는 휴대폰 설정의 '접근성' 메뉴에서 SafeLink를 직접 켠 뒤에만 동작합니다.")
                 BodyText("감지된 텍스트는 기기 안에서 점검되고, 경고 이상이면 알림을 보냅니다.")
             }
 

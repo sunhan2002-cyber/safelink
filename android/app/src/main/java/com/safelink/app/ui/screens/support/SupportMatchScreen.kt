@@ -78,7 +78,7 @@ private val supportCategories = listOf(
     ),
     SupportCategory(
         title = "디지털·개인정보",
-        description = "악성 링크, 스미싱, 해킹과 개인정보 유출",
+        description = "악성 링크, 스미싱(문자 사기), 해킹과 개인정보 유출",
         icon = Icons.Filled.Computer,
         iconTint = TipBlue,
         containerColor = TipBlueContainer,
