@@ -26,12 +26,12 @@ import androidx.compose.ui.unit.dp
  * 그래서 홈에서 "실시간 보호 OFF"를 눌러 보호를 켠 사용자는 AI 보조분석이 있다는 것도,
  * 그게 꺼져 있다는 것도 모른 채 쓰게 됐다 — 물어본 적이 없으니 켜질 리도 없다.
  *
- * 지금은 보호를 켜는 그 자리에서 한 번 묻는다. [onDecide] 로 넘어오는 값이 그 선택이다.
- * - true  : AI 보조분석까지 켠다
- * - false : 기기 안에서만 판단한다(실시간 감지는 그대로 켜진다)
+ * 지금은 보호를 켜는 그 자리에서 한 번 묻는다. "허용"을 누르면 AI 보조분석까지 동의한 것으로 보고
+ * [onAllow] 를 호출해 접근성 설정 화면으로 이동한다. "거부"는 뒤로가기·바깥 탭과 마찬가지로
+ * [onDismiss] 를 호출해 그냥 창만 닫는다 — 아무 상태도 바뀌지 않고 설정 화면으로도 가지 않는다.
  *
- * 어느 쪽이든 접근성 설정 화면으로는 이동한다 — 거부는 "AI 를 쓰지 않겠다"는 뜻이지
- * "보호를 켜지 않겠다"는 뜻이 아니다. 아예 그만두려면 창 바깥이나 뒤로가기로 닫으면 된다([onDismiss]).
+ * 그래서 "실시간 보호는 켜되 AI는 쓰지 않기" 조합은 이 다이얼로그에서는 고를 수 없다.
+ * 필요하면 설정 탭에서 실시간 보호를 먼저 켠 뒤 AI 토글만 따로 끌 수 있다.
  *
  * 설정 화면과 홈 화면(실시간 보호 OFF 카드) 두 곳에서 같은 안내를 쓰므로 컴포넌트로 뺐다 —
  * 문구가 갈리면 "어디서 봤느냐에 따라 설명이 다른" 상황이 된다.
@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun BackgroundDetectionConsentDialog(
     onDismiss: () -> Unit,
-    onDecide: (aiEnabled: Boolean) -> Unit
+    onAllow: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -80,18 +80,13 @@ fun BackgroundDetectionConsentDialog(
                         "· 분석 외의 목적으로는 일절 사용하지 않습니다\n" +
                         "· AI 제공사는 이 내용을 모델 학습에 사용하지 않으며, 오·남용 확인 목적으로 일정 기간 보관될 수 있습니다"
                 )
-                Text(
-                    "거부해도 실시간 보호는 그대로 켜집니다. 기기 안에서만 판단하고, 필요할 때 결과 화면에서 한 건씩 직접 요청할 수 있습니다.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onDecide(true) }) { Text("허용") }
+            TextButton(onClick = onAllow) { Text("허용") }
         },
         dismissButton = {
-            TextButton(onClick = { onDecide(false) }) { Text("거부") }
+            TextButton(onClick = onDismiss) { Text("거부") }
         },
         shape = RoundedCornerShape(24.dp),
         containerColor = MaterialTheme.colorScheme.surface,
