@@ -86,33 +86,37 @@ private val supportCategories = listOf(
     ),
     SupportCategory(
         title = "복지·생활",
-        description = "긴급 생계, 고용, 건강보험과 생활 안정 지원",
+        description = "긴급 생계, 고용, 건강보험과 외국인 생활 안내",
         icon = Icons.Filled.VolunteerActivism,
         iconTint = BrandBlue,
         containerColor = RiskSafeContainer,
         institutionIds = setOf(
-            "PUB-BOKJIRO", "PUB-GOV24", "PUB-WORK24", "PUB-NHIS", "PUB-NPS", "PUB-KNCSW"
+            "PUB-BOKJIRO", "PUB-GOV24", "PUB-WORK24", "PUB-NHIS", "PUB-NPS", "PUB-KNCSW",
+            "GOV-IMMIGRATION"
         )
     ),
     SupportCategory(
         title = "법률·피해보호",
-        description = "범죄 신고, 수사, 법률 상담과 피해자 보호",
+        description = "범죄 신고, 법률 상담, 노인·장애인 학대와 피해자 보호",
         icon = Icons.Filled.Gavel,
         iconTint = RiskCritical,
         containerColor = RiskCautionContainer,
         institutionIds = setOf(
-            "GOV-POLICE", "GOV-PROSECUTION", "PUB-LEGALAID", "PRIV-FAMILYLAW", "PRIV-NGO", "PUB-WOMEN1366"
+            "GOV-POLICE", "GOV-PROSECUTION", "PUB-LEGALAID", "PRIV-FAMILYLAW", "PRIV-NGO", "PUB-WOMEN1366",
+            // 사회취약계층 전용 신고 창구 — 누가 피해를 입었는지에 따라 연락할 곳이 따로 있다
+            "PUB-ELDER", "PUB-DISABILITY"
         )
     ),
     SupportCategory(
         title = "상담·회복",
-        description = "심리 상담, 위기 개입, 쉼터와 가족 회복 지원",
+        description = "심리 상담, 위기 개입, 쉼터, 청소년·다문화가족 상담",
         icon = Icons.Filled.Favorite,
         iconTint = BrandBlue,
         containerColor = BrandBlueLight,
         institutionIds = setOf(
             "PUB-WOMEN1366", "PUB-MENTALHEALTH", "PRIV-COUNSEL", "PRIV-SUICIDE",
-            "PRIV-NGO", "PRIV-YOUTH", "PRIV-RELIGIOUS"
+            "PRIV-NGO", "PRIV-YOUTH", "PRIV-RELIGIOUS",
+            "PUB-YOUTH", "PUB-DANURI"
         )
     )
 )
