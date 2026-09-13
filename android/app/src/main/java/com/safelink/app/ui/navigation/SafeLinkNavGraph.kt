@@ -21,6 +21,7 @@ import com.safelink.app.ui.screens.diagnosis.DiagnosisViewModel
 import com.safelink.app.ui.screens.emergency.EmergencyScreen
 import com.safelink.app.ui.screens.guide.ResponseGuideScreen
 import com.safelink.app.ui.screens.home.HomeScreen
+import com.safelink.app.ui.screens.link.LinkCheckScreen
 import com.safelink.app.ui.screens.lock.LockScreen
 import com.safelink.app.ui.screens.onboarding.OnboardingScreen
 import com.safelink.app.ui.screens.record.MemoEditScreen
@@ -85,6 +86,9 @@ fun SafeLinkNavGraph(
         }
         composable(Screen.Analyzing.route) {
             AnalyzingScreen(navController, activityDetectionViewModel())
+        }
+        composable(Screen.LinkCheck.route) {
+            LinkCheckScreen(navController, activityDetectionViewModel())
         }
         composable(
             route = Screen.DetectionResult.route,

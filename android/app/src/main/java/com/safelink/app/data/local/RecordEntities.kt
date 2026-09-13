@@ -75,5 +75,6 @@ data class DiagnosisRecordEntity(
 enum class RecordSource(val label: String) {
     TEXT_INPUT("텍스트 입력"),
     SCREENSHOT("스크린샷 분석"),
-    BACKGROUND("백그라운드 감지")
+    BACKGROUND("백그라운드 감지"),
+    LINK_CHECK("링크 검사")
 }

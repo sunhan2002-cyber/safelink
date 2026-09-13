@@ -311,10 +311,7 @@ fun HomeScreen(
             }
         }
 
-        // 퀵 액션 — Figma는 대화분석/링크검사/자가진단 3개. "링크 검사"는 독립 입력화면이 따로
-        // 없고 대화 분석 흐름 안에서 링크가 있으면 자동으로 같이 검사되는 구조라(LinkRiskChecker,
-        // DetectionViewModel.checkLinks), 이 타일도 대화 분석과 같은 입력 화면으로 보낸다 —
-        // 없는 화면을 새로 만드는 대신, 실제로 동작하는 기능으로 연결(사용자 확인 후 추가).
+        // 퀵 액션 — Figma는 대화분석/링크검사/자가진단 3개.
         // 기존 "대화 분석 시작" 큰 버튼은 제거하고 이 타일이 그 역할을 겸함
         // (Figma에 별도 대형 버튼이 없음 - 퀵액션 3개가 곧 메인 진입점).
         // "백그라운드 감지" 바로가기는 Figma에 없는 항목이라 홈에서는 빠지고, 설정 탭에서는
@@ -329,7 +326,12 @@ fun HomeScreen(
             QuickActionCard(
                 title = "링크 검사",
                 icon = Icons.Filled.Link,
-                onClick = startAnalysis,
+                // 대화 전체가 아니라 링크만 빠르게 확인하고 싶을 때를 위한 전용 화면(사용자 요청).
+                // 대화 분석과 같은 공유 ViewModel을 쓰므로 이전 세션은 여기서도 비워 준다.
+                onClick = {
+                    detectionViewModel.reset()
+                    navController.navigate(Screen.LinkCheck.route)
+                },
                 modifier = Modifier.weight(1f)
             )
             QuickActionCard(

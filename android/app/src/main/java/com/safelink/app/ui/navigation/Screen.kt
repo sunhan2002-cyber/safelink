@@ -42,6 +42,12 @@ sealed class Screen(val route: String) {
     // 대화 감지 (F-02, F-03)
     data object DetectionInput : Screen("detection_input")
     data object Analyzing : Screen("analyzing")
+
+    /**
+     * 링크 검사 전용 화면 — 대화 전체가 아니라 "이 링크가 위험한지"만 확인하고 싶을 때 진입.
+     * 홈의 "링크 검사" 타일에서 온다(예전엔 DetectionInput으로 보냈으나 별도 화면으로 분리).
+     */
+    data object LinkCheck : Screen("link_check")
     /**
      * 분석 결과 화면. 방금 분석한 결과는 공유 ViewModel로 전달되므로 인자가 없고,
      * 기록 탭에서 과거 기록을 다시 열 때만 [ARG_RECORD_ID]로 어떤 기록인지 지정한다.

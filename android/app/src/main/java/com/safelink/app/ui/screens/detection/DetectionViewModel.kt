@@ -48,7 +48,8 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
     enum class AnalysisSource(val label: String) {
         TEXT("텍스트 입력"),
         SCREENSHOT("스크린샷 분석"),
-        BACKGROUND("백그라운드 감지")
+        BACKGROUND("백그라운드 감지"),
+        LINK_CHECK("링크 검사")
     }
 
     /** 원문 텍스트 — 용어 통일본(김선한 03) 기준 이번 주 핵심 입력값 */
@@ -245,6 +246,7 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         lastAnalysisSource = when (record.sourceLabel) {
             AnalysisSource.SCREENSHOT.label -> AnalysisSource.SCREENSHOT
             AnalysisSource.BACKGROUND.label -> AnalysisSource.BACKGROUND
+            AnalysisSource.LINK_CHECK.label -> AnalysisSource.LINK_CHECK
             else -> AnalysisSource.TEXT
         }
         viewModelScope.launch {
@@ -283,7 +285,26 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         } else {
             lastAnalysisSource = AnalysisSource.TEXT
         }
+        return analyzeAndSave()
+    }
 
+    /**
+     * 링크 검사 화면 전용 진입점 — [runAnalysis]와 같은 온디바이스 분석·링크 검사·기록 저장
+     * 경로를 그대로 타되, 기록에 "링크 검사"로 남긴다(대화 분석과 구분). 스크린샷 경로가 없어
+     * OCR 분기를 거치지 않는다.
+     */
+    suspend fun runLinkCheckAnalysis(): Boolean {
+        ocrFeedbackMessage = null
+        lastAnalysisSource = AnalysisSource.LINK_CHECK
+        return analyzeAndSave()
+    }
+
+    /**
+     * [originalText]/[lastAnalysisSource]가 정해진 뒤의 공통 분석 경로 — 온디바이스 분석,
+     * 링크 검사, 2차 AI 보조분석, 기록 저장을 모두 처리한다. [runAnalysis]와
+     * [runLinkCheckAnalysis]가 함께 쓴다.
+     */
+    private suspend fun analyzeAndSave(): Boolean {
         // 1차 온디바이스 분석 (항상 동기, 즉시 완료) — 결과를 먼저 반영.
         // 붙여넣은 대화는 줄 단위로 턴을 나눠 분석한다 — 반복·장기세션 규칙은 턴이 나뉘어야 발동한다.
         val turns = ConversationTurns.split(originalText)
@@ -311,7 +332,11 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         // 검사 기록 저장 (Task 7.1) — 기기 내 DB에만 남으며 서버로 나가지 않는다.
         // 온디바이스 결과를 먼저 저장하고, 링크 판정·AI 보조분석이 들어오면 같은 기록을 최종 판정으로 갱신한다.
         // (예전에는 AI 보정 전 결과만 남아, 결과 화면은 "긴급"인데 기록은 "경고"로 보이는 불일치가 있었다.)
-        val source = if (lastAnalysisSource == AnalysisSource.SCREENSHOT) RecordSource.SCREENSHOT else RecordSource.TEXT_INPUT
+        val source = when (lastAnalysisSource) {
+            AnalysisSource.SCREENSHOT -> RecordSource.SCREENSHOT
+            AnalysisSource.LINK_CHECK -> RecordSource.LINK_CHECK
+            else -> RecordSource.TEXT_INPUT
+        }
         viewModelScope.launch {
             val recordId = runCatching { recordRepository.saveDetection(onDeviceResult, source) }.getOrNull()
             if (gen == generation) currentRecordId = recordId

@@ -18,9 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -37,7 +34,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.text.AnnotatedString
@@ -45,17 +41,16 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.safelink.app.data.link.LinkRiskResult
 import com.safelink.app.data.local.RecordFeedback
-import com.safelink.app.data.link.LinkVerdict
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.model.EvidenceText
 import com.safelink.app.data.model.DetectionResultDummyData
 import com.safelink.app.data.model.RecommendedInstitutionUi
 import com.safelink.app.data.model.RiskLevel
+import com.safelink.app.ui.components.LinkRiskSection
 import com.safelink.app.ui.components.RiskBadge
 import com.safelink.app.ui.components.SafeLinkCard
 import com.safelink.app.ui.components.SafeLinkPrimaryButton
@@ -460,132 +455,6 @@ private fun riskLevelDescription(level: RiskLevel): String = when (level) {
     RiskLevel.CAUTION -> "일부 표현은 상황을 더 확인해 볼 필요가 있습니다."
     RiskLevel.WARNING -> "금전·개인정보 제공이나 외부 이동을 요구하는지 확인해 보세요."
     RiskLevel.CRITICAL -> "앱 설치, 인증정보 제공, 송금 요청은 진행하지 마세요."
-}
-
-/**
- * 근거 섹션 제목(아이콘+컬러 텍스트) — 문장 규칙/상황 규칙/AI 보조분석을 키워드 "분석 근거"
- * 섹션과 시각적으로 구분하기 위해 7주차에 추가. 아이콘 하나만으로도 스크롤하면서 "지금
- * 어느 층을 보고 있는지" 바로 알 수 있게 하는 게 목적 — 최종 아이콘/색상 선택은
- * 김우영/김재겸이 다듬을 수 있음(구조는 고정, 표현은 유동).
- */
-/**
- * 대화에 섞여 온 링크의 안전성 검사 결과.
- *
- * 문구를 쓸 때 지킨 원칙이 하나 있다 — **위험하지 않다고 단정하지 않는다.**
- * 차단 목록에 없다는 건 "안전하다"가 아니라 "아직 신고되지 않았다"는 뜻이고,
- * 새로 만든 스미싱 도메인은 대개 등재 전이다. 여기서 "안전합니다"라고 써 버리면
- * 앱이 오히려 사용자를 안심시켜 링크를 누르게 만든다.
- *
- * 마지막 줄에서 검사 방식을 밝히는 것도 같은 이유다. 사용자가 받은 링크가 외부로
- * 나가지 않는다는 점은 이 앱에서 약속으로 남아야 하는 정보라 화면에 드러낸다.
- */
-@Composable
-private fun LinkRiskSection(results: List<LinkRiskResult>, isChecking: Boolean) {
-    if (results.isEmpty() && !isChecking) return
-
-    EvidenceSectionHeader(icon = Icons.Filled.Link, title = "링크 검사", accent = MaterialTheme.colorScheme.primary)
-
-    if (results.isEmpty()) {
-        SafeLinkCard {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "링크를 확인하고 있어요.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        return
-    }
-
-    results.forEach { item -> LinkRiskCard(item) }
-
-    Text(
-        text = "링크 주소는 외부로 전송되지 않으며, 기기에 저장된 위험 주소 목록과 대조했습니다.",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
-
-    // 구글 Safe Browsing 데이터로 판정한 건이 하나라도 있으면 출처를 밝힌다.
-    // 표기 문구와 안내 페이지 링크는 Safe Browsing 이용 조건상 **의무 사항**이라 임의로
-    // 번역하거나 생략하지 않는다(검사 자체가 실패해 UNCHECKED 뿐이면 구글 데이터를 쓴 게
-    // 아니므로 표기하지 않는다).
-    if (results.any { it.verdict != LinkVerdict.UNCHECKED }) {
-        val uriHandler = LocalUriHandler.current
-        Text(
-            text = "Advisory provided by Google",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.primary,
-            textDecoration = TextDecoration.Underline,
-            modifier = Modifier.clickable { uriHandler.openUri(SAFE_BROWSING_ADVISORY_URL) }
-        )
-    }
-}
-
-/** Safe Browsing 안내 페이지 — 위 출처 표기에서 링크해야 하는 주소. */
-private const val SAFE_BROWSING_ADVISORY_URL = "https://developers.google.com/safe-browsing/v4/advisory"
-
-@Composable
-private fun LinkRiskCard(item: LinkRiskResult) {
-    val dangerous = item.verdict == LinkVerdict.DANGEROUS
-    val accent = if (dangerous) RiskCritical else MaterialTheme.colorScheme.onSurfaceVariant
-    val icon = when (item.verdict) {
-        LinkVerdict.DANGEROUS -> Icons.Filled.Warning
-        LinkVerdict.NO_MATCH -> Icons.Filled.CheckCircle
-        LinkVerdict.UNCHECKED -> Icons.AutoMirrored.Filled.HelpOutline
-    }
-    val headline = when (item.verdict) {
-        LinkVerdict.DANGEROUS -> item.threat?.label ?: "위험한 주소"
-        LinkVerdict.NO_MATCH -> "알려진 위험 목록에는 없습니다"
-        LinkVerdict.UNCHECKED -> item.uncheckedReason ?: "검사하지 못했습니다"
-    }
-    val detail = when (item.verdict) {
-        LinkVerdict.DANGEROUS -> item.threat?.description ?: "위험한 주소로 신고된 링크입니다."
-        LinkVerdict.NO_MATCH -> "아직 신고되지 않은 새 주소일 수 있으니, 모르는 사람이 보낸 링크는 열지 마세요."
-        LinkVerdict.UNCHECKED -> "직접 확인이 필요합니다. 모르는 사람이 보낸 링크는 열지 마세요."
-    }
-
-    SafeLinkCard {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(imageVector = icon, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = headline,
-                style = MaterialTheme.typography.titleSmall,
-                color = accent,
-                fontWeight = if (dangerous) FontWeight.Bold else FontWeight.Normal
-            )
-        }
-        Spacer(modifier = Modifier.height(6.dp))
-        // 원문에 쓰여 있던 그대로 보여준다 — 정규화한 주소만 보이면 사용자가 자기가 받은
-        // 링크와 같은 것인지 알아보지 못한다.
-        Text(text = item.link.displayText, style = MaterialTheme.typography.bodyMedium)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = detail,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        if (item.link.obfuscated) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "주소를 일부러 변형해 보낸 링크입니다. 차단을 피하려는 수법입니다.",
-                style = MaterialTheme.typography.bodySmall,
-                color = RiskCritical
-            )
-        }
-    }
-}
-
-@Composable
-private fun EvidenceSectionHeader(icon: ImageVector, title: String, accent: Color) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(imageVector = icon, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(text = title, style = MaterialTheme.typography.titleMedium, color = accent)
-    }
 }
 
 /** 통합 리스트 한 줄 — 색 라벨(문장/상황/AI)로 어느 근거인지 구분한다. */
