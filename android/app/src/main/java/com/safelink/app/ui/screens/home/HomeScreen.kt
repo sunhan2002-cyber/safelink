@@ -123,11 +123,12 @@ fun HomeScreen(
 
     if (showBackgroundConsent) {
         BackgroundDetectionConsentDialog(
+            initialAiConsent = AiConsentStore.isEnabled(context),
             onDismiss = { showBackgroundConsent = false },
             onDecide = { aiEnabled ->
                 showBackgroundConsent = false
-                // 허용/거부 어느 쪽이든 여기서 결정을 확정한다. 거부를 눌렀는데 예전 동의가 남아
-                // 그대로 켜져 있으면 "거부했는데 왜 전송되냐"가 되므로, 거부는 명시적으로 철회한다.
+                // [허용]을 눌렀을 때만 온다. AI 동의 체크 여부를 그대로 확정한다 — 체크를 풀고 허용했는데
+                // 예전 동의가 남아 전송되면 "동의 안 했는데 왜 보내냐"가 되므로, 미체크는 명시적으로 철회한다.
                 if (aiEnabled) AiConsentStore.agree(context) else AiConsentStore.revoke(context)
                 aiOn = aiEnabled
                 BackgroundDetectionAccess.openAccessibilitySettings(context)

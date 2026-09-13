@@ -127,6 +127,7 @@ fun SettingsScreen(navController: NavHostController) {
 
     if (showBackgroundConsent) {
         BackgroundDetectionConsentDialog(
+            initialAiConsent = AiConsentStore.isEnabled(context),
             onDismiss = { showBackgroundConsent = false },
             onDecide = { aiEnabled ->
                 showBackgroundConsent = false
