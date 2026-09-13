@@ -2,6 +2,7 @@ package com.safelink.app.ui.screens.record
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Info
@@ -82,6 +85,12 @@ fun RecordListScreen(
 ) {
     val records by viewModel.records.collectAsState()
     val filter by viewModel.filter.collectAsState()
+    val viewMode by viewModel.viewMode.collectAsState()
+    val groups by viewModel.groups.collectAsState()
+    val expandedGroupsChoice by viewModel.expandedGroups.collectAsState()
+    // 아직 한 번도 접거나 펼친 적이 없으면 가장 위(가장 위험하고 최근인) 묶음만 펼쳐 둔다.
+    // 전부 접혀 있으면 들어오자마자 내용이 하나도 안 보이고, 전부 펼치면 최신순과 다를 게 없다.
+    val expandedGroups = expandedGroupsChoice ?: setOfNotNull(groups.firstOrNull()?.key)
     var menuOpen by remember { mutableStateOf(false) }
     var recordPendingDelete by remember { mutableStateOf<RecordItem?>(null) }
     val scrollState = rememberScrollState()
@@ -115,18 +124,51 @@ fun RecordListScreen(
             if (records.isEmpty()) {
                 EmptyRecords(isFiltered = filter != null)
             } else {
-                // UI/UX 2순위(카드 남용 줄이기) - 기록마다 따로 흰 카드로 감싸 카드가
-                // 끝없이 반복되던 걸, 설정 화면과 같은 패턴(하나의 카드 안에 구분선으로
-                // 행 나누기)으로 바꿔 "전부 카드" 단조로움을 줄임
-                SafeLinkCard {
-                    records.forEachIndexed { index, record ->
-                        RecordRow(
-                            record = record,
-                            navController = navController,
-                            onDeleteClick = { recordPendingDelete = record }
-                        )
-                        if (index != records.lastIndex) {
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                ViewModeSelector(selected = viewMode, onSelect = viewModel::setViewMode)
+
+                when (viewMode) {
+                    RecordViewMode.LATEST -> {
+                        // UI/UX 2순위(카드 남용 줄이기) - 기록마다 따로 흰 카드로 감싸 카드가
+                        // 끝없이 반복되던 걸, 설정 화면과 같은 패턴(하나의 카드 안에 구분선으로
+                        // 행 나누기)으로 바꿔 "전부 카드" 단조로움을 줄임
+                        SafeLinkCard {
+                            records.forEachIndexed { index, record ->
+                                RecordRow(
+                                    record = record,
+                                    navController = navController,
+                                    onDeleteClick = { recordPendingDelete = record }
+                                )
+                                if (index != records.lastIndex) {
+                                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                                }
+                            }
+                        }
+                    }
+
+                    // 같은 상황(위험 유형)끼리 묶는다. 한 수법에 여러 번 노출됐는지가 한눈에 보이고,
+                    // 기관에 설명하거나 신고할 때 같은 상황의 기록을 모아 볼 수 있다.
+                    RecordViewMode.BY_SITUATION -> {
+                        groups.forEach { group ->
+                            val expanded = group.key in expandedGroups
+                            SafeLinkCard {
+                                SituationGroupHeader(
+                                    group = group,
+                                    expanded = expanded,
+                                    onToggle = { viewModel.toggleGroup(group.key, expandedGroups) }
+                                )
+                                if (expanded) {
+                                    group.records.forEach { record ->
+                                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                                        RecordRow(
+                                            record = record,
+                                            navController = navController,
+                                            onDeleteClick = { recordPendingDelete = record },
+                                            // 묶음 제목이 이미 상황 이름이라 행마다 반복하지 않는다
+                                            showCategoryInTitle = false
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -183,6 +225,103 @@ fun RecordListScreen(
         )
     }
 }
+
+/** 최신순 / 상황별 보기 전환 — 두 칸짜리 세그먼트. */
+@Composable
+private fun ViewModeSelector(selected: RecordViewMode, onSelect: (RecordViewMode) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            // 테마 기본 surfaceVariant 는 보라빛이라 앱의 초록·회색 톤과 어긋났다 — 글자색을 옅게 깐 중립 회색으로
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f), RoundedCornerShape(12.dp))
+            .padding(4.dp)
+    ) {
+        RecordViewMode.entries.forEach { mode ->
+            val isSelected = mode == selected
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .weight(1f)
+                    .background(
+                        if (isSelected) MaterialTheme.colorScheme.surface else androidx.compose.ui.graphics.Color.Transparent,
+                        RoundedCornerShape(9.dp)
+                    )
+                    .clickable { onSelect(mode) }
+                    .padding(vertical = 10.dp)
+            ) {
+                Text(
+                    text = mode.label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (isSelected) FontWeight.Bold else null,
+                    color = if (isSelected) TextPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 상황 묶음의 머리 — 상황 이름, 건수, 가장 최근 기록 시각, 위험도별 건수, 가장 높은 위험도.
+ * 누르면 접고 펼친다.
+ */
+@Composable
+private fun SituationGroupHeader(group: RecordGroup, expanded: Boolean, onToggle: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(vertical = 4.dp)
+    ) {
+        Icon(
+            imageVector = riskLevelIcon(group.highestRisk),
+            contentDescription = null,
+            tint = group.highestRisk.color(),
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "${group.title} ${group.records.size}건",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "최근 " + groupDateFormat.format(Date(group.latestTimestamp)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            // 위험도가 섞여 있을 때만 의미가 있다 — 전부 같은 위험도면 배지 하나로 충분하다
+            if (group.countsByRisk.size > 1) {
+                Row {
+                    group.countsByRisk.forEachIndexed { index, (level, count) ->
+                        if (index > 0) {
+                            Text(
+                                text = " · ",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Text(
+                            text = "${level.label} $count",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = level.color()
+                        )
+                    }
+                }
+            }
+        }
+        RiskBadge(level = group.highestRisk)
+        Icon(
+            imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+            contentDescription = if (expanded) "접기" else "펼치기",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 4.dp).size(24.dp)
+        )
+    }
+}
+
+private val groupDateFormat = SimpleDateFormat("M월 d일 a h:mm", Locale.KOREA)
 
 @Composable
 private fun FilterMenuItem(label: String, selected: Boolean, onClick: () -> Unit) {
@@ -278,7 +417,8 @@ private fun RegularCheckTip() {
 private fun RecordRow(
     record: RecordItem,
     navController: NavHostController,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    showCategoryInTitle: Boolean = true
 ) {
     val isCritical = record.riskLevel == RiskLevel.CRITICAL
     val iconSize = when (record.riskLevel) {
@@ -339,7 +479,9 @@ private fun RecordRow(
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = record.title,
+                // 제목은 "백그라운드 감지 · 보이스피싱" 형태다. 상황별 묶음 안에서는 뒤쪽이 묶음 제목과 같으므로
+                // 입력 경로만 남긴다(자가진단처럼 경로 라벨이 없는 기록은 원래 제목 그대로).
+                text = if (showCategoryInTitle) record.title else (record.sourceLabel ?: record.title),
                 style = if (isCritical) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
                 fontWeight = if (isCritical) FontWeight.Bold else null
             )
