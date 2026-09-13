@@ -43,6 +43,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -69,6 +70,7 @@ import com.safelink.app.ui.components.BackgroundDetectionDisableDialog
 import com.safelink.app.ui.navigation.Screen
 import com.safelink.app.ui.screens.detection.DetectionViewModel
 import com.safelink.app.ui.theme.BackgroundGray
+import com.safelink.app.ui.theme.BrandBlue
 import com.safelink.app.ui.theme.BrandBlueDark
 import com.safelink.app.ui.theme.SurfaceWhite
 import com.safelink.app.ui.theme.TextPrimary
@@ -151,8 +153,11 @@ fun HomeScreen(
         // 이미지 없이 텍스트만 쓰는 걸로 정리)
         Text(
             text = "SafeLink",
-            style = MaterialTheme.typography.titleLarge,
-            color = TextPrimary
+            style = MaterialTheme.typography.titleLarge.copy(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(BrandBlue, TipBlue)
+                )
+            )
         )
 
         // 상태 카드 — 백그라운드 감지가 있으면 그 위험도로, 없으면 안전함. 감지 시 탭하면 대응 가이드로.
