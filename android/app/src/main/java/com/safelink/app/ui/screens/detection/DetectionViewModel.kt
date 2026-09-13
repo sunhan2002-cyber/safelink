@@ -16,6 +16,7 @@ import com.safelink.app.data.link.LinkRiskResult
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.ocr.MlKitOcrService
 import com.safelink.app.data.ocr.OcrService
+import com.safelink.app.share.SharedImageImporter
 import com.safelink.app.data.local.RecordFeedback
 import com.safelink.app.data.local.RecordSource
 import com.safelink.app.data.repository.ConversationTurns
@@ -166,6 +167,22 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         ocrNoText = false
         ocrFeedbackMessage = null
         lastAnalysisSource = AnalysisSource.TEXT
+        // 이전에 공유받아 복사해 둔 스크린샷이 남아 있으면 지운다 — 새 분석에는 필요 없다
+        SharedImageImporter.clear(getApplication())
+    }
+
+    /**
+     * 다른 앱에서 공유받은 스크린샷으로 새 분석을 시작한다. [images] 는 앱 캐시로 복사해 둔 주소다.
+     * 이전 세션 값은 비우되, 방금 복사한 파일은 지우지 않는다([reset] 을 그대로 부르면 지워진다).
+     */
+    fun startSharedScreenshot(images: List<Uri>) {
+        originalText = ""
+        inputMethod = "스크린샷 업로드"
+        selectedImages = images.take(MAX_IMAGES)
+        startNewResult()
+        ocrNoText = false
+        ocrFeedbackMessage = null
+        lastAnalysisSource = AnalysisSource.SCREENSHOT
     }
 
     /**

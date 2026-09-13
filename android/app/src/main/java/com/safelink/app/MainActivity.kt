@@ -2,6 +2,8 @@ package com.safelink.app
 
 import android.Manifest
 import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -19,6 +21,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.safelink.app.settings.FeatureToggleState
+import com.safelink.app.share.SharedImageImporter
+import com.safelink.app.ui.screens.detection.DetectionViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.lifecycle.Lifecycle
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -40,6 +50,9 @@ class MainActivity : FragmentActivity() {
     // 알림 탭으로 전달된 딥링크 라우트 (감지 알림 → 대응 가이드/긴급 화면)
     private val pendingRoute = mutableStateOf<String?>(null)
 
+    // 공유로 받아 앱 캐시에 복사해 둔 스크린샷 — 잠금·온보딩을 지난 뒤 스크린샷 분석으로 넘긴다
+    private val pendingSharedImages = mutableStateOf<List<Uri>?>(null)
+
     private val requestNotificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* 결과와 무관하게 진행 */ }
 
@@ -48,10 +61,12 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         pendingRoute.value = intent?.getStringExtra(EXTRA_NAV_ROUTE)
+        // 화면 회전 등으로 다시 만들어질 때는 같은 공유를 두 번 처리하지 않는다
+        if (savedInstanceState == null) handleShare(intent)
         maybeRequestNotificationPermission()
         setContent {
             SafeLinkTheme {
-                SafeLinkApp(pendingRoute)
+                SafeLinkApp(pendingRoute, pendingSharedImages)
             }
         }
     }
@@ -61,6 +76,28 @@ class MainActivity : FragmentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         pendingRoute.value = intent.getStringExtra(EXTRA_NAV_ROUTE)
+        handleShare(intent)
+    }
+
+    /**
+     * "공유 → SafeLink 분석" 으로 들어온 이미지를 받는다. 받자마자 앱 캐시로 복사한다 —
+     * 공유받은 주소의 읽기 권한은 잠깐만 유효해서, 잠금 화면을 지나는 사이 사라질 수 있다([SharedImageImporter]).
+     */
+    private fun handleShare(intent: Intent?) {
+        if (!SharedImageImporter.isImageShare(intent)) return
+        val streams = SharedImageImporter.streamsOf(intent!!)
+        lifecycleScope.launch {
+            val copied = withContext(Dispatchers.IO) {
+                SharedImageImporter.import(applicationContext, streams, DetectionViewModel.MAX_IMAGES)
+            }
+            pendingSharedImages.value = copied
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // 설정에서 끈 공유 입구는 화면을 벗어난 뒤에 실제로 끈다 (FeatureToggleState.setScreenshotAnalysisEnabled 참고)
+        if (!isChangingConfigurations) FeatureToggleState.syncShareTarget(applicationContext)
     }
 
     /** Android 13+ 배너 알림 표시를 위한 런타임 권한 요청 (한 번) */
@@ -101,7 +138,7 @@ private val startupRoutes = setOf(
 )
 
 @Composable
-fun SafeLinkApp(pendingRoute: MutableState<String?>) {
+fun SafeLinkApp(pendingRoute: MutableState<String?>, pendingSharedImages: MutableState<List<Uri>?>) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -128,6 +165,24 @@ fun SafeLinkApp(pendingRoute: MutableState<String?>) {
         if (currentRoute == null || currentRoute in startupRoutes) return@LaunchedEffect
         navController.navigate(route)
         pendingRoute.value = null
+    }
+
+    // 공유로 받은 스크린샷: 진입/잠금 화면을 지난 뒤 입력 화면(스크린샷 모드)을 거쳐 바로 분석을 시작한다.
+    // 입력 화면을 한 번 거치는 이유 — 글자를 찾지 못하면 분석 화면이 뒤로 돌아가는데, 그때 "텍스트를 찾지 못했어요"
+    // 안내와 함께 다시 고를 수 있는 곳이 입력 화면이기 때문이다.
+    val activity = LocalContext.current as ComponentActivity
+    val detectionViewModel: DetectionViewModel = viewModel(viewModelStoreOwner = activity)
+    LaunchedEffect(pendingSharedImages.value, currentRoute) {
+        val images = pendingSharedImages.value ?: return@LaunchedEffect
+        if (currentRoute == null || currentRoute in startupRoutes) return@LaunchedEffect
+        pendingSharedImages.value = null
+        if (images.isEmpty()) {
+            Toast.makeText(context, "공유한 이미지를 읽을 수 없어요. 스크린샷을 다시 공유해 주세요.", Toast.LENGTH_LONG).show()
+            return@LaunchedEffect
+        }
+        detectionViewModel.startSharedScreenshot(images)
+        navController.navigate(Screen.DetectionInput.route) { popUpTo(Screen.Home.route) }
+        navController.navigate(Screen.Analyzing.route)
     }
 
     Scaffold(

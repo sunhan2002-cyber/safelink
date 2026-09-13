@@ -26,6 +26,27 @@
             </intent-filter>
         </activity>
 
+        <!-- 공유받기 입구: 스크린샷 미리보기·갤러리에서 "공유 → SafeLink" 로 이미지를 받아 스크린샷 분석으로 보낸다.
+             MainActivity 에 직접 달지 않고 별칭으로 둔 이유: 설정의 "스크린샷 분석 사용"을 끄면 이 별칭만 꺼서
+             공유 목록에서도 사라지게 하기 위해서다 (SharedImageImporter.setShareTargetEnabled).
+             받는 이미지는 사용자가 고른 것뿐이라 사진 읽기 권한이 필요 없다. -->
+        <activity-alias
+            android:name=".ShareScreenshotAlias"
+            android:exported="true"
+            android:label="@string/share_target_label"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+        </activity-alias>
+
         <!-- 백그라운드 위험 감지 (접근성 서비스) — 사용자가 설정에서 켜야만 동작.
              감지 대상 앱·중복 억제·알림 연결은 MessageDetectionService KDoc 참고. -->
         <service
