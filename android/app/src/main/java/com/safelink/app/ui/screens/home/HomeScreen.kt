@@ -305,9 +305,24 @@ fun HomeScreen(
                     Box(
                         modifier = Modifier
                             .size(64.dp)
-                            .background(
-                                if (protectionOff) MaterialTheme.colorScheme.onSurfaceVariant else statusLevel.color(),
-                                CircleShape
+                            .then(
+                                if (!protectionOff && snapshot == null && aiOn) {
+                                    Modifier.background(
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(BrandBlue, TipBlue)
+                                        ),
+                                        shape = CircleShape
+                                    )
+                                } else {
+                                    Modifier.background(
+                                        color = if (protectionOff) {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        } else {
+                                            statusLevel.color()
+                                        },
+                                        shape = CircleShape
+                                    )
+                                }
                             ),
                         contentAlignment = Alignment.Center
                     ) {

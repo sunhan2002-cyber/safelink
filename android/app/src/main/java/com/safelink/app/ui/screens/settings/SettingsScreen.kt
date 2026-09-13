@@ -42,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -71,6 +72,8 @@ import com.safelink.app.ui.theme.BrandBlueLight
 import com.safelink.app.ui.theme.RiskCritical
 import com.safelink.app.ui.theme.SurfaceWhite
 import com.safelink.app.ui.theme.TextPrimary
+import com.safelink.app.ui.theme.TipBlue
+import com.safelink.app.ui.theme.TipBlueContainer
 
 /** 설정 (Figma 20:1061) — 토글은 로컬 상태. 실제 저장은 EncryptedSharedPreferences (Task 5.15) */
 @Composable
@@ -297,14 +300,37 @@ fun SettingsScreen(navController: NavHostController) {
         ) {
             // 보호 상태 요약 카드 (Figma B10) — 여러 독립 토글 중 앱의 핵심 가치(메신저 실시간
             // 감지)와 가장 직결되는 백그라운드 감지 여부를 기준으로 표시
-            SafeLinkCard(containerColor = if (backgroundDetection) BrandBlueLight else BackgroundGray) {
+            val aiProtectionOn = backgroundDetection && aiConsent
+            SafeLinkCard(
+                containerColor = if (backgroundDetection) BrandBlueLight else BackgroundGray,
+                containerBrush = if (aiProtectionOn) {
+                    Brush.horizontalGradient(colors = listOf(BrandBlueLight, TipBlueContainer))
+                } else {
+                    null
+                }
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
                             .size(44.dp)
-                            .background(
-                                if (backgroundDetection) BrandBlue else MaterialTheme.colorScheme.onSurfaceVariant,
-                                CircleShape
+                            .then(
+                                if (aiProtectionOn) {
+                                    Modifier.background(
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(BrandBlue, TipBlue)
+                                        ),
+                                        shape = CircleShape
+                                    )
+                                } else {
+                                    Modifier.background(
+                                        color = if (backgroundDetection) {
+                                            BrandBlue
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                        shape = CircleShape
+                                    )
+                                }
                             ),
                         contentAlignment = Alignment.Center
                     ) {
