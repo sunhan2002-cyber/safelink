@@ -104,7 +104,8 @@ fun HomeScreen(
     // 예전에는 이 확인 없이 항상 "실시간 보호 중"이라고 표시해서, 권한을 켜지 않은 사용자에게도
     // 앱이 보호하고 있다고 말했다. 설정에서 켜고 돌아오면 바로 반영되도록 화면이 다시 보일 때마다 확인한다.
     val lifecycleOwner = LocalLifecycleOwner.current
-    var protectionOn by remember { mutableStateOf(BackgroundDetectionAccess.isEnabled(context)) }
+    // 보호가 꺼져 있으면 AI 동의도 함께 푼다 — 그래서 aiOn 보다 먼저 읽는다
+    var protectionOn by remember { mutableStateOf(BackgroundDetectionAccess.syncAiConsent(context)) }
     // AI 보조분석 동의 여부도 같이 본다 — 카드가 "무엇으로" 보고 있는지까지 말해 주기 위해서다.
     // 설정 화면에서 껐다 켜고 돌아오는 경우가 있으므로 권한과 같은 시점에 다시 읽는다.
     var aiOn by remember { mutableStateOf(AiConsentStore.isEnabled(context)) }
@@ -113,7 +114,7 @@ fun HomeScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                protectionOn = BackgroundDetectionAccess.isEnabled(context)
+                protectionOn = BackgroundDetectionAccess.syncAiConsent(context)
                 aiOn = AiConsentStore.isEnabled(context)
             }
         }

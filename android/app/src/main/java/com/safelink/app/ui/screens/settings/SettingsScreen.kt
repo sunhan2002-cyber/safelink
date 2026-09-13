@@ -103,7 +103,8 @@ fun SettingsScreen(navController: NavHostController) {
     var messageInput by remember { mutableStateOf("") }
     // 스크린샷 분석 사용 — 앱 레벨 토글(FeatureToggleState)에 연결해 실제 기능(스크린샷 탭)을 제어
     val screenshotAnalysis by FeatureToggleState.screenshotAnalysisEnabled.collectAsState()
-    var backgroundDetection by remember { mutableStateOf(BackgroundDetectionAccess.isEnabled(context)) }
+    // 보호가 꺼져 있으면 AI 동의도 함께 푼다(BackgroundDetectionAccess.syncAiConsent) — 그래서 aiConsent 보다 먼저 읽는다
+    var backgroundDetection by remember { mutableStateOf(BackgroundDetectionAccess.syncAiConsent(context)) }
     // 백그라운드 감지 켜기 전 동의·권한 안내 다이얼로그 (최종 가이드 v1.0)
     var showBackgroundConsent by remember { mutableStateOf(false) }
 
@@ -117,7 +118,7 @@ fun SettingsScreen(navController: NavHostController) {
     DisposableEffect(context, lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                backgroundDetection = BackgroundDetectionAccess.isEnabled(context)
+                backgroundDetection = BackgroundDetectionAccess.syncAiConsent(context)
                 aiConsent = AiConsentStore.isEnabled(context)
             }
         }
@@ -431,8 +432,15 @@ fun SettingsScreen(navController: NavHostController) {
                 )
                 ToggleRow(
                     label = "백그라운드 AI 보조분석",
-                    caption = "켜면 판단이 애매한 경우 대화 내용이 AI 제공사(Anthropic)로 전송됩니다. 끄면 기기 안에서만 판단합니다.",
+                    caption = if (backgroundDetection) {
+                        "켜면 판단이 애매한 경우 대화 내용이 AI 제공사(Anthropic)로 전송됩니다. 끄면 기기 안에서만 판단합니다."
+                    } else {
+                        "실시간 보호(백그라운드 감지)를 켜야 사용할 수 있어요."
+                    },
                     checked = aiConsent,
+                    // 보호가 꺼져 있으면 동작할 곳이 없는 설정이라 켤 수 없게 둔다.
+                    // 켜게 두면 보호를 켜기도 전에 동의만 남는다.
+                    enabled = backgroundDetection,
                     onChange = { on ->
                         // 켤 때만 동의 화면을 띄운다. 끄는 건 즉시 반영(동의 철회에 확인을 요구하지 않는다).
                         if (on) {
@@ -592,7 +600,8 @@ private fun ToggleRow(
     label: String,
     checked: Boolean,
     onChange: (Boolean) -> Unit,
-    caption: String? = null
+    caption: String? = null,
+    enabled: Boolean = true
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -610,7 +619,7 @@ private fun ToggleRow(
                 )
             }
         }
-        Switch(checked = checked, onCheckedChange = onChange)
+        Switch(checked = checked, onCheckedChange = onChange, enabled = enabled)
     }
 }
 
