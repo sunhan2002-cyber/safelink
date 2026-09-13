@@ -3,10 +3,18 @@ package com.safelink.app.ui.screens.home
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +41,7 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
@@ -42,16 +51,25 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.safelink.app.data.model.RiskLevel
 import com.safelink.app.ui.components.RiskBadge
+import com.safelink.app.ui.components.ActionHelpDialog
+import com.safelink.app.ui.components.ActionHelpTooltip
 import com.safelink.app.ui.components.SafeLinkCard
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
@@ -111,6 +129,7 @@ fun HomeScreen(
     var aiOn by remember { mutableStateOf(AiConsentStore.isEnabled(context)) }
     var showBackgroundConsent by remember { mutableStateOf(false) }
     var showBackgroundDisable by remember { mutableStateOf(false) }
+    var showAiConsent by remember { mutableStateOf(false) }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -145,6 +164,29 @@ fun HomeScreen(
             }
         )
     }
+    if (showAiConsent) {
+        AlertDialog(
+            onDismissRequest = { showAiConsent = false },
+            title = { Text(AiConsentStore.CONSENT_TITLE) },
+            text = { Text(AiConsentStore.CONSENT_BODY) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        AiConsentStore.agree(context)
+                        aiOn = true
+                        showAiConsent = false
+                    }
+                ) {
+                    Text("동의하고 사용")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAiConsent = false }) {
+                    Text("사용 안 함", color = TextPrimary)
+                }
+            }
+        )
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -152,16 +194,38 @@ fun HomeScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 홈 화면 좌측 상단 브랜드 워드마크 (사용자 요청 - 아이콘 그래픽 시도 몇 차례 후
-        // 이미지 없이 텍스트만 쓰는 걸로 정리)
-        Text(
-            text = "SafeLink",
-            style = MaterialTheme.typography.titleLarge.copy(
-                brush = Brush.horizontalGradient(
-                    colors = listOf(BrandBlue, TipBlue)
+        // 브랜드는 화면 기준 정중앙에 두고 AI 보조분석은 우측의 배경 없는 반짝이 버튼으로 제공한다.
+        // 버튼이 차지하는 폭과 무관하게 로고가 밀리지 않도록 Box 안에서 각각 독립 정렬한다.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "SafeLink",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontSize = 22.sp,
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(BrandBlue, TipBlue)
+                    )
                 )
             )
-        )
+            AiAssistantButton(
+                enabled = aiOn,
+                onClick = {
+                    when {
+                        !protectionOn -> showBackgroundConsent = true
+                        aiOn -> {
+                            AiConsentStore.revoke(context)
+                            aiOn = false
+                        }
+                        else -> showAiConsent = true
+                    }
+                },
+                modifier = Modifier.align(Alignment.CenterEnd)
+            )
+        }
 
         // 상태 카드 — 백그라운드 감지가 있으면 그 위험도로, 없으면 안전함. 감지 시 탭하면 대응 가이드로.
         // 디자인 개선: 흰 카드에 아이콘만 떠있던 것 -> 상태색으로 카드 배경을 옅게 물들이고,
@@ -453,6 +517,87 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(72.dp)) // SOS FAB 가림 방지
     }
+}
+
+/**
+ * 홈 헤더의 AI 보조분석 버튼.
+ *
+ * 보이는 원형 배경은 두지 않고 48dp 터치 영역 안에 반짝이만 둔다. 활성 상태에서는
+ * 흰 아이콘을 offscreen layer에 그린 뒤 SrcIn으로 마스킹해 도형 내부에만 브랜드
+ * 초록→파랑 그라데이션이 보이게 한다.
+ */
+@Composable
+@OptIn(ExperimentalFoundationApi::class)
+private fun AiAssistantButton(
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var showHelp by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val hovered by interactionSource.collectIsHoveredAsState()
+    val scale by animateFloatAsState(
+        targetValue = when {
+            pressed -> 0.9f
+            hovered -> 1.08f
+            else -> 1f
+        },
+        label = "ai-assistant-button-feedback"
+    )
+    val activeIconModifier = Modifier
+        .size(30.dp)
+        .graphicsLayer {
+            compositingStrategy = CompositingStrategy.Offscreen
+        }
+        .drawWithCache {
+            val gradient = Brush.horizontalGradient(
+                colors = listOf(BrandBlue, TipBlue)
+            )
+            onDrawWithContent {
+                drawContent()
+                drawRect(brush = gradient, blendMode = BlendMode.SrcIn)
+            }
+        }
+
+    Box(modifier = modifier.size(48.dp)) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(48.dp)
+                .scale(scale)
+                .hoverable(interactionSource)
+                .combinedClickable(
+                    interactionSource = interactionSource,
+                    indication = LocalIndication.current,
+                    role = Role.Button,
+                    onLongClickLabel = "AI 보조분석 설명 보기",
+                    onLongClick = { showHelp = true },
+                    onClick = onClick
+                )
+        ) {
+            Icon(
+                imageVector = Icons.Filled.AutoAwesome,
+                contentDescription = if (enabled) "AI 보조분석 끄기" else "AI 보조분석 켜기",
+                tint = if (enabled) Color.White
+                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.42f),
+                modifier = if (enabled) activeIconModifier else Modifier.size(30.dp)
+            )
+        }
+        ActionHelpTooltip(
+            visible = hovered && !showHelp,
+            title = "AI 보조분석",
+            description = "판단하기 어려운 대화를 AI가 한 번 더 살펴봐요."
+        )
+    }
+    ActionHelpDialog(
+        visible = showHelp,
+        title = "AI 보조분석",
+        description = "기기 안에서 판단하기 어려운 대화를 AI가 한 번 더 살펴보고, " +
+            "사기나 위협으로 의심되는 이유를 알려줘요. 실시간 보호가 켜져 있을 때만 " +
+            "사용할 수 있으며, 켜기 전에 어떤 정보가 전송되는지 먼저 안내합니다.",
+        onDismiss = { showHelp = false }
+    )
 }
 
 /** 홈 상태 카드 제목 — 백그라운드 감지 위험도별 (없으면 SAFE) */
