@@ -198,6 +198,8 @@ fun DetectionInputScreen(
             SafeLinkPrimaryButton(
                 text = "분석 시작하기",
                 enabled = canAnalyze,
+                helpTitle = "대화 분석",
+                helpDescription = "입력한 대화나 선택한 스크린샷에서 위험 신호를 확인하고 안전한 대응 방법을 안내합니다.",
                 onClick = {
                     // 스크린샷 모드면 Analyzing 화면에서 OCR 후 분석까지 수행한다
                     navController.navigate(Screen.Analyzing.route)

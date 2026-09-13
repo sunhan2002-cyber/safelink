@@ -1,5 +1,16 @@
 package com.safelink.app.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,10 +23,17 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
@@ -39,8 +57,26 @@ fun SafeLinkPrimaryButton(
     containerColor: Color = MaterialTheme.colorScheme.primary,
     height: Dp = 56.dp,
     textStyle: TextStyle? = null,
-    leadingIcon: ImageVector? = null
+    leadingIcon: ImageVector? = null,
+    helpTitle: String? = null,
+    helpDescription: String? = null
 ) {
+    if (helpTitle != null && helpDescription != null) {
+        HelpAwarePrimaryButton(
+            text = text,
+            onClick = onClick,
+            modifier = modifier,
+            enabled = enabled,
+            containerColor = containerColor,
+            height = height,
+            textStyle = textStyle,
+            leadingIcon = leadingIcon,
+            helpTitle = helpTitle,
+            helpDescription = helpDescription
+        )
+        return
+    }
+
     Button(
         onClick = onClick,
         enabled = enabled,
@@ -60,6 +96,91 @@ fun SafeLinkPrimaryButton(
             Text(text = text, style = textStyle ?: MaterialTheme.typography.labelLarge)
         }
     }
+}
+
+@Composable
+@OptIn(ExperimentalFoundationApi::class)
+private fun HelpAwarePrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier,
+    enabled: Boolean,
+    containerColor: Color,
+    height: Dp,
+    textStyle: TextStyle?,
+    leadingIcon: ImageVector?,
+    helpTitle: String,
+    helpDescription: String
+) {
+    var showDialog by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val hovered by interactionSource.collectIsHoveredAsState()
+    val scale by animateFloatAsState(
+        targetValue = when {
+            pressed -> 0.98f
+            hovered -> 1.015f
+            else -> 1f
+        },
+        label = "button-feedback"
+    )
+    val activeColor by animateColorAsState(
+        targetValue = if (hovered) MaterialTheme.colorScheme.secondary else containerColor,
+        label = "button-hover-color"
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .hoverable(interactionSource = interactionSource, enabled = enabled)
+    ) {
+        Surface(
+            color = if (enabled) activeColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+            contentColor = if (enabled) MaterialTheme.colorScheme.onPrimary
+            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+            shape = RoundedCornerShape(14.dp),
+            shadowElevation = when {
+                pressed -> 1.dp
+                hovered -> 7.dp
+                else -> 2.dp
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(height)
+                .scale(scale)
+                .combinedClickable(
+                    interactionSource = interactionSource,
+                    indication = LocalIndication.current,
+                    enabled = enabled,
+                    role = Role.Button,
+                    onLongClickLabel = "$helpTitle 설명 보기",
+                    onLongClick = {
+                        showDialog = true
+                    },
+                    onClick = onClick
+                )
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (leadingIcon != null) {
+                    Icon(imageVector = leadingIcon, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(text = text, style = textStyle ?: MaterialTheme.typography.labelLarge)
+            }
+        }
+        ActionHelpTooltip(hovered && !showDialog, helpTitle, helpDescription)
+    }
+
+    ActionHelpDialog(
+        visible = showDialog,
+        title = helpTitle,
+        description = helpDescription,
+        onDismiss = { showDialog = false }
+    )
 }
 
 /** Outlined 보조 버튼 */
