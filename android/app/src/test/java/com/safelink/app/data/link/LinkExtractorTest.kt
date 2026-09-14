@@ -42,6 +42,26 @@ class LinkExtractorTest {
         assertEquals(listOf("http://a.example.com:8080/x"), urls("접속: http://a.example.com:8080/x"))
     }
 
+    @Test
+    fun `한글 라벨로 된 도메인도 뽑는다`() {
+        assertEquals(
+            listOf("https://www.대장방문.com/6ITtt"),
+            urls("받은 문자: https://www.대장방문.com/6ITtt 확인해주세요")
+        )
+    }
+
+    @Test
+    fun `scheme 없는 한글 도메인도 알려진 TLD 면 링크로 본다`() {
+        assertEquals(listOf("http://대장방문.com/6ITtt"), urls("주소 대장방문.com/6ITtt 로"))
+    }
+
+    @Test
+    fun `한글 단어에 dot 없이 붙은 링크는 그 단어를 호스트에 포함하지 않는다`() {
+        // "여기클릭"처럼 한글이 dot 없이 그냥 붙어 왔을 때, 한글 라벨을 지원한다고 해서
+        // 앞 단어까지 호스트로 삼키면 안 된다 — 기존 "붙어 있는 한글" 케이스와 동일하게 취급.
+        assertEquals(listOf("http://bit.ly/3xAb9"), urls("여기클릭bit.ly/3xAb9하세요"))
+    }
+
     // --- 훼손된 링크 -----------------------------------------------------
 
     @Test
