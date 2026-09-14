@@ -46,7 +46,10 @@ import com.safelink.app.ui.theme.BrandBlue
 import com.safelink.app.ui.theme.TextSecondary
 import com.safelink.app.ui.theme.TipBlue
 import com.safelink.app.ui.theme.TipBlueContainer
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 private const val MAX_CHARS = 5000
 
@@ -168,10 +171,10 @@ fun LinkCheckScreen(navController: NavHostController, viewModel: DetectionViewMo
                             )
                         }
                     }
-                } else if (viewModel.linkResults.isEmpty()) {
-                    // 링크는 찾았지만 결과가 비어있다 — API 키 미설정 등으로 검사 자체가
-                    // 건너뛰어진 경우(DetectionViewModel.showLinks). LinkRiskSection은 결과가
-                    // 없으면 아무것도 안 그리므로, 이 화면에서는 대신 이유를 알려준다.
+                } else if (viewModel.linkResults.isEmpty() && !viewModel.isCheckingLinks) {
+                    // 링크는 찾았지만 검사 결과가 없다 — 이 빌드에 링크 검사 키가 없어 검사를 건너뛴 경우
+                    // (DetectionViewModel.showLinks). LinkRiskSection은 결과가 없으면 아무것도 안 그리므로,
+                    // 이 화면에서는 대신 이유를 알려준다. 검사가 아직 진행 중이면 이 안내를 띄우지 않는다.
                     SafeLinkCard {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
@@ -188,7 +191,7 @@ fun LinkCheckScreen(navController: NavHostController, viewModel: DetectionViewMo
                         }
                     }
                 } else {
-                    LinkRiskSection(results = viewModel.linkResults, isChecking = false)
+                    LinkRiskSection(results = viewModel.linkResults, isChecking = viewModel.isCheckingLinks)
                 }
             }
         }
@@ -206,6 +209,15 @@ fun LinkCheckScreen(navController: NavHostController, viewModel: DetectionViewMo
                         viewModel.reset()
                         viewModel.originalText = submitted
                         val ok = viewModel.runLinkCheckAnalysis()
+                        // 분석은 링크 검사를 최대 1.5초만 기다리고 먼저 끝난다(대화 분석 화면이 오래 멈추지 않게).
+                        // 이 화면은 링크 판정이 곧 결과라, 검사가 끝날 때까지 기다린 뒤에 판단한다.
+                        // 실제 폰에서는 첫 검사 때 Play 서비스 연결이 1.5초를 넘기는 일이 흔해서, 기다리지 않으면
+                        // 검사 중인데도 "사용할 수 없어요"가 뜨고 위험 링크여도 결과 화면으로 넘어가지 않았다.
+                        // 검사기는 링크마다 최대 2초에서 끊으므로 그만큼만 기다린다.
+                        if (viewModel.isCheckingLinks) {
+                            val waitMs = (checkedLinkCount.coerceAtLeast(1) * 2_000L + 1_000L).coerceAtMost(12_000L)
+                            withTimeoutOrNull(waitMs) { snapshotFlow { viewModel.isCheckingLinks }.first { !it } }
+                        }
                         isChecking = false
                         val level = viewModel.result?.riskLevel
                         if (ok && level != null && level.ordinal >= RiskLevel.WARNING.ordinal) {
