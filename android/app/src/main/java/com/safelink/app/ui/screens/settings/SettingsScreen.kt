@@ -442,7 +442,7 @@ fun SettingsScreen(navController: NavHostController) {
                 )
                 ToggleRow(
                     label = "백그라운드 감지 설정",
-                    caption = "접근성 권한을 허용하면 현재 화면 텍스트를 감지하고 알림으로 안내합니다.",
+                    caption = "휴대폰 설정의 '접근성'에서 SafeLink를 켜면, 대화 화면에 위험한 표현이 보일 때 알림으로 알려드려요.",
                     checked = backgroundDetection,
                     onChange = { on ->
                         // 켤 때는 동의·권한 안내 먼저 (동의/권한 없이 활성화 표시 안 함)

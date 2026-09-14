@@ -75,7 +75,7 @@ fun OnboardingScreen(navController: NavHostController) {
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "보이스피싱, 스미싱, 로맨스스캠을\n실시간으로 감지하고 대응 방법을 안내합니다.",
+            text = "보이스피싱, 스미싱(문자 사기), 로맨스스캠을\n실시간으로 감지하고 대응 방법을 안내합니다.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

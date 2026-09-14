@@ -30,7 +30,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -54,6 +56,10 @@ import com.safelink.app.util.IntentActions
 @Composable
 fun EmergencyScreen(navController: NavHostController) {
     val context = LocalContext.current
+    val scrollState = rememberScrollState()
+    val topBarCollapse by remember {
+        derivedStateOf { (scrollState.value / 96f).coerceIn(0f, 1f) }
+    }
     // 긴급 배지가 계속 반짝이며 퍼지는 느낌을 주는 펄스 링 — 이 화면은 항상 긴급 상태를
     // 보여주는 화면이라(홈과 달리 조건부 아님) 계속 반복 재생(사용자 요청).
     val pulse = rememberInfiniteTransition(label = "emergency-pulse")
@@ -75,19 +81,25 @@ fun EmergencyScreen(navController: NavHostController) {
         ),
         label = "pulse-alpha"
     )
-    Column(modifier = Modifier.fillMaxSize()) {
+    // 기록·지원 화면과 같은 구조로 상단바까지 하나의 스크롤 영역에 포함한다.
+    // 내용을 위로 올리면 제목이 먼저 흐려진 뒤 헤더 영역도 함께 화면 밖으로 사라지고,
+    // 최상단으로 돌아오면 원래 모습으로 다시 나타난다.
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+    ) {
         SafeLinkTopBar(
             title = "긴급 도움 요청",
             onBack = { navController.popBackStack() },
-            useCloseIcon = true
+            useCloseIcon = true,
+            collapseFraction = topBarCollapse
         )
 
         // 원·버튼을 키운 뒤로 작은 화면에서는 내용이 화면보다 길어져 맨 아래 안내 문구가
         // 잘렸다 — 스크롤되게 해서 어느 화면 크기에서도 끝까지 볼 수 있게 한다.
         Column(
             modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
