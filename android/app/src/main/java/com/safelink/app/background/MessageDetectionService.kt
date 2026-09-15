@@ -40,6 +40,7 @@ import java.util.UUID
  *   2. extractVisibleText()  : 화면 노드 트리에서 대화 텍스트 추출
  *   3. DetectionRepository.analyze(text) : 온디바이스 위험 분석 (기존 엔진 재사용)
  *   4. RiskNotifier.notifyRisk()         : 경고 이상이면 배너 알림
+ *      (주의 단계는 AI 동의가 있을 때 AI 로 한 번 더 확인해, 뚜렷하게 위험하다고 보면 알림 — [escalateCautionIfConsented])
  *   5. (알림 탭) → 저장된 기록의 분석 결과 화면 딥링크 ([RiskNotifier] + MainActivity)
  *
  * ── 성능/중복 억제 ──────────────────────────────────────────────────────
@@ -74,6 +75,9 @@ class MessageDetectionService : AccessibilityService() {
     /** 화면 전환 직후 재확인용 — 내용이 다 그려질 때까지 잠깐 기다렸다 한 번 더 읽는다. */
     private val recheckHandler = Handler(Looper.getMainLooper())
     private val notifier by lazy { RiskNotifier(applicationContext) }
+
+    /** 주의 단계 대화를 AI 로 보낼지 거르는 문지기 — 같은 대화 반복 전송·호출 수 제한 */
+    private val cautionAiGate = CautionAiGate()
 
     /**
      * 링크 검사기. 검사할 주소를 외부로 보내지 않고 기기 안의 차단 목록과 대조한다
@@ -201,6 +205,12 @@ class MessageDetectionService : AccessibilityService() {
             return
         }
 
+        // 주의 단계는 알림 없이 끝나던 구간이다. AI 동의가 있으면 한 번 더 확인해서, 규칙이 처음 보는
+        // 표현이라 점수가 낮게 나온 사기를 AI 가 위험하다고 보면 그때 알린다.
+        if (result.riskLevel == RiskLevel.CAUTION) {
+            serviceScope.launch { escalateCautionIfConsented(result, text, pkg, windowId) }
+        }
+
         // 여기까지 왔다는 건 키워드로는 위험이 안 잡혔다는 뜻이다.
         // 그래도 화면에 링크가 있으면 링크 자체를 확인한다 — "긴급하니 눌러보세요" 같은 문구
         // 없이 링크만 툭 던지는 수법이 실제로 흔해서, 키워드 판정만으로는 이런 건이 그대로 지나간다.
@@ -316,6 +326,54 @@ class MessageDetectionService : AccessibilityService() {
             BackgroundDetectionState.refine(verdict, sourceApp = pkg)
             recordId?.let { id -> runCatching { recordRepository.updateVerdict(id, verdict) } }
         }
+    }
+
+    /**
+     * 규칙으로는 "주의"(알림 없음)였던 대화를 AI 로 한 번 더 확인하고, AI 보정 후 경고 이상이면 알린다.
+     *
+     * 경고 이상 경로와 달리 여기서는 AI 판정이 나온 뒤에야 알림·기록을 만든다 — 규칙만으로는 알릴 근거가
+     * 없으므로, AI 가 위험하다고 보지 않으면 아무것도 남기지 않는다(일상 대화가 기록에 쌓이지 않도록).
+     * 같은 대화 반복 전송과 호출 수는 [cautionAiGate] 로 제한한다.
+     */
+    private suspend fun escalateCautionIfConsented(result: DetectionResult, text: String, pkg: String, windowId: Int) {
+        if (!AiConsentStore.isEnabled(applicationContext)) return
+        if (!cautionAiGate.tryAcquire(pkg, keywordsOf(result), phrasesOf(result), SystemClock.elapsedRealtime())) return
+
+        val refined = runCatching {
+            repository.escalateToAI(
+                result = result,
+                sessionId = UUID.randomUUID().toString(),
+                recentTurns = ConversationTurns.recentForAi(ConversationTurns.split(text))
+            )
+        }.getOrNull() ?: return
+        // 실패하면 원본이 그대로 온다 — 규칙 판정(주의)대로 조용히 끝낸다.
+        if (refined === result) return
+
+        val links = inspectLinks(text)
+        val verdict = LinkRiskPolicy.apply(refined, links)
+        // 위험한 링크로 올라간 판정은 AI 보정 폭과 무관하게 알린다. 그 외에는 AI 가 뚜렷하게 올렸을 때만.
+        val raisedByLink = verdict !== refined
+        if (verdict.riskLevel.ordinal < RiskLevel.WARNING.ordinal) return
+        if (!raisedByLink && !CautionAiGate.shouldAlert(result.score, refined.score)) return
+
+        val now = SystemClock.elapsedRealtime()
+        if (isDuplicateAlert(pkg, verdict, windowId, now)) return
+        lastAlertPkg = pkg
+        lastAlertKeywords = keywordsOf(verdict)
+        lastAlertPhrases = phrasesOf(verdict)
+        lastAlertAt = now
+        lastAlertWindowId = windowId
+
+        BackgroundDetectionState.update(verdict, sourceApp = pkg)
+        val recordId = runCatching {
+            recordRepository.saveDetection(verdict, RecordSource.BACKGROUND, linkResults = links)
+        }.getOrNull()
+        notifier.notifyRisk(
+            verdict.riskLevel,
+            verdict.category,
+            dangerousLinkLabel(links) ?: verdict.matchedKeywords.firstOrNull()?.matchedText,
+            recordId
+        )
     }
 
     /** 매칭된 키워드 id 집합 — 같은 내용을 다시 본 것인지 판단하는 기준 */
