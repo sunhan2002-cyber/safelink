@@ -292,22 +292,41 @@ class DetectionEngine(
 
     private fun matchKeywordsInTurn(turnText: String, turnIndex: Int, turnOffset: Int): List<RawMatch> {
         val matches = mutableListOf<RawMatch>()
+        val compactTurn = CompactText.of(turnText)
         for (entry in keywordData.keywords) {
             when (entry.matchType) {
                 "keyword" -> {
                     val needle = entry.keyword ?: continue
-                    var searchFrom = 0
-                    while (true) {
-                        val idx = turnText.indexOf(needle, searchFrom)
-                        if (idx < 0) break
-                        matches += RawMatch(
-                            entry = entry,
-                            turnIndex = turnIndex,
-                            startInFull = turnOffset + idx,
-                            endInFull = turnOffset + idx + needle.length,
-                            matchedText = needle
-                        )
-                        searchFrom = idx + needle.length
+                    // 띄어쓰기 무시 비교 (신기훈 탐지보강 2-1): 키워드와 원문 양쪽의 공백을 빼고 비교한다.
+                    // "대신송금해줄래"가 "대신 송금"을, "통화가안돼"가 "지금 통화가 안 돼"의 뒷부분을 잡지 못하던 문제.
+                    // 공백을 빼면 2글자 이하가 되는 짧은 키워드(검사·즉시·압류·구속·옷 벗)는 옆 단어와 우연히 붙어
+                    // 잡힐 위험이 커서 예전처럼 글자 그대로 일치할 때만 잡는다.
+                    // 밑줄 위치와 matchedText 는 띄어쓰기가 그대로인 원문 기준으로 되돌린다.
+                    val compactNeedle = CompactText.strip(needle)
+                    if (compactNeedle.length < MIN_SPACE_INSENSITIVE_LENGTH) {
+                        var searchFrom = 0
+                        while (true) {
+                            val idx = turnText.indexOf(needle, searchFrom)
+                            if (idx < 0) break
+                            matches += RawMatch(
+                                entry = entry,
+                                turnIndex = turnIndex,
+                                startInFull = turnOffset + idx,
+                                endInFull = turnOffset + idx + needle.length,
+                                matchedText = needle
+                            )
+                            searchFrom = idx + needle.length
+                        }
+                    } else {
+                        compactTurn.findAll(compactNeedle).forEach { range ->
+                            matches += RawMatch(
+                                entry = entry,
+                                turnIndex = turnIndex,
+                                startInFull = turnOffset + range.first,
+                                endInFull = turnOffset + range.last + 1,
+                                matchedText = turnText.substring(range.first, range.last + 1)
+                            )
+                        }
                     }
                 }
                 "regex-simple" -> {
@@ -648,6 +667,12 @@ class DetectionEngine(
     // ─────────────────────────────────────────────────────────────────
 
     companion object {
+        /**
+         * 띄어쓰기 무시 비교를 적용할 최소 길이(공백을 뺀 키워드 글자 수). 이보다 짧으면 글자 그대로 일치만 본다.
+         * 2글자 키워드(검사·즉시·압류·구속·옷 벗)는 "검사결과"·"즉시불" 처럼 다른 단어 안에서 우연히 잡히기 쉽다.
+         */
+        internal const val MIN_SPACE_INSENSITIVE_LENGTH = 3
+
         /** 원문 속 링크(https?://...)를 잡는 키워드 id. 스미싱 조합(COMBO-VP-SMISHING)의 링크 조건이다. */
         private const val URL_KEYWORD_ID = "VP-1-6-004"
 
@@ -789,5 +814,44 @@ class DetectionEngine(
             }
 
         return (sentenceRuleFromKeywords + sentenceRuleFromCombos) to situationalRuleEvidences
+    }
+}
+/**
+ * 공백(스페이스·탭·줄바꿈 없는 공백 문자)을 뺀 문자열과, 뺀 문자열의 각 글자가 원문 어디였는지를 함께 들고 있다.
+ * 줄바꿈은 빼지 않는다 — 메시지 경계를 넘어 두 말풍선의 글자가 이어져 잡히면 안 되기 때문이다.
+ */
+internal class CompactText private constructor(private val compact: String, private val originalIndex: IntArray) {
+
+    /** [compactNeedle](공백 없는 키워드)이 나오는 원문 구간들. 한 번 잡힌 구간 뒤부터 다시 찾는다. */
+    fun findAll(compactNeedle: String): List<IntRange> {
+        if (compactNeedle.isEmpty()) return emptyList()
+        val ranges = mutableListOf<IntRange>()
+        var from = 0
+        while (true) {
+            val idx = compact.indexOf(compactNeedle, from)
+            if (idx < 0) break
+            ranges += originalIndex[idx]..originalIndex[idx + compactNeedle.length - 1]
+            from = idx + compactNeedle.length
+        }
+        return ranges
+    }
+
+    companion object {
+        private fun isSpace(c: Char) = c == ' ' || c == '	' || c == ' ' || c == '　'
+
+        fun strip(text: String): String = text.filterNot(::isSpace)
+
+        fun of(text: String): CompactText {
+            val sb = StringBuilder(text.length)
+            val index = IntArray(text.length)
+            var n = 0
+            text.forEachIndexed { i, c ->
+                if (!isSpace(c)) {
+                    sb.append(c)
+                    index[n++] = i
+                }
+            }
+            return CompactText(sb.toString(), index.copyOf(n))
+        }
     }
 }
