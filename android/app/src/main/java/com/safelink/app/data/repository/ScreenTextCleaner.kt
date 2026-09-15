@@ -41,7 +41,22 @@ object ScreenTextCleaner {
     private val UI_LABEL_PATTERNS = listOf(
         Regex("Show .+ screen", RegexOption.IGNORE_CASE),
         Regex("Texting with .+", RegexOption.IGNORE_CASE),
+        // 디스코드: 서버 목록("읽지 않은 메시지, 서버이름"), 접속자 수, 보낸 사람·시각 묶음, 입력창 안내
+        Regex("읽지 않은 메시지,\\s*.+"),
+        Regex("\\d+명 온라인"),
+        Regex(".{1,40},\\s*(오전|오후)\\s*\\d{1,2}:\\d{2}"),
+        Regex("#?.{1,40}에(게)? 메시지 보내기"),
+        Regex("(읽지 않은 )?.{1,40}\\((채팅|음성|포럼|공지|스테이지) 채널\\)"),
+        Regex("(채팅|음성|포럼|공지|스테이지) 채널"),
+        Regex("#.{1,40}에 오신 걸 환영합니다!?"),
+        Regex("#.{1,40} 채널의 시작이에요\\.?"),
+        Regex(".{1,20}이후로 읽지 않은 메시지가 \\d+개 있어요"),
+        // 보낸 사람 아이디("jaegyeom0247", "sunhan04242") — 영문과 숫자·밑줄·점이 섞인 한 단어만. "hello" 같은 영어 메시지는 남긴다
+        Regex("(?=.*[A-Za-z])(?=.*[0-9_.])[A-Za-z0-9_.]{3,32}"),
     )
+
+    /** 디스코드 채널 목록은 "과제방 (채팅 채널)" 다음 줄에 이름("과제방")만 한 번 더 온다 */
+    private val CHANNEL_ENTRY = Regex("(읽지 않은 )?(.{1,40}) \\((채팅|음성|포럼|공지|스테이지) 채널\\)")
 
     /** 줄 전체가 이것과 같을 때만 뺀다(대소문자·앞뒤 공백 무시). */
     private val UI_LABELS = setOf(
@@ -56,12 +71,17 @@ object ScreenTextCleaner {
         // 인스타그램 DM
         "메시지...", "메시지…", "좋아요", "답장", "사진", "동영상", "갤러리", "음성 클립", "스티커",
         "message...", "message…", "like", "reply", "gallery", "voice clip", "sticker",
+        // 디스코드
+        "미디어 키보드 전환", "이모지 키보드 전환", "선물 보내기", "음성 메시지 녹음", "검색하기", "멤버 목록",
     )
 
     fun clean(text: String): String {
         val kept = mutableListOf<String>()
+        var channelName: String? = null
         for (raw in text.split('\n')) {
             val line = raw.trim()
+            if (line == channelName) { channelName = null; continue }
+            channelName = CHANNEL_ENTRY.matchEntire(line)?.groupValues?.get(2)
             if (line.isEmpty() || isScreenElement(line)) continue
             if (kept.lastOrNull() == line) continue
             kept += line

@@ -706,18 +706,24 @@ private fun highlightMatches(
     to: Int = result.originalText.length
 ): AnnotatedString {
     val text = result.originalText
-    val spans = result.matchedKeywords
+    // 매칭 구간을 [from, to) 로 잘라 겹치는 것끼리 합친다.
+    // 말풍선 경계를 넘는 표현("급하게 문화상품권" / "사서 번호 보내줘")은 줄마다 나눠 칠해야 카드마다 밑줄이 보이고,
+    // 겹치는 짧은 표현 때문에 긴 표현이 통째로 건너뛰어지지 않는다.
+    val ranges = result.matchedKeywords
         .filter { it.startIndex in 0..text.length && it.endIndex in it.startIndex..text.length }
-        // [from, to) 구간만 그릴 때는 그 안에 완전히 든 매칭만 칠한다
-        .filter { it.startIndex >= from && it.endIndex <= to }
-        .sortedBy { it.startIndex }
+        .map { maxOf(it.startIndex, from) to minOf(it.endIndex, to) }
+        .filter { (s, e) -> s < e }
+        .sortedBy { it.first }
+        .fold(mutableListOf<Pair<Int, Int>>()) { acc, r ->
+            val last = acc.lastOrNull()
+            if (last != null && r.first <= last.second) acc[acc.size - 1] = last.first to maxOf(last.second, r.second) else acc += r
+            acc
+        }
 
     return buildAnnotatedString {
         var cursor = from
-        spans.forEach { kw ->
-            // 앞선 구간과 겹치면 건너뛴다(같은 자리를 두 번 칠하지 않도록)
-            if (kw.startIndex < cursor) return@forEach
-            append(text.substring(cursor, kw.startIndex))
+        ranges.forEach { (s, e) ->
+            append(text.substring(cursor, s))
             withStyle(
                 SpanStyle(
                     background = result.riskLevel.color().copy(alpha = 0.18f),
@@ -726,9 +732,9 @@ private fun highlightMatches(
                     textDecoration = TextDecoration.Underline
                 )
             ) {
-                append(text.substring(kw.startIndex, kw.endIndex))
+                append(text.substring(s, e))
             }
-            cursor = kw.endIndex
+            cursor = e
         }
         append(text.substring(cursor, to))
     }
