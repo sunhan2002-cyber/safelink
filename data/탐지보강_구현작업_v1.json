@@ -1,0 +1,317 @@
+{
+  "_meta": {
+    "version": "v1",
+    "created_at": "2026-09-15",
+    "owner": "김재겸",
+    "purpose": "띄어쓰기·조사·어미 변형으로 놓치는 위험 문장을 줄이고, 가족사칭 회귀 테스트로 오탐을 검증하기 위한 기능 수정 작업 파일",
+    "commit_ready": true,
+    "related_files": [
+      "android/app/src/main/java/com/safelink/app/data/repository/DetectionEngine.kt",
+      "data/keyword.json",
+      "android/app/src/main/assets/keyword.json",
+      "android/app/src/test/resources/keyword.json",
+      "android/app/src/test/resources/rule_regression_cases.json"
+    ],
+    "do_not_change_first": [
+      "위험도 구간 기준",
+      "추천 기관 매핑 구조",
+      "AI API 호출 흐름",
+      "ViewModel 화면 상태 구조"
+    ]
+  },
+  "implementation_order": [
+    {
+      "step": 1,
+      "title": "keyword 타입 띄어쓰기 무시 매칭 추가",
+      "file": "android/app/src/main/java/com/safelink/app/data/repository/DetectionEngine.kt",
+      "target_methods": [
+        "matchKeywordsInTurn",
+        "scoreMatches"
+      ],
+      "new_members": [
+        {
+          "name": "MIN_SPACE_INSENSITIVE_LENGTH",
+          "type": "const val",
+          "value": 3,
+          "reason": "공백 제거 후 너무 짧은 키워드는 오탐 위험이 커서 정확 일치만 허용"
+        },
+        {
+          "name": "SHORT_EXACT_KEYWORDS",
+          "type": "Set<String>",
+          "value_examples": [
+            "검사",
+            "즉시",
+            "압류",
+            "구속",
+            "옷 벗"
+          ],
+          "reason": "짧고 일반적인 단어가 다른 단어와 붙어 우연히 매칭되는 것을 방지"
+        }
+      ],
+      "change_detail": [
+        "match_type이 keyword인 항목은 기존 원문 매칭을 먼저 시도한다.",
+        "기존 매칭이 실패하고 공백 제거 길이가 3 이상이면 원문과 키워드 양쪽의 공백을 제거해 다시 비교한다.",
+        "공백 제거 매칭이 성공하면 matchedText, startIndex, endIndex는 반드시 원문 기준 위치로 복원한다.",
+        "match_type이 regex-simple인 항목은 기존처럼 Regex(pattern) 기반으로 처리한다.",
+        "공백 제거 매칭은 regex-simple에는 적용하지 않는다."
+      ],
+      "acceptance_cases": [
+        {
+          "input": "급한데 대신송금해줄래?",
+          "must_match": "대신 송금"
+        },
+        {
+          "input": "지금통화가안돼",
+          "must_match": "지금 통화가 안 돼"
+        },
+        {
+          "input": "안전계좌로 보내야 해",
+          "must_match": "안전 계좌"
+        },
+        {
+          "input": "검사 결과가 나왔어",
+          "must_not_match_reason": "검사는 짧은 예외 키워드라 공백 제거 확장 매칭 금지"
+        }
+      ]
+    },
+    {
+      "step": 2,
+      "title": "가족사칭 직접 규칙 완화",
+      "file": "android/app/src/main/java/com/safelink/app/data/repository/DetectionEngine.kt",
+      "target_methods": [
+        "directRiskRules",
+        "evaluateDirectRiskRules"
+      ],
+      "target_rule_id": "DIRECT-FM-NEW-NUMBER-MONEY",
+      "change_detail": [
+        "가족 사칭 조건에 나예요, 나에요, 이야, 이에요, 인데를 허용한다.",
+        "기기 문제 조건에 폰/휴대폰/핸드폰 + 고장/깨짐/깨졌/분실/잃어버림/먹통을 허용한다.",
+        "새 번호 조건에 새 번호, 번호 바뀜, 번호 바꿨어, 임시폰, 친구 폰, PC카톡을 허용한다.",
+        "통화 회피 조건에 통화/전화 + 안 돼/안 되/안 됨/못 해/못 하/어려워를 허용한다.",
+        "금전 요구 조건은 송금/이체/입금/계좌/돈 보내/대신 보내/수리비/병원비/합의금까지 포함한다.",
+        "네 조건 중 3개만으로 CRITICAL을 만들지 말고, 금전 요구가 포함될 때만 강한 가산이 들어가게 유지한다."
+      ],
+      "acceptance_cases": [
+        {
+          "input_turns": [
+            "엄마인데 폰이 고장 났어",
+            "통화가 안 되니 문자로만 해",
+            "급한데 대신 송금해줄래?"
+          ],
+          "expected": "WARNING_OR_ABOVE"
+        },
+        {
+          "input_turns": [
+            "아빠 나 휴대폰 고장나서 임시폰이야",
+            "전화 못 해",
+            "수리비 먼저 입금해줘"
+          ],
+          "expected": "WARNING_OR_ABOVE"
+        },
+        {
+          "input_turns": [
+            "엄마 나 폰 고장나서 수리 맡겼어",
+            "돈은 내가 냈어",
+            "집에 가서 전화할게"
+          ],
+          "expected": "SAFE_OR_CAUTION"
+        }
+      ]
+    },
+    {
+      "step": 3,
+      "title": "핵심 키워드 24개 regex-simple 전환",
+      "files": [
+        "data/keyword.json",
+        "android/app/src/main/assets/keyword.json",
+        "android/app/src/test/resources/keyword.json"
+      ],
+      "change_rule": [
+        "세 파일을 반드시 동일하게 수정한다.",
+        "id, category, subcategory_id, subcategory, weight, repeat_decay는 유지한다.",
+        "match_type은 keyword에서 regex-simple로 바꾼다.",
+        "keyword 필드에는 기존 대표 문구를 남긴다.",
+        "pattern 필드에 실제 정규식을 넣는다.",
+        "sample 필드가 있다면 pattern에 반드시 매칭되어야 한다."
+      ],
+      "family_impersonation_targets": [
+        {
+          "id": "FM-4-1-001",
+          "keyword": "엄마 나야",
+          "pattern": "엄마\\s*(?:나야|나예요|나에요|인데)"
+        },
+        {
+          "id": "FM-4-1-002",
+          "keyword": "아빠 나야",
+          "pattern": "아빠\\s*(?:나야|나예요|나에요|인데)"
+        },
+        {
+          "id": "FM-4-1-003",
+          "keyword": "나 딸이야",
+          "pattern": "나\\s*딸\\s*(?:이야|이에요|이예요|인데)"
+        },
+        {
+          "id": "FM-4-1-004",
+          "keyword": "나 아들이야",
+          "pattern": "나\\s*아들\\s*(?:이야|이에요|이예요|인데)"
+        },
+        {
+          "id": "FM-4-1-006",
+          "keyword": "언니 나야",
+          "pattern": "언니\\s*(?:나야|나예요|나에요|인데)"
+        },
+        {
+          "id": "FM-4-1-007",
+          "keyword": "폰이 고장",
+          "pattern": "(?:휴대|핸드)?폰\\s*(?:이|은|도)?\\s*고장"
+        },
+        {
+          "id": "FM-4-1-011",
+          "keyword": "새 번호로 저장",
+          "pattern": "새\\s*번호\\s*(?:로|를)?\\s*(?:저장|연락)"
+        },
+        {
+          "id": "FM-4-2-001",
+          "keyword": "지금 통화가 안 돼",
+          "pattern": "(?:통화|전화)\\s*(?:가|는|도)?\\s*(?:안\\s*(?:돼|되|됨)|못\\s*(?:해|하)|어려워)"
+        },
+        {
+          "id": "FM-4-3-002",
+          "keyword": "대신 송금",
+          "pattern": "대신\\s*(?:좀\\s*)?(?:송금|입금|돈\\s*(?:좀\\s*)?(?:보내|부쳐))"
+        },
+        {
+          "id": "FM-4-4-003",
+          "keyword": "인증문자 보여줘",
+          "pattern": "인증\\s*문자\\s*(?:좀\\s*)?(?:보여|알려|보내|찍어)"
+        }
+      ],
+      "other_targets_summary": {
+        "romance_scam": 11,
+        "voice_phishing": 3,
+        "source": "신기훈_탐지보강_변경정리_20260915.md의 24개 전환 표를 그대로 반영"
+      }
+    },
+    {
+      "step": 4,
+      "title": "DataIntegrityTest 보강",
+      "file": "android/app/src/test/java/com/safelink/app/data/repository/DataIntegrityTest.kt",
+      "change_detail": [
+        "match_type이 regex-simple인 항목도 keyword 대표 문구가 pattern에 매칭되는지 검증한다.",
+        "sample 필드가 있는 항목은 sample도 pattern에 매칭되는지 검증한다.",
+        "세 keyword.json 사본의 id 개수와 id 목록이 동일한지 검증하는 항목을 유지하거나 추가한다."
+      ],
+      "acceptance": [
+        "정규식으로 전환한 24개 항목의 기존 대표 문구가 모두 통과해야 한다.",
+        "pattern 문법 오류가 있으면 테스트가 실패해야 한다."
+      ]
+    },
+    {
+      "step": 5,
+      "title": "KeywordSpacingTest 추가",
+      "file": "android/app/src/test/java/com/safelink/app/data/repository/KeywordSpacingTest.kt",
+      "test_cases": [
+        "대신송금해줄래가 대신 송금을 잡는지",
+        "통화가안돼가 통화가 안 돼를 잡는지",
+        "안전계좌가 안전 계좌를 잡는지",
+        "matchedText와 startIndex/endIndex가 원문 기준인지",
+        "검사, 즉시, 압류, 구속 같은 짧은 키워드가 우연히 붙어서 잡히지 않는지"
+      ]
+    },
+    {
+      "step": 6,
+      "title": "KeywordVariantTest 추가",
+      "file": "android/app/src/test/java/com/safelink/app/data/repository/KeywordVariantTest.kt",
+      "test_cases": [
+        "가족사칭 10개 정규식의 대표 변형 표현을 모두 잡는지",
+        "로맨스스캠 11개 정규식의 대표 변형 표현을 모두 잡는지",
+        "보이스피싱 3개 정규식의 대표 변형 표현을 모두 잡는지",
+        "평범한 문장 20개 이상에서 새 매칭이 추가로 생기지 않는지"
+      ]
+    },
+    {
+      "step": 7,
+      "title": "RuleRegressionTest 추가",
+      "file": "android/app/src/test/java/com/safelink/app/data/repository/RuleRegressionTest.kt",
+      "input_file": "android/app/src/test/resources/rule_regression_cases.json",
+      "change_detail": [
+        "cases 배열을 읽어 각 text를 DetectionEngine.analyze()에 넣는다.",
+        "kind별로 danger, benign, ambiguous, baseline을 집계한다.",
+        "danger는 WARNING 이상 비율을 계산한다.",
+        "benign은 WARNING 이상으로 올라간 비율을 오탐률로 계산한다.",
+        "ambiguous는 CRITICAL이 된 케이스를 따로 표시한다.",
+        "baseline은 점수 변화만 기록한다.",
+        "결과를 android/app/build/reports/rule-regression/report.md로 저장한다."
+      ],
+      "first_version_policy": [
+        "처음에는 report 생성 중심으로 만든다.",
+        "real-failure 케이스가 WARNING 미만이면 실패 처리한다.",
+        "benign 오탐률 기준은 처음 10%로 시작하고 안정화 후 5%로 낮춘다."
+      ]
+    }
+  ],
+  "score_policy": {
+    "safe": "0~15",
+    "caution": "16~30",
+    "warning": "31~65",
+    "critical": "66~100",
+    "rule": [
+      "단어 하나만으로 CRITICAL 금지",
+      "기기 고장 + 통화 회피만으로 WARNING 이상 금지",
+      "금전 요구 또는 상품권 코드 전달 요구가 붙을 때 강하게 가산",
+      "보내지 마, 조심해, 신고해, 나 아니야 같은 안전 문맥은 위험도 상승을 제한"
+    ]
+  },
+  "regression_targets": {
+    "file": "android/app/src/test/resources/rule_regression_cases.json",
+    "danger_count": 30,
+    "benign_count": 30,
+    "ambiguous_count": 20,
+    "baseline_count": 2,
+    "must_keep": [
+      "danger 탐지율 상승",
+      "benign 오탐률 낮게 유지",
+      "ambiguous 단독 CRITICAL 방지",
+      "baseline 위험 대화는 WARNING 이상",
+      "baseline 안전 문맥 대화는 SAFE 또는 CAUTION"
+    ]
+  },
+  "commands": {
+    "targeted_tests": ".\\gradlew.bat :app:testDebugUnitTest --tests \"*KeywordSpacingTest\" --tests \"*KeywordVariantTest\" --tests \"*DetectionEngineTest\" --tests \"*DataIntegrityTest\" --tests \"*RuleRegressionTest\"",
+    "all_unit_tests": ".\\gradlew.bat :app:testDebugUnitTest",
+    "assemble": ".\\gradlew.bat :app:assembleDebug",
+    "working_directory": "android"
+  },
+  "commit_plan": [
+    {
+      "message": "fix(detection): support spacing-insensitive keyword matching",
+      "files": [
+        "android/app/src/main/java/com/safelink/app/data/repository/DetectionEngine.kt",
+        "android/app/src/test/java/com/safelink/app/data/repository/KeywordSpacingTest.kt"
+      ]
+    },
+    {
+      "message": "data(keyword): expand core scam phrase variants",
+      "files": [
+        "data/keyword.json",
+        "android/app/src/main/assets/keyword.json",
+        "android/app/src/test/resources/keyword.json",
+        "android/app/src/test/java/com/safelink/app/data/repository/DataIntegrityTest.kt",
+        "android/app/src/test/java/com/safelink/app/data/repository/KeywordVariantTest.kt"
+      ]
+    },
+    {
+      "message": "test(detection): add rule regression report",
+      "files": [
+        "android/app/src/test/java/com/safelink/app/data/repository/RuleRegressionTest.kt"
+      ]
+    }
+  ],
+  "review_checklist": [
+    "세 keyword.json 사본이 동일한지 확인",
+    "정규식 항목의 keyword 대표 문구가 계속 매칭되는지 확인",
+    "기존 DetectionEngineTest 점수가 바뀌면 이유를 주석으로 남기기",
+    "rule_regression_cases.json의 benign 케이스가 WARNING 이상으로 많이 올라가지 않는지 확인",
+    "API 키나 개인 정보가 diff에 포함되지 않았는지 확인"
+  ]
+}
