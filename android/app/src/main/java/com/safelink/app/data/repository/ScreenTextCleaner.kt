@@ -19,9 +19,13 @@ package com.safelink.app.data.repository
 object ScreenTextCleaner {
 
     private val TIME_OR_DATE = listOf(
-        Regex("(오전|오후)?\\s*\\d{1,2}:\\d{2}(\\s*(AM|PM|am|pm))?"),
-        Regex("\\d{4}년\\s*\\d{1,2}월\\s*\\d{1,2}일(\\s*[월화수목금토일]요일)?"),
-        Regex("\\d{1,2}월\\s*\\d{1,2}일(\\s*[월화수목금토일]요일)?"),
+        // 스크린샷 맨 위 상태표시줄("SKT 10:24")도 시각 줄로 본다
+        Regex("(SKT|KT|LG\\s*U\\+|LGU\\+|U\\+)?\\s*(오전|오후)?\\s*\\d{1,2}:\\d{2}(\\s*(AM|PM|am|pm))?"),
+        Regex("\\d{4}년\\s*\\d{1,2}월\\s*\\d{1,2}일(\\s*\\(?[월화수목금토일](요일)?\\)?)?"),
+        Regex("\\d{1,2}월\\s*\\d{1,2}일(\\s*\\(?[월화수목금토일](요일)?\\)?)?"),
+        // 상태표시줄 배터리·신호("100%", 인식이 번진 "ll 100%을", "LTE", "5G")
+        Regex("[A-Za-z|.\\s]{0,4}\\d{1,3}\\s*%\\s*[을를]?"),
+        Regex("(LTE|5G|4G|3G|Wi-?Fi)\\+?", RegexOption.IGNORE_CASE),
         Regex("\\d{4}[.\\-/]\\s*\\d{1,2}[.\\-/]\\s*\\d{1,2}\\.?"),
         Regex("[월화수목금토일]요일"),
         Regex("(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(day|sday|nesday|rsday|urday)?", RegexOption.IGNORE_CASE),

@@ -44,6 +44,14 @@ class ScreenTextCleanerTest {
     }
 
     @Test
+    fun `스크린샷 글자에 섞인 상태표시줄과 시각 줄을 뺀다`() {
+        // 시연(2026-09-15) 스크린샷 분석 화면에 그대로 보이던 인식 결과
+        val ocr = "SKT 10:24\n← 아들\n5월 20일 (화)\n엄마 지금 바로 확인해야 해\n링크 보냈어 바로 눌러줘\nll 100%을\n오전 10:20\n지금 안 하면 큰일 나\n오전 10:19"
+        assertEquals("← 아들\n엄마 지금 바로 확인해야 해\n링크 보냈어 바로 눌러줘\n지금 안 하면 큰일 나", ScreenTextCleaner.clean(ocr))
+        listOf("수익 30%", "원금 100% 보장", "LTE 요금제 바꿨어").forEach { assertFalse(it, ScreenTextCleaner.isScreenElement(it)) }
+    }
+
+    @Test
     fun `같은 창을 두 번 훑어 생긴 바로 앞 줄 중복은 한 번만 남긴다`() {
         assertEquals("엄마 나 폰 고장났어\n대신 송금해줘\n엄마 나 폰 고장났어",
             ScreenTextCleaner.clean("엄마 나 폰 고장났어\n엄마 나 폰 고장났어\n대신 송금해줘\n엄마 나 폰 고장났어"))

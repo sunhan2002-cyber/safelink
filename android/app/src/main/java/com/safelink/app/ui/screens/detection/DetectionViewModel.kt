@@ -291,7 +291,8 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
     suspend fun runAnalysis(): Boolean {
         ocrFeedbackMessage = null
         if (inputMethod == "스크린샷 업로드") {
-            val extracted = ocrService.extractText(getApplication(), selectedImages)
+            // 캡처 맨 위 상태표시줄(통신사·시각·배터리)과 말풍선 옆 시각 줄은 대화가 아니라 뺀다
+            val extracted = ScreenTextCleaner.clean(ocrService.extractText(getApplication(), selectedImages))
             originalText = extracted
             if (extracted.isBlank()) {
                 ocrNoText = true
