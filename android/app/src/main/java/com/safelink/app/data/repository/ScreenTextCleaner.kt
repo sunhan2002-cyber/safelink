@@ -49,6 +49,7 @@ object ScreenTextCleaner {
         Regex("(읽지 않은 )?.{1,40}\\((채팅|음성|포럼|공지|스테이지) 채널\\)"),
         Regex("(채팅|음성|포럼|공지|스테이지) 채널"),
         Regex("#.{1,40}에 오신 걸 환영합니다!?"),
+        Regex(".{1,40}, 멤버 목록"),
         Regex("#.{1,40} 채널의 시작이에요\\.?"),
         Regex(".{1,20}이후로 읽지 않은 메시지가 \\d+개 있어요"),
         // 보낸 사람 아이디("jaegyeom0247", "sunhan04242") — 영문과 숫자·밑줄·점이 섞인 한 단어만. "hello" 같은 영어 메시지는 남긴다
@@ -73,6 +74,8 @@ object ScreenTextCleaner {
         "message...", "message…", "like", "reply", "gallery", "voice clip", "sticker",
         // 디스코드
         "미디어 키보드 전환", "이모지 키보드 전환", "선물 보내기", "음성 메시지 녹음", "검색하기", "멤버 목록",
+        "bottom sheet backdrop", "bottom sheet", "사진 찾아보기", "투표", "스레드", "앱", "파일", "온라인", "오프라인",
+        "찾던 사진이 아닌가 보죠? 사진 라이브러리에서 완벽한 사진을 찾아보세요.",
     )
 
     fun clean(text: String): String {

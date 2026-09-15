@@ -462,6 +462,9 @@ class MessageDetectionService : AccessibilityService() {
     private fun collectText(node: AccessibilityNodeInfo?, sb: StringBuilder) {
         node ?: return
         if (sb.length >= MAX_CHARS) return
+        // 화면에 실제로 보이는 것만 읽는다. 디스코드는 대화방을 열어도 왼쪽 서버·채널 목록을 화면 밖에 그대로 두어서
+        // "롤내전", "과제방 (채팅 채널)" 같은 줄이 대화 내용에 섞였다(실기기 확인). 보이지 않는 가지는 자식까지 건너뛴다.
+        if (!node.isVisibleToUser) return
 
         val text = node.text?.toString()?.takeIf { it.isNotBlank() }
         if (text != null) {
