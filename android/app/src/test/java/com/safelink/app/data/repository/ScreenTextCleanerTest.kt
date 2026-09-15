@@ -74,6 +74,18 @@ class ScreenTextCleanerTest {
     }
 
     @Test
+    fun `인스타그램 DM 스토리·활동 상태·사진 안내·입력 도움말을 뺀다`() {
+        // 실기기 인스타 DM 백그라운드 기록(2026-09-16 00:00)
+        val screen = listOf(
+            "myantisthis님 스토리 열기", "🐜", "최근 활동: 16분 전", "jae_k03님이 사진 3/3장을 보냈습니다",
+            "자기야 나 지금 두바이 공항인데", "어제 오전 12:00", "세관에서 짐이 걸렸어",
+            "사라지는 메시지를 설정하려면 위로 살짝 미세요", "/silent 🤫 사용해보기", "음성 메시지, 녹음하려면 길게 누르세요"
+        ).joinToString("\n")
+        assertEquals("자기야 나 지금 두바이 공항인데\n세관에서 짐이 걸렸어", ScreenTextCleaner.clean(screen))
+        assertFalse("물음표만 보내도 판정엔 상관없지만 글자 있는 메시지는 남긴다", ScreenTextCleaner.isScreenElement("ㅋㅋ 진짜?"))
+    }
+
+    @Test
     fun `같은 창을 두 번 훑어 생긴 바로 앞 줄 중복은 한 번만 남긴다`() {
         assertEquals("엄마 나 폰 고장났어\n대신 송금해줘\n엄마 나 폰 고장났어",
             ScreenTextCleaner.clean("엄마 나 폰 고장났어\n엄마 나 폰 고장났어\n대신 송금해줘\n엄마 나 폰 고장났어"))
