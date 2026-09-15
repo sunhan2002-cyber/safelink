@@ -429,7 +429,10 @@ class DetectionEngine(
         val bySubcategory = rawMatches.groupBy { it.entry.subcategoryId }
         for ((_, group) in bySubcategory) {
             val scorable = group.filterNot { it in suppressed }
-            val decaying = scorable.filter { it.entry.repeatDecay }.sortedBy { it.startInFull }
+            // 같은 중분류가 여러 번 나오면 가장 강한 표현을 온전히 반영하고 나머지를 감쇠한다.
+            // 등장 순서로 정하면 약한 표현(예: "반값")이 앞에 있을 때 뒤의 강한 요구(선입금 후 발송)가 절반으로 깎였다.
+            val decaying = scorable.filter { it.entry.repeatDecay }
+                .sortedWith(compareByDescending<RawMatch> { if (it.entry.structuralOnly) 0 else it.entry.weight }.thenBy { it.startInFull })
             val nonDecaying = scorable.filter { !it.entry.repeatDecay }
 
             decaying.forEachIndexed { occurrenceIndex, m ->
@@ -540,11 +543,11 @@ class DetectionEngine(
             maxDistinct >= 3 -> triggered += "COMBO-GENERAL-3CAT"
         }
 
-        if ("VP-1-3-003" in matchedIds && ("VP-1-3-001" in matchedIds || "VP-1-3-002" in matchedIds)) {
+        if ("VP-1-3-003" in matchedIds && ("VP-1-3-001" in matchedIds || "VP-1-3-002" in matchedIds || "VP-1-3-102" in matchedIds)) {
             triggered += "COMBO-VP-PHONE-VERIFY"
         }
         if (URL_KEYWORD_ID in matchedIds &&
-            listOf("VP-1-6-001", "VP-1-6-002", "VP-1-6-003", "VP-1-6-101").any { it in matchedIds }
+            listOf("VP-1-6-001", "VP-1-6-002", "VP-1-6-003", "VP-1-6-101", "VP-1-6-104").any { it in matchedIds }
         ) {
             triggered += "COMBO-VP-SMISHING"
         }

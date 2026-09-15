@@ -660,6 +660,13 @@
       "weight": 12,
       "standalone_recommend": false
     },
+    "9-3": {
+      "risk_types": [
+        "금융사기"
+      ],
+      "weight": 10,
+      "standalone_recommend": false
+    },
     "7-4": {
       "risk_types": [
         "협박",
