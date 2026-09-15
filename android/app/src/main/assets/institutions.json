@@ -683,6 +683,14 @@
       ],
       "weight": 15,
       "standalone_recommend": false
+    },
+    "8-3": {
+      "risk_types": [
+        "금융사기",
+        "개인정보탈취"
+      ],
+      "weight": 25,
+      "standalone_recommend": true
     }
   },
   "keyword_risk_type_additions": {

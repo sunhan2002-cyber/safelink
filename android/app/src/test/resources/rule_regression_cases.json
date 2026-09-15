@@ -1,0 +1,1015 @@
+{
+  "_meta": {
+    "purpose": "규칙 엔진(온디바이스) 회귀 테스트 묶음. 규칙을 바꿀 때마다 '위험 문장을 몇 % 잡는지, 일상 문장을 몇 % 잘못 잡는지'를 같은 기준으로 잰다.",
+    "how_to_run": "./gradlew :app:testDebugUnitTest --tests \"*RuleRegressionTest\"  (API 키 불필요, AI 호출 없음)",
+    "kinds": {
+      "danger": "사기·위험 대화. 경고(31점) 이상이면 '잡음'",
+      "benign": "위험 단어가 섞였지만 일상 대화. 경고 이상이면 '오탐'",
+      "ambiguous": "신호가 일부만 있는 대화. 통과/실패 없이 점수만 기록"
+    },
+    "authoring_rule": "규칙을 고치기 전에 쓴다. 규칙을 만든 사람이 쓴 문장(author=claude-draft)만으로는 과적합을 막을 수 없으므로, 팀원이 따로 쓴 문장(author=팀원이름)을 계속 추가한다. 실제로 놓친 대화는 source=real-failure 로 남긴다.",
+    "turns": "text 안의 줄바꿈은 대화의 메시지 구분이다(ConversationTurns.split 과 같은 기준).",
+    "holdout": "source=holdout 사례는 규칙을 고칠 때 보지 않는다. 보강이 끝난 뒤 한 번만 측정해 '처음 보는 문장에도 통하는지'를 확인하는 용도다. 규칙을 만든 사람이 아닌 팀원이 쓰는 것이 원칙이다. 결과를 보고 규칙을 고쳤다면 그 문장은 개발용(draft-2 등)으로 옮기고 새 holdout 을 다시 만든다."
+  },
+  "cases": [
+    {
+      "id": "FM-D-01",
+      "category": "가족사칭",
+      "kind": "danger",
+      "author": "재겸",
+      "source": "real-failure",
+      "note": "2026-09-14 실기기 백그라운드 미감지",
+      "text": "아들 엄마 지금 폰 고장나서 수리맡기고 컴퓨터로 문자하고있어 급해!\n전화는 안되니까 하지말고! 얼른 편의점으로 가서 기프트카드 구매해서 번호 불러줘!"
+    },
+    {
+      "id": "FM-D-02",
+      "category": "가족사칭",
+      "kind": "danger",
+      "author": "재겸",
+      "source": "real-failure",
+      "note": "2026-09-14 실기기 카톡, 38점이었으나 알림 없음",
+      "text": "아들\n엄마 휴대폰이 고장나서 다른 폰으로 연락해\n지금은 통화 못해\n수리비때문에 그러는데 대신 송금좀 해줄래?\n하나 38891029345007"
+    },
+    {
+      "id": "FM-D-03",
+      "category": "가족사칭",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "엄마 나 핸드폰 떨어뜨려서 액정 나갔어\n지금 친구 폰 빌려서 보내는 거야\n통화는 안 되고 톡으로만 얘기하자\n급하게 결제할 게 있는데 엄마 카드 사진 좀 보내줘"
+    },
+    {
+      "id": "FM-D-04",
+      "category": "가족사칭",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "아빠 딸이야 폰이 먹통이라 이 번호로 연락해\n지금 전화 받기 곤란해\n구글플레이 기프트카드 10만원짜리 3장만 사서 핀번호 찍어서 보내줄 수 있어?\n이따 집 가서 바로 줄게"
+    },
+    {
+      "id": "FM-D-05",
+      "category": "가족사칭",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "할머니 저 손자예요 폰을 잃어버려서 새로 개통 중이에요\n본인인증이 안 돼서 그런데 할머니 이름으로 인증 한 번만 도와주세요\n문자로 숫자 6자리 오면 그대로 알려주시면 돼요"
+    },
+    {
+      "id": "FM-D-06",
+      "category": "가족사칭",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "엄마 나 교통사고 났는데 상대방이 합의 안 하면 경찰 부른대\n지금 300만원 급하게 보내야 해 아빠한테는 말하지 말아줘\n이 계좌로 넣어줘 국민 5510239948120"
+    },
+    {
+      "id": "FM-B-01",
+      "category": "가족사칭",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "엄마 나 폰 고장나서 오늘 서비스센터 맡겼어\n수리비 8만원 나왔는데 내 카드로 냈어\n저녁에 집 가서 얘기해"
+    },
+    {
+      "id": "FM-B-02",
+      "category": "가족사칭",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "아들 엄마 지금 회의 중이라 전화 못 받아\n이따 문자할게\n저녁 뭐 먹을지 생각해놔"
+    },
+    {
+      "id": "FM-B-03",
+      "category": "가족사칭",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "엄마 편의점 들렀다 갈게 필요한 거 있어?\n우유랑 계란 사올게\n카드는 내 거 쓸게"
+    },
+    {
+      "id": "FM-B-04",
+      "category": "가족사칭",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "아빠 새 폰으로 바꿨어 번호는 그대로야\n카톡 백업은 다 옮겼어\n주말에 사진 보내줄게"
+    },
+    {
+      "id": "FM-A-01",
+      "category": "가족사칭",
+      "kind": "ambiguous",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "엄마 나 폰 잃어버려서 친구 폰으로 연락해\n이따 다시 연락할게"
+    },
+    {
+      "id": "FM-A-02",
+      "category": "가족사칭",
+      "kind": "ambiguous",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "아들 엄마 기프트카드 선물 받은 거 있는데 번호 알려줄까?\n너 쓰고 싶은 거 사"
+    },
+    {
+      "id": "VP-D-01",
+      "category": "보이스피싱",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "서울중앙지검 금융범죄수사팀 김민수 수사관입니다\n고객님 명의 통장이 범죄에 이용된 정황이 있어 연락드렸습니다\n수사 협조를 위해 보유 자산을 안전한 국가 보호 계좌로 옮기셔야 합니다\n이 사실은 가족에게도 알리시면 안 됩니다"
+    },
+    {
+      "id": "VP-D-02",
+      "category": "보이스피싱",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "[국민은행] 고객님 계좌에서 해외 결제가 감지되어 거래가 일시 중지되었습니다\n본인이 아니시면 아래 번호로 즉시 확인 전화 주세요 02-3480-7712"
+    },
+    {
+      "id": "VP-D-03",
+      "category": "보이스피싱",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "금융감독원 담당자입니다 고객님 개인정보가 유출돼 대포통장이 만들어졌어요\n피해 확인하려면 지금 보내드리는 앱을 설치하시고 인증번호 알려주세요\n오늘 안에 처리 안 하시면 고객님도 공범으로 처벌될 수 있습니다"
+    },
+    {
+      "id": "VP-D-04",
+      "category": "보이스피싱",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "경찰청 사이버수사대입니다 선생님 휴대폰이 해킹돼서 원격으로 점검해야 합니다\n플레이스토어에서 팀뷰어 받아서 접속번호 불러주세요\n다른 사람한테 얘기하시면 수사에 지장이 생깁니다"
+    },
+    {
+      "id": "VP-D-05",
+      "category": "보이스피싱",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "[Web발신] 고객님의 택배가 주소 불일치로 보관 중입니다\n주소 수정 hxxp://cj-dlvry[.]top/k2 에서 확인 바랍니다"
+    },
+    {
+      "id": "VP-D-06",
+      "category": "보이스피싱",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "저금리 대환 승인 건으로 연락드린 신한은행 대출팀입니다\n기존 대출은 저희가 지정하는 직원에게 현금으로 전달해 주셔야 상환 처리됩니다\n은행 창구에 가서 물어보시면 승인이 취소돼요"
+    },
+    {
+      "id": "VP-B-01",
+      "category": "보이스피싱",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "오늘 경찰서 가서 분실물 찾아왔어\n지갑에 카드랑 신분증 다 있더라\n다행이야"
+    },
+    {
+      "id": "VP-B-02",
+      "category": "보이스피싱",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "인증번호 안 와서 다시 받았어\n은행 앱 비밀번호 바꾸느라 한참 걸렸네\n이제 송금 잘 된다"
+    },
+    {
+      "id": "VP-B-03",
+      "category": "보이스피싱",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "택배 주소 잘못 적어서 기사님한테 전화했어\n내일 다시 온대\n경비실에 맡겨달라고 했어"
+    },
+    {
+      "id": "VP-B-04",
+      "category": "보이스피싱",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "요즘 검찰 사칭 전화 많다더라\n모르는 번호로 계좌 옮기라고 하면 무조건 끊으래\n엄마한테도 말해놨어"
+    },
+    {
+      "id": "VP-A-01",
+      "category": "보이스피싱",
+      "kind": "ambiguous",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "고객님 계좌 확인이 필요합니다\n가까운 지점 방문 부탁드립니다"
+    },
+    {
+      "id": "VP-A-02",
+      "category": "보이스피싱",
+      "kind": "ambiguous",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "택배 조회는 아래 링크에서 가능합니다 https://www.cjlogistics.com"
+    },
+    {
+      "id": "RS-D-01",
+      "category": "로맨스스캠",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "나는 시리아에 파견된 미군 의사야 곧 전역하면 한국에서 너랑 살고 싶어\n내 짐을 한국으로 보내야 하는데 통관 수수료가 막혀서\n500달러만 먼저 보내주면 도착하자마자 갚을게 우리 미래를 위해서야"
+    },
+    {
+      "id": "RS-D-02",
+      "category": "로맨스스캠",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "자기야 아직 영상통화는 부대 규정 때문에 못 해 미안해\n여기선 텔레그램으로만 얘기하자\n엄마 수술비가 급해서 그러는데 조금만 도와줄 수 있어? 너밖에 없어"
+    },
+    {
+      "id": "RS-D-03",
+      "category": "로맨스스캠",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "우리 만난 지 2주밖에 안 됐지만 난 네가 운명이라고 느껴\n다른 사람한테는 우리 얘기 하지 마 질투할 거야\n비행기표 살 돈이 조금 모자라 200만원만 빌려줄래? 도착하면 바로 결혼 준비하자"
+    },
+    {
+      "id": "RS-D-04",
+      "category": "로맨스스캠",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "여보 세관에서 금괴 상자가 걸렸대\n벌금만 내면 풀린다는데 내 카드가 해외라 안 돼\n이번 한 번만 보내주면 이미 보낸 돈까지 전부 돌려줄게 지금 포기하면 다 날아가"
+    },
+    {
+      "id": "RS-D-05",
+      "category": "로맨스스캠",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "나 유엔 평화유지군 소속이라 휴가 신청에 비용이 들어\n휴가비 보내주면 너 보러 한국 갈 수 있어\n오늘까지 입금해야 승인 나 사랑해"
+    },
+    {
+      "id": "RS-D-06",
+      "category": "로맨스스캠",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "인스타 보고 연락했어 너무 내 스타일이야\n여기 말고 라인으로 얘기할래?\n나 싱가포르에서 사업하는데 좋은 투자처 있어 우리 둘만 알고 같이 하자"
+    },
+    {
+      "id": "RS-B-01",
+      "category": "로맨스스캠",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "자기야 오늘 저녁에 영상통화 할까?\n나 퇴근하고 9시쯤 괜찮아\n사랑해"
+    },
+    {
+      "id": "RS-B-02",
+      "category": "로맨스스캠",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "여보 나 비행기표 끊었어 다음 주 금요일 도착\n공항으로 데리러 와줄 수 있어?\n보고 싶다"
+    },
+    {
+      "id": "RS-B-03",
+      "category": "로맨스스캠",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "엄마 수술 잘 끝났어\n병원비는 보험으로 거의 처리됐고\n걱정해줘서 고마워"
+    },
+    {
+      "id": "RS-B-04",
+      "category": "로맨스스캠",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "우리 결혼 준비 비용 정리해봤는데 반반 하자\n식장 계약금은 내가 먼저 낼게\n나중에 정산하면 돼"
+    },
+    {
+      "id": "RS-A-01",
+      "category": "로맨스스캠",
+      "kind": "ambiguous",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "해외에서 일해서 영상통화는 좀 어려워\n대신 매일 문자할게"
+    },
+    {
+      "id": "RS-A-02",
+      "category": "로맨스스캠",
+      "kind": "ambiguous",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "요즘 돈이 좀 급해서 고민이야\n그래도 너한테는 부탁 안 할게"
+    },
+    {
+      "id": "GL-D-01",
+      "category": "가스라이팅",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "내가 언제 그렇게 말했어? 너 또 기억 이상하게 하네\n네가 예민하게 받아들여서 이렇게 된 거잖아\n너 친구들 만나고 오면 꼭 이상해지더라 걔네 그만 만나"
+    },
+    {
+      "id": "GL-D-02",
+      "category": "가스라이팅",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "너 같은 애를 누가 받아주겠어 나니까 참는 거야\n휴대폰 비밀번호 알려줘 숨길 거 없으면\n오늘 누구 만나는지 사진 찍어서 보내"
+    },
+    {
+      "id": "GL-D-03",
+      "category": "가스라이팅",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "그 일은 네가 날 화나게 해서 생긴 거야 내 탓하지 마\n너희 엄마도 너 이상하다고 했잖아\n나 떠나면 넌 아무것도 못 해"
+    },
+    {
+      "id": "GL-D-04",
+      "category": "가스라이팅",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "그런 말 한 적 없는데 왜 없는 얘기를 지어내\n너 요즘 정신이 좀 이상한 것 같아 병원 가봐\n다른 사람한테 우리 얘기 하면 진짜 끝이야"
+    },
+    {
+      "id": "GL-B-01",
+      "category": "가스라이팅",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "어제 내가 한 말 기억 안 나? 저녁 7시에 보자고 했잖아\n괜찮아 헷갈릴 수 있지\n오늘 보자"
+    },
+    {
+      "id": "GL-B-02",
+      "category": "가스라이팅",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "너 요즘 너무 예민한 것 같아서 걱정돼\n일이 많아서 그런가\n주말엔 푹 쉬어"
+    },
+    {
+      "id": "GL-B-03",
+      "category": "가스라이팅",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "친구들 만나고 와서 재밌었어?\n나도 다음엔 같이 가고 싶다\n사진 보여줘"
+    },
+    {
+      "id": "GL-A-01",
+      "category": "가스라이팅",
+      "kind": "ambiguous",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "네가 그렇게 받아들이면 나도 할 말이 없어\n그냥 내가 잘못했다고 할게"
+    },
+    {
+      "id": "GL-A-02",
+      "category": "가스라이팅",
+      "kind": "ambiguous",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "걔랑 너무 자주 만나는 거 같아 조금 서운해"
+    },
+    {
+      "id": "IV-D-01",
+      "category": "투자사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "VIP 리딩방 무료 체험 초대드립니다\n지난주 수익률 312% 인증합니다 원금은 100% 보장해드려요\n자리 3개 남았습니다 오늘 마감"
+    },
+    {
+      "id": "IV-D-02",
+      "category": "투자사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "코인 선물 자동매매 프로그램으로 매일 3%씩 벌고 있어요\n지금 가입하면 수수료 면제\n출금하려면 세금 명목으로 20% 먼저 입금하셔야 합니다"
+    },
+    {
+      "id": "IV-D-03",
+      "category": "투자사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "상장 예정 비상장주 공모가로 잡아드립니다\n기관 물량이라 일반인은 못 사요 손해 절대 없습니다\n텔레그램 방으로 이동하시면 담당 매니저가 안내합니다"
+    },
+    {
+      "id": "IV-D-04",
+      "category": "투자사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "회원님 계좌 수익이 1억을 넘어서 출금 심사 중입니다\n보증금 500만원을 넣으셔야 출금이 풀립니다\n기한 넘기면 계정이 동결돼요"
+    },
+    {
+      "id": "IV-B-01",
+      "category": "투자사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "요즘 적금 금리 3% 넘는 데 있더라\n원금 보장되는 거라 그걸로 넣었어\n너도 알아봐"
+    },
+    {
+      "id": "IV-B-02",
+      "category": "투자사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "주식 수익률 올해 마이너스야 ㅠㅠ\n그래도 장기로 들고 가려고\n코인은 안 할래"
+    },
+    {
+      "id": "IV-B-03",
+      "category": "투자사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "회사 스톡옵션 행사하려면 세금 먼저 내야 한대\n회계팀에 물어봤어\n다음 달에 처리할 듯"
+    },
+    {
+      "id": "IV-A-01",
+      "category": "투자사기",
+      "kind": "ambiguous",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "좋은 종목 하나 알려줄까? 요즘 많이 올랐어"
+    },
+    {
+      "id": "IV-A-02",
+      "category": "투자사기",
+      "kind": "ambiguous",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "투자 공부하는 오픈채팅방 들어갔는데 정보가 많더라"
+    },
+    {
+      "id": "LN-D-01",
+      "category": "대출사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "정부지원 햇살론 특별 대상자로 선정되셨습니다\n신용 조회 없이 최대 3천만원 당일 입금\n승인 전에 보증보험료 45만원 먼저 납부해 주세요"
+    },
+    {
+      "id": "LN-D-02",
+      "category": "대출사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "고객님 신용점수가 낮아서 바로는 어렵고요\n저희가 거래 실적 만들어서 점수 올려드릴게요\n작업 비용 30만원 입금 확인되면 바로 진행합니다"
+    },
+    {
+      "id": "LN-D-03",
+      "category": "대출사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "기존 대출이 남아 있어서 저금리 전환이 막혀요\n저희 쪽 가상계좌로 먼저 갚으시면 한도가 풀립니다\n오늘 오후 3시까지만 가능해요"
+    },
+    {
+      "id": "LN-B-01",
+      "category": "대출사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "전세대출 은행 가서 상담받았어\n서류 내고 심사 기다리는 중\n금리는 4% 초반이래"
+    },
+    {
+      "id": "LN-B-02",
+      "category": "대출사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "학자금 대출 이번 달 상환했어\n자동이체 걸어놔서 편하다\n졸업하면 더 갚아야지"
+    },
+    {
+      "id": "LN-A-01",
+      "category": "대출사기",
+      "kind": "ambiguous",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "[광고] 무직자도 가능한 소액대출 상담 문의 주세요"
+    },
+    {
+      "id": "TH-D-01",
+      "category": "협박·갈취",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "아까 영상통화 다 녹화해놨어\n네 친구 목록이랑 가족 연락처 다 가지고 있다\n한 시간 안에 300 안 보내면 전부 뿌린다"
+    },
+    {
+      "id": "TH-D-02",
+      "category": "협박·갈취",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "네가 사는 동네 학교 다 알아냈어\n신고하면 어떻게 되는지 보여줄게\n조용히 돈 넣으면 없던 일로 해줄게"
+    },
+    {
+      "id": "TH-D-03",
+      "category": "협박·갈취",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "얼굴 보면서 얘기하자 이 앱 깔면 화질 좋아\n연락처 접근 허용 눌러야 통화돼\n방금 찍힌 거 지인들한테 보내기 싫으면 문화상품권 50만원어치 보내"
+    },
+    {
+      "id": "TH-D-04",
+      "category": "협박·갈취",
+      "kind": "danger",
+      "author": "재겸",
+      "source": "real-failure",
+      "note": "2026-09-14 인스타 DM, 엔진 0점",
+      "text": "야 돈내놔\n빨리\n너 계속 그러면\n너랑 안사귄다\n228801045427 여기로 송금해\n빨리 송금해야돼"
+    },
+    {
+      "id": "TH-B-01",
+      "category": "협박·갈취",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "영상통화 녹화된 거 봤는데 너 표정 웃기더라 ㅋㅋ\n단톡방에 올려도 돼?\n싫으면 안 올릴게"
+    },
+    {
+      "id": "TH-B-02",
+      "category": "협박·갈취",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "친구 목록 정리하다가 너 찾았어 반갑다\n요즘 어디 살아?\n한번 보자"
+    },
+    {
+      "id": "TH-B-03",
+      "category": "협박·갈취",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "회비 3만원 오늘까지 보내줘\n안 보내면 다음 모임 명단에서 빠진다 ㅋㅋ\n계좌는 공지에 있어"
+    },
+    {
+      "id": "TH-A-01",
+      "category": "협박·갈취",
+      "kind": "ambiguous",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "너 계속 그러면 나도 가만 안 있어"
+    },
+    {
+      "id": "TH-A-02",
+      "category": "협박·갈취",
+      "kind": "ambiguous",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "영상 가지고 있으니까 나중에 보내줄게"
+    },
+    {
+      "id": "JB-D-01",
+      "category": "부업사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "집에서 폰으로 하루 1시간 좋아요 누르기 알바입니다\n첫날 체험 수당 3만원 바로 지급\n다음 단계부터는 미션 금액 먼저 충전하셔야 원금 포함 환급돼요"
+    },
+    {
+      "id": "JB-D-02",
+      "category": "부업사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "쇼핑몰 구매평 작업 부업 모집합니다\n상품 대금은 선결제하시면 수수료 20% 붙여서 돌려드려요\n중간에 그만두시면 적립금은 소멸됩니다"
+    },
+    {
+      "id": "JB-D-03",
+      "category": "부업사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "재택으로 통장 관리 업무 하실 분\n일당 20만원이고 본인 명의 계좌만 빌려주시면 됩니다\n체크카드는 퀵으로 보내주세요"
+    },
+    {
+      "id": "JB-B-01",
+      "category": "부업사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "편의점 알바 구했어 주말 오후 타임\n시급 1만원이고 주휴수당도 준대\n다음 주부터 시작"
+    },
+    {
+      "id": "JB-B-02",
+      "category": "부업사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "리뷰 이벤트 참여하면 적립금 준대\n구매 확정하고 사진 올리면 된대\n나 해봤는데 진짜 들어오더라"
+    },
+    {
+      "id": "JB-A-01",
+      "category": "부업사기",
+      "kind": "ambiguous",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "재택 부업 하나 소개받았는데 할까 말까 고민 중"
+    },
+    {
+      "id": "UD-D-01",
+      "category": "중고거래사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "제가 지방이라 직거래는 힘들고 택배로만 가능해요\n안전거래 링크 보내드릴게요 거기서 결제하시면 돼요\nhttp://naver-pay-safe.kr/order/2291"
+    },
+    {
+      "id": "UD-D-02",
+      "category": "중고거래사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "문의가 계속 와서 먼저 입금하시는 분께 드릴게요\n예약금 10만원만 보내주시면 바로 발송합니다\n지금 안 보내시면 다음 분께 넘길게요"
+    },
+    {
+      "id": "UD-D-03",
+      "category": "중고거래사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "결제 확인이 안 된다고 떠요\n안전결제 수수료 누락이라 동일 금액 한 번 더 입금하시면 자동 환불됩니다\n30분 안에 안 하시면 거래 취소돼요"
+    },
+    {
+      "id": "UD-B-01",
+      "category": "중고거래사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "당근에서 의자 샀어\n역 앞에서 직거래했고 현금으로 줬어\n상태 좋다"
+    },
+    {
+      "id": "UD-B-02",
+      "category": "중고거래사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "택배 거래라 번개장터 안전결제로 했어\n물건 받고 구매확정 눌렀어\n깔끔했음"
+    },
+    {
+      "id": "UD-A-01",
+      "category": "중고거래사기",
+      "kind": "ambiguous",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "직거래는 어렵고 택배만 가능해요 괜찮으세요?"
+    },
+    {
+      "id": "LN-B-03",
+      "category": "대출사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "은행에서 대출 한도 조회했는데 신용점수 올리면 금리 낮춰준대\n카드값 연체 없이 몇 달 쓰면 된대\n일단 적금부터 들었어"
+    },
+    {
+      "id": "JB-B-03",
+      "category": "부업사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "과외 알바 첫 수업비 선입금으로 받았어\n학부모님이 한 달치 먼저 보내주셨어\n열심히 해야지"
+    },
+    {
+      "id": "UD-B-03",
+      "category": "중고거래사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "text": "그 자전거 예약금 만원 걸어뒀어요\n토요일에 직접 보고 나머지 드릴게요\n위치 보내주세요"
+    },
+    {
+      "id": "FM-HD-01",
+      "category": "가족사칭",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "엄마 나 딸인데 폰 액정 박살나서 공기계로 연락해\n지금 폰 없어서 전화 안돼\n인터넷 쇼핑 결제해야 되는데 엄마 명의로 인증 좀 대신 해줄 수 있어?",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "FM-HD-02",
+      "category": "가족사칭",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "아버지 저예요 휴대폰 물에 빠뜨려서 서비스센터 맡겼어요\n급하게 온라인 상품권 50만원만 구매해서 코드 보내주실 수 있어요?\n통화는 나중에 드릴게요",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "FM-HB-01",
+      "category": "가족사칭",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "엄마 휴대폰 액정 깨져서 아빠 폰으로 문자해\n저녁에 같이 서비스센터 가자\n수리비는 보험 된대",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "FM-HB-02",
+      "category": "가족사칭",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "할머니 문화상품권 생일선물로 보내드렸어요\n문자로 온 번호 입력하시면 돼요\n모르시면 이따 전화드릴게요",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "VP-HD-01",
+      "category": "보이스피싱",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "[카드 발급 안내] 고객님 명의로 신용카드가 신청되었습니다\n본인이 신청하지 않으셨다면 카드사 고객센터 1811-4402로 바로 연락 바랍니다",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "VP-HD-02",
+      "category": "보이스피싱",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "검찰청 수사관인데요 선생님 계좌가 자금세탁에 연루돼서 동결 예정입니다\n지금 은행 가서 전액 현금으로 인출하시고 저희 직원이 받으러 갑니다\n은행 직원이 물어보면 인테리어 비용이라고 하세요",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "VP-HB-01",
+      "category": "보이스피싱",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "은행 앱에서 해외결제 차단 설정했어\n여행 가기 전에 풀면 된대\n카드사 앱이 편하더라",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "VP-HB-02",
+      "category": "보이스피싱",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "경찰서에서 연락 와서 교통사고 목격자 진술하고 왔어\n별일 없었고 30분 걸렸어",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "RS-HD-01",
+      "category": "로맨스스캠",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "당신을 처음 봤을 때부터 특별했어요 저는 영국 석유회사 엔지니어예요\n현장이 해상이라 영상 연결이 안 돼요\n장비 교체비가 급하게 필요한데 계약금 받으면 두 배로 돌려드릴게요",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "RS-HD-02",
+      "category": "로맨스스캠",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "자기 우리 결혼하면 한국에서 카페 차리자\n근데 내 월급 계좌가 해외라 묶였어\n수수료만 대신 내주면 풀려서 바로 돌려줄게 이건 우리 둘만의 비밀이야",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "RS-HB-01",
+      "category": "로맨스스캠",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "자기야 이번 주말에 부모님 뵈러 가자\n영상통화로 인사드렸더니 좋아하시더라\n선물은 내가 준비할게",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "RS-HB-02",
+      "category": "로맨스스캠",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "해외 파견 끝나고 다음 달에 귀국해\n공항에서 보자 보고 싶었어",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "GL-HD-01",
+      "category": "가스라이팅",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "너 또 과장하네 그 정도로 화낼 일이야?\n네가 먼저 날 자극했잖아 다 너 때문이야\n네 친구들이 너 이용하는 거 모르겠어? 이제 연락하지 마",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "GL-HD-02",
+      "category": "가스라이팅",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "내가 너 사랑하니까 이러는 거야\n어디 갈 때마다 나한테 먼저 허락 받아\n말 안 들으면 우리 관계 다시 생각해볼 거야",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "GL-HB-01",
+      "category": "가스라이팅",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "어제 약속 시간 헷갈렸지? 나도 가끔 그래\n다음엔 캘린더에 적어두자",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "GL-HB-02",
+      "category": "가스라이팅",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "친구들이랑 여행 간다고? 좋다 재밌게 놀다 와\n도착하면 연락만 줘",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "IV-HD-01",
+      "category": "투자사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "전문가 추천 종목 무료로 받아보세요 적중률 90% 이상\n유료 회원 전환 시 월 수익 500만원 보장\n지금 신청하면 선착순 10명 가입비 할인",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "IV-HD-02",
+      "category": "투자사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "해외 거래소 계정에 수익 2억이 찍혔는데 인출이 막혔어요\n고객센터가 인출하려면 신용 보증금 1천만원을 먼저 넣으래요",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "IV-HB-01",
+      "category": "투자사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "연금저축 펀드 수익률 확인해봤는데 5% 정도네\n원금 손실 가능성 있다고 설명 들었어",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "IV-HB-02",
+      "category": "투자사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "주식 스터디 오픈채팅 들어갔는데 다들 공부만 해\n종목 추천은 금지래",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "LN-HD-01",
+      "category": "대출사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "고객님은 기대출이 많아 한도가 부족합니다\n저희 전산으로 기존 대출 기록을 정리해드리니 수수료 60만원 선입금 부탁드립니다\n입금 확인 후 30분 내 3천만원 실행됩니다",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "LN-HD-02",
+      "category": "대출사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "서민 긴급자금 대출 마지막 접수일입니다\n오늘 신청 안 하시면 대상에서 제외돼요\n신청비 10만원 보내주시면 바로 서류 들어갑니다",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "LN-HB-01",
+      "category": "대출사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "카드론 금리가 너무 높아서 은행 신용대출로 갈아탔어\n중도상환 수수료는 은행에 직접 냈어",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "LN-HB-02",
+      "category": "대출사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "정부지원 대출 알아보려고 서민금융진흥원 상담 예약했어\n1397로 전화하면 된대",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "TH-HD-01",
+      "category": "협박·갈취",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "너 영상 내 폰에 저장돼 있다\n내일까지 200 준비 안 되면 너네 회사 사람들 다 보게 된다\n경찰에 말하면 바로 올린다",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "TH-HD-02",
+      "category": "협박·갈취",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "너 사진 합성한 거 있어\n이거 퍼지면 인생 끝나는 거 알지?\n기프트카드 30만원어치 사서 번호 보내면 지워줄게",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "TH-HB-01",
+      "category": "협박·갈취",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "어제 회식 사진 단톡방에 올렸어\n싫은 사람 있으면 말해줘 지울게",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "TH-HB-02",
+      "category": "협박·갈취",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "택배 도착했는데 주소 보니까 너네 회사 근처더라\n점심 같이 먹을래?",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "JB-HD-01",
+      "category": "부업사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "블로그 체험단 부업인데 하루 10분이면 돼요\n상품 먼저 결제하고 후기 쓰면 결제금액의 130% 환급\n3단계부터는 묶음 결제라 금액이 커져요",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "JB-HD-02",
+      "category": "부업사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "해외 구매대행 알바 모집\n본인 계좌로 들어온 돈을 저희가 알려주는 계좌로 옮기기만 하면 건당 5만원\n체크카드랑 비밀번호는 담당자에게 맡겨주세요",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "JB-HB-01",
+      "category": "부업사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "쿠팡 물류센터 단기 알바 신청했어\n일당 12만원이고 당일 지급이래",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "JB-HB-02",
+      "category": "부업사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "블로그 체험단 당첨돼서 식당 무료로 먹고 후기 썼어\n돈은 안 들었어",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "UD-HD-01",
+      "category": "중고거래사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "아이폰 급처합니다 시세보다 20만원 싸게 드려요\n저는 군인이라 직거래 불가하고 택배만 됩니다\n계좌로 먼저 보내주시면 오늘 바로 부칠게요",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "UD-HD-02",
+      "category": "중고거래사기",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "구매자님 결제하신 금액이 판매자 인증 대기로 묶였어요\n인증 수수료 5만원 추가 입금하시면 전액과 함께 환불됩니다\n1시간 지나면 환불 불가예요",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "UD-HB-01",
+      "category": "중고거래사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "중고나라에서 카메라 샀는데 직접 만나서 확인하고 샀어\n가격도 흥정해서 5만원 깎았어",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "UD-HB-02",
+      "category": "중고거래사기",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft-2",
+      "text": "당근 판매자가 택배로 보내준다길래 안전결제로 하자고 했어\n앱 안에서 결제하니까 마음 편하다",
+      "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    }
+  ]
+}

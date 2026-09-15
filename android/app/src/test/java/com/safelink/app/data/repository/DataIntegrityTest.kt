@@ -124,9 +124,17 @@ class DataIntegrityTest {
             "GL-3-3-005" to "이런 얘기 인사팀 같은 데 가서 하지 마.",
             "VP-1-6-011" to "계정이 해킹되었습니다."
         )
+        // 행동 패턴(regex-simple)은 keyword.json 항목에 검증용 문장("sample")을 함께 둔다 — 패턴을 추가할 때
+        // 이 파일까지 고칠 필요가 없고, 패턴과 예문이 한자리에 있어 무엇을 잡으려는 패턴인지 바로 보인다.
+        val jsonSamples = com.google.gson.JsonParser.parseString(
+            javaClass.classLoader!!.getResourceAsStream("keyword.json")!!.bufferedReader().readText()
+        ).asJsonObject.getAsJsonArray("keywords")
+            .map { it.asJsonObject }
+            .filter { it.has("sample") }
+            .associate { it["id"].asString to it["sample"].asString }
         val failures = mutableListOf<String>()
         keywordData.keywords.forEach { entry ->
-            val sample = if (entry.matchType == "keyword") entry.keyword else regexSamples[entry.id]
+            val sample = if (entry.matchType == "keyword") entry.keyword else regexSamples[entry.id] ?: jsonSamples[entry.id]
             if (sample == null) {
                 failures += "${entry.id}: 검증용 샘플 문자열이 없음 (regexSamples 등록 누락 가능성)"
                 return@forEach

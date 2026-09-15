@@ -99,7 +99,8 @@ class DetectionEngineTest {
             "택배기사인데요, 배송 중 확인 차 연락드렸습니다.",
             "그럼 명의 도용 우려가 있어서 확인이 필요합니다."
         ),
-        37.5, "중간"
+        // 서로 다른 위험 행동 2개(기관사칭 + 명의도용 경고)가 함께 나오고 전용 조합 규칙은 없음 → 2CAT +10 (37.5→47.5, 중간 유지)
+        47.5, "중간", listOf("COMBO-GENERAL-2CAT")
     )
 
     @Test fun `TC-VP-EDGE-02`() = assertCase(

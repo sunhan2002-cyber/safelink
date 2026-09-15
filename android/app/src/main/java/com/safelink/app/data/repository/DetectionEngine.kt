@@ -454,6 +454,9 @@ class DetectionEngine(
         val triggered = mutableListOf<String>()
 
         val maxDistinct = subcategoriesByCategory.values.maxOfOrNull { it.size } ?: 0
+        // 같은 유형 안에서 서로 다른 위험 행동이 몇 가지 함께 나왔는가. 행동 하나는 일상 대화에도 나오지만
+        // (폰 고장, 송금 얘기), 서로 다른 행동이 겹칠수록 위험 흐름일 가능성이 커진다.
+        // 2개(COMBO-GENERAL-2CAT)는 맨 끝에서 판단한다 — 같은 두 행동을 이미 전용 조합 규칙이 잡았으면 중복 가산하지 않기 위해.
         when {
             maxDistinct >= 4 -> triggered += "COMBO-GENERAL-4CAT"
             maxDistinct >= 3 -> triggered += "COMBO-GENERAL-3CAT"
@@ -513,6 +516,11 @@ class DetectionEngine(
                     if (growthRatePercent >= rule.minGrowthRatePercent!!) triggered += rule.id
                 }
             }
+
+        // 서로 다른 위험 행동 2개: 전용 조합 규칙(특정 두 행동의 조합)이 하나도 발동하지 않았을 때만 가산한다.
+        if (maxDistinct == 2 && triggered.isEmpty()) {
+            triggered += "COMBO-GENERAL-2CAT"
+        }
 
         return triggered
     }
