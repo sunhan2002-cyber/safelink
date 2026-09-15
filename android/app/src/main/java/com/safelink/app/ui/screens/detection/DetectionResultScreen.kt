@@ -50,6 +50,7 @@ import com.safelink.app.data.model.EvidenceText
 import com.safelink.app.data.model.DetectionResultDummyData
 import com.safelink.app.data.model.RecommendedInstitutionUi
 import com.safelink.app.data.model.RiskLevel
+import com.safelink.app.data.repository.RiskyLines
 import com.safelink.app.ui.components.LinkRiskSection
 import com.safelink.app.ui.components.RiskBadge
 import com.safelink.app.ui.components.SafeLinkCard
@@ -285,12 +286,16 @@ private fun DetectionResultContent(
 
                 // 원문에서 어느 구간이 걸렸는지 그대로 보여준다 — 목록만으로는 문맥이 안 보이므로
                 if (result.originalText.isNotBlank()) {
-                    Text(text = "분석한 내용", style = MaterialTheme.typography.titleMedium)
-                    SafeLinkCard {
-                        Text(
-                            text = highlightMatches(result),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
+                    if (sourceLabel == DetectionViewModel.AnalysisSource.BACKGROUND.label) {
+                        BackgroundAnalyzedText(result)
+                    } else {
+                        Text(text = "분석한 내용", style = MaterialTheme.typography.titleMedium)
+                        SafeLinkCard {
+                            Text(
+                                text = highlightMatches(result),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
                     }
                 }
             }
@@ -647,19 +652,68 @@ private fun DetectionResultPreviewSafe() {
 }
 
 /**
+ * 백그라운드 감지 결과의 원문 표시.
+ *
+ * 화면에서 읽은 텍스트는 대화방 전체(다른 메시지, 대화 목록의 여러 사람 미리보기)가 함께 들어와 길다.
+ * 걸린 표현이나 링크가 있는 메시지만 말풍선 카드로 먼저 보여주고, 나머지는 펼쳐야 보이게 한다.
+ * 고를 줄이 없거나 전부 위험한 줄이면 지금처럼 전체를 보여준다.
+ */
+@Composable
+private fun BackgroundAnalyzedText(result: DetectionResult) {
+    val text = result.originalText
+    val allLines = remember(text) { RiskyLines.lines(text) }
+    val risky = remember(text, result.matchedKeywords) {
+        RiskyLines.select(text, result.matchedKeywords.map { it.startIndex to it.endIndex })
+    }
+    var expanded by remember(text) { mutableStateOf(false) }
+
+    if (risky.isEmpty() || risky.size == allLines.size) {
+        Text(text = "분석한 내용", style = MaterialTheme.typography.titleMedium)
+        SafeLinkCard {
+            Text(text = highlightMatches(result), style = MaterialTheme.typography.bodyLarge)
+        }
+        return
+    }
+
+    Text(text = "위험 표현이 나온 메시지", style = MaterialTheme.typography.titleMedium)
+    risky.forEach { line ->
+        SafeLinkCard {
+            Text(
+                text = highlightMatches(result, line.start, line.end),
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+    }
+    TextButton(onClick = { expanded = !expanded }) {
+        Text(if (expanded) "화면 전체 내용 접기" else "화면 전체 내용 보기 (${allLines.size}줄)")
+    }
+    if (expanded) {
+        SafeLinkCard {
+            Text(text = highlightMatches(result), style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
+/**
  * 원문에서 매칭된 구간에 배경색과 밑줄을 입힌 문자열을 만든다.
  *
  * [com.safelink.app.data.model.MatchedKeyword]의 startIndex/endIndex 를 그대로 쓰며,
  * 구간이 겹치거나 범위를 벗어난 값은 건너뛴다(엔진이 바뀌어도 화면이 깨지지 않도록).
  */
-private fun highlightMatches(result: DetectionResult): AnnotatedString {
+private fun highlightMatches(
+    result: DetectionResult,
+    from: Int = 0,
+    to: Int = result.originalText.length
+): AnnotatedString {
     val text = result.originalText
     val spans = result.matchedKeywords
         .filter { it.startIndex in 0..text.length && it.endIndex in it.startIndex..text.length }
+        // [from, to) 구간만 그릴 때는 그 안에 완전히 든 매칭만 칠한다
+        .filter { it.startIndex >= from && it.endIndex <= to }
         .sortedBy { it.startIndex }
 
     return buildAnnotatedString {
-        var cursor = 0
+        var cursor = from
         spans.forEach { kw ->
             // 앞선 구간과 겹치면 건너뛴다(같은 자리를 두 번 칠하지 않도록)
             if (kw.startIndex < cursor) return@forEach
@@ -676,6 +730,6 @@ private fun highlightMatches(result: DetectionResult): AnnotatedString {
             }
             cursor = kw.endIndex
         }
-        append(text.substring(cursor))
+        append(text.substring(cursor, to))
     }
 }

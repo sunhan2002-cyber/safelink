@@ -12,6 +12,7 @@ import com.safelink.app.data.local.RecordSource
 import com.safelink.app.data.repository.ConversationTurns
 import com.safelink.app.data.repository.DetectionRepository
 import com.safelink.app.data.repository.RecordRepository
+import com.safelink.app.data.repository.ScreenTextCleaner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -454,7 +455,8 @@ class MessageDetectionService : AccessibilityService() {
             }
         }
 
-        return sb.toString().trim().takeIf { it.isNotEmpty() }
+        // 시각·읽음 숫자·버튼 라벨 같은 화면 요소 줄은 빼고 메시지만 남긴다 — 결과 화면·기록·AI 전송 모두 이 텍스트를 쓴다.
+        return ScreenTextCleaner.clean(sb.toString()).takeIf { it.isNotEmpty() }
     }
 
     private fun collectText(node: AccessibilityNodeInfo?, sb: StringBuilder) {

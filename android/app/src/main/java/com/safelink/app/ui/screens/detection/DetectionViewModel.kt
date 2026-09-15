@@ -22,6 +22,7 @@ import com.safelink.app.data.local.RecordSource
 import com.safelink.app.data.repository.ConversationTurns
 import com.safelink.app.data.repository.DetectionRepository
 import com.safelink.app.data.repository.RecordRepository
+import com.safelink.app.data.repository.ScreenTextCleaner
 import com.safelink.app.settings.AiConsentStore
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
@@ -242,7 +243,13 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
      */
     suspend fun loadRecord(recordId: String): Boolean {
         val record = recordRepository.findById(recordId) ?: return false
-        val text = record.originalText?.takeIf { it.isNotBlank() } ?: return false
+        val stored = record.originalText?.takeIf { it.isNotBlank() } ?: return false
+        // 화면 요소 거르기 전에 저장된 백그라운드 기록도 같은 기준으로 정리해서 보여준다(재분석 구간도 정리된 원문 기준).
+        val text = if (record.sourceLabel == AnalysisSource.BACKGROUND.label) {
+            ScreenTextCleaner.clean(stored).ifBlank { stored }
+        } else {
+            stored
+        }
         val onDevice = repository.analyze(text)
         val gen = startNewResult()
         originalText = text

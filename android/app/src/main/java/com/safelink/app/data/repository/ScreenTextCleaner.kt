@@ -1,0 +1,75 @@
+package com.safelink.app.data.repository
+
+/**
+ * 백그라운드에서 읽은 화면 텍스트에서 메시지가 아닌 화면 요소 줄을 걸러낸다.
+ *
+ * ── 왜 필요한가 ────────────────────────────────────────────────────────
+ * 접근성 트리에는 말풍선뿐 아니라 시각·요일·읽음 숫자, 버튼 라벨("Show attach media screen",
+ * "Conversation Icon", "메시지 입력")까지 들어 있다. 실제 문자 앱 기록을 보면 메시지 1줄에 화면 요소가
+ * 7줄씩 붙어, 결과 화면이 읽기 어렵고 AI 에 보내는 내용에도 불필요한 줄이 섞였다.
+ *
+ * ── 거르는 원칙 ────────────────────────────────────────────────────────
+ * 진짜 메시지를 지우면 탐지를 놓치므로 **줄 전체가 확실한 화면 요소일 때만** 뺀다.
+ * - 줄 전체가 시각·날짜·요일·"방금" 같은 시간 표시
+ * - 줄 전체가 1~2자리 숫자나 "99+"(안 읽은 메시지 수)
+ * - 줄 전체가 알려진 버튼·안내 라벨과 같음(부분 일치는 보지 않는다 — "사진 보내줘"는 메시지다)
+ * - 바로 앞 줄과 똑같은 줄(같은 창을 두 번 훑어 생긴 중복)
+ * 전화번호만 있는 줄은 남긴다 — "이 번호로 연락" 류 규칙이 번호를 함께 봐야 한다.
+ */
+object ScreenTextCleaner {
+
+    private val TIME_OR_DATE = listOf(
+        Regex("(오전|오후)?\\s*\\d{1,2}:\\d{2}(\\s*(AM|PM|am|pm))?"),
+        Regex("\\d{4}년\\s*\\d{1,2}월\\s*\\d{1,2}일(\\s*[월화수목금토일]요일)?"),
+        Regex("\\d{1,2}월\\s*\\d{1,2}일(\\s*[월화수목금토일]요일)?"),
+        Regex("\\d{4}[.\\-/]\\s*\\d{1,2}[.\\-/]\\s*\\d{1,2}\\.?"),
+        Regex("[월화수목금토일]요일"),
+        Regex("(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(day|sday|nesday|rsday|urday)?", RegexOption.IGNORE_CASE),
+        Regex("(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\s+\\d{1,2}(,\\s*\\d{4})?", RegexOption.IGNORE_CASE),
+        Regex("(방금|어제|오늘|그저께|Now|Just now|Yesterday|Today)", RegexOption.IGNORE_CASE),
+        Regex("\\d{1,2}\\s*(분|시간|일)\\s*전"),
+        Regex("\\d{1,2}\\s*(min|mins|h|hr|hrs|d)\\s*(ago)?", RegexOption.IGNORE_CASE),
+    )
+
+    // 금액만 답한 메시지("300")는 남기도록 두 자리까지만 본다
+    private val UNREAD_COUNT = Regex("\\d{1,2}|\\d{2,3}\\+")
+
+    private val UI_LABEL_PATTERNS = listOf(
+        Regex("Show .+ screen", RegexOption.IGNORE_CASE),
+        Regex("Texting with .+", RegexOption.IGNORE_CASE),
+    )
+
+    /** 줄 전체가 이것과 같을 때만 뺀다(대소문자·앞뒤 공백 무시). */
+    private val UI_LABELS = setOf(
+        // 문자(Google Messages)
+        "conversation icon", "text message", "unread", "tap to load preview", "start chat",
+        "link previews are on.", "learn more or turn off in settings.", "send sms", "send message",
+        "more options", "search", "back", "navigate up", "delivered", "read", "sent", "sending…", "sending...",
+        // 카카오톡·공통 한국어 라벨
+        "메시지 입력", "메시지를 입력하세요", "메시지 보내기", "전송", "보내기", "검색", "뒤로", "뒤로 가기",
+        "메뉴", "더보기", "옵션 더보기", "이모티콘", "첨부", "첨부하기", "카메라", "음성 메시지", "음성메시지",
+        "읽음", "안 읽음", "전송됨", "전송 중", "채팅방 서랍", "샵검색", "알림 끄기", "통화하기",
+        // 인스타그램 DM
+        "메시지...", "메시지…", "좋아요", "답장", "사진", "동영상", "갤러리", "음성 클립", "스티커",
+        "message...", "message…", "like", "reply", "gallery", "voice clip", "sticker",
+    )
+
+    fun clean(text: String): String {
+        val kept = mutableListOf<String>()
+        for (raw in text.split('\n')) {
+            val line = raw.trim()
+            if (line.isEmpty() || isScreenElement(line)) continue
+            if (kept.lastOrNull() == line) continue
+            kept += line
+        }
+        return kept.joinToString("\n")
+    }
+
+    fun isScreenElement(line: String): Boolean {
+        val t = line.trim()
+        if (UNREAD_COUNT.matches(t)) return true
+        if (TIME_OR_DATE.any { it.matches(t) }) return true
+        if (t.lowercase() in UI_LABELS) return true
+        return UI_LABEL_PATTERNS.any { it.matches(t) }
+    }
+}
