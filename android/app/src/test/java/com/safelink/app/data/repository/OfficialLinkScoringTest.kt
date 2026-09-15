@@ -45,4 +45,24 @@ class OfficialLinkScoringTest {
         val r = engine.analyze("택배 조회 https://www.cjlogistics.com 또는 http://bit.ly/xyz123")
         assertTrue(r.appliedComboIds.contains("COMBO-VP-SMISHING"))
     }
+
+    @Test
+    fun `scheme 없이 쓴 한글·영문 링크도 스미싱 조합에 링크로 센다`() {
+        listOf(
+            "택배 조회 대장방문.com/6ITtt 에서 확인",
+            "택배 조회 택배조회.한국 에서 확인",
+            "택배 조회 bit.ly/3xAb9 에서 확인",
+            "택배 조회 대장방문[.]com/6ITtt 에서 확인"
+        ).forEach { text ->
+            val r = engine.analyze(text)
+            assertTrue("[$text] ${r.appliedComboIds}", r.appliedComboIds.contains("COMBO-VP-SMISHING"))
+        }
+    }
+
+    @Test
+    fun `scheme 없이 쓴 공식 주소는 여전히 조합에서 뺀다`() {
+        val r = engine.analyze("택배 조회는 www.cjlogistics.com 에서 운송장 번호로")
+        assertFalse(r.appliedComboIds.contains("COMBO-VP-SMISHING"))
+    }
+
 }

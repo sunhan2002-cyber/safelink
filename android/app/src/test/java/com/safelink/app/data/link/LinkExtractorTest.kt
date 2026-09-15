@@ -62,6 +62,57 @@ class LinkExtractorTest {
         assertEquals(listOf("http://bit.ly/3xAb9"), urls("여기클릭bit.ly/3xAb9하세요"))
     }
 
+    @Test
+    fun `한글 최상위 도메인도 scheme 없이 링크로 본다`() {
+        assertEquals(listOf("http://택배조회.한국"), urls("택배조회.한국 에서 확인"))
+        assertEquals(listOf("https://택배조회.한국/a1"), urls("https://택배조회.한국/a1"))
+    }
+
+    @Test
+    fun `한글과 숫자·영문·하이픈이 섞인 도메인 이름을 통째로 잡는다`() {
+        assertEquals("뒤에 숫자", listOf("http://대한통운24.com/x"), urls("대한통운24.com/x"))
+        assertEquals("앞에 영문", listOf("http://cj대한통운.com/x"), urls("cj대한통운.com/x"))
+        assertEquals("하이픈", listOf("http://대한-통운.com"), urls("대한-통운.com 접속"))
+        assertEquals("www", listOf("http://www.대장방문.com/6ITtt"), urls("www.대장방문.com/6ITtt"))
+    }
+
+    @Test
+    fun `한글 도메인이 훼손돼 와도 되돌린다`() {
+        val links = LinkExtractor.extract("여기서확인 대장방문[.]com/6ITtt")
+        assertEquals(listOf("http://대장방문.com/6ITtt"), links.map { it.url })
+        assertTrue(links.single().obfuscated)
+    }
+
+    @Test
+    fun `한글 단어 뒤에 영문 도메인이 붙어 오면 여전히 영문 도메인만 잡는다`() {
+        assertEquals(listOf("http://bit.ly/3xAb9"), urls("여기클릭bit.ly/3xAb9하세요"))
+        assertEquals(listOf("https://evil.top/a"), urls("지금바로https://evil.top/a"))
+    }
+
+    @Test
+    fun `한글 최상위 도메인과 비슷한 일반 문장은 링크가 아니다`() {
+        assertTrue(urls("우리.한국어 공부 모임").isEmpty())
+        assertTrue(urls("가격은5.0만원").isEmpty())
+    }
+
+    @Test
+    fun `검사용 주소는 한글 호스트만 퓨니코드로 바꾸고 경로는 그대로 둔다`() {
+        val converted = LinkExtractor.toAsciiUrl("https://www.대장방문.com/6ITtt")
+        assertTrue(converted, converted.startsWith("https://www.xn--"))
+        assertTrue("경로 유지", converted.endsWith(".com/6ITtt"))
+        assertTrue("ASCII 로만 이루어짐", converted.all { it.code < 128 })
+        val host = converted.removePrefix("https://").substringBefore('/')
+        assertEquals("되돌리면 원래 한글 주소", "www.대장방문.com", java.net.IDN.toUnicode(host))
+
+        val tld = LinkExtractor.toAsciiUrl("http://택배조회.한국/경로?q=1")
+        assertTrue("한글 TLD 도 변환", tld.startsWith("http://xn--") && tld.contains(".xn--"))
+        assertTrue("경로·쿼리는 그대로", tld.endsWith("/경로?q=1"))
+
+        assertEquals("영문 주소는 그대로", "https://bit.ly/3xAb9", LinkExtractor.toAsciiUrl("https://bit.ly/3xAb9"))
+        val port = LinkExtractor.toAsciiUrl("http://대장방문.com:8080/a")
+        assertTrue("포트 유지", port.startsWith("http://xn--") && port.endsWith(".com:8080/a"))
+    }
+
     // --- 훼손된 링크 -----------------------------------------------------
 
     @Test

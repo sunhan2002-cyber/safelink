@@ -1,6 +1,7 @@
 package com.safelink.app.data.repository
 
 import com.google.gson.Gson
+import com.safelink.app.data.link.LinkExtractor
 import com.safelink.app.data.link.OfficialDomains
 import com.safelink.app.data.model.AnalysisEvidence
 import com.safelink.app.data.model.DetectionResult
@@ -224,9 +225,7 @@ class DetectionEngine(
 
         val rawMatches = turns.flatMapIndexed { turnIndex, turnText ->
             matchKeywordsInTurn(turnText, turnIndex, turnOffsets[turnIndex])
-        }.filterNot { it.entry.id == URL_KEYWORD_ID && OfficialDomains.isOfficialUrl(it.matchedText) }
-        // ↑ 택배사·정부 공식 주소는 "의심 링크"로 세지 않는다 — 진짜 택배 안내가 스미싱 조합으로 경고가 뜨고,
-        //   결과 화면에서 정상 주소가 위험 표현으로 강조되던 문제. 흉내 낸 주소는 걸러지지 않는다(OfficialDomains).
+        }
 
         val suppressed = findSuppressedByOverlap(rawMatches)
         val (baseScore, matchedKeywords) = scoreMatches(rawMatches, suppressed)
@@ -312,6 +311,26 @@ class DetectionEngine(
                     }
                 }
                 "regex-simple" -> {
+                    // 링크는 정규식 대신 링크 검사와 같은 추출기로 찾는다. 정규식(https?://)은 scheme 이 붙은 주소만 잡아,
+                    // "대장방문.com/6ITtt", "bit.ly/x", "evil[.]com" 처럼 scheme 없이·훼손해서 온 링크는 스미싱 조합에서 빠졌다.
+                    // 택배사·정부 공식 주소는 의심 링크로 세지 않는다(OfficialDomains) — 진짜 택배 안내가 스미싱 조합으로
+                    // 경고가 뜨고, 결과 화면에서 정상 주소가 위험 표현으로 강조되던 문제. 흉내 낸 주소는 걸러지지 않는다.
+                    if (entry.id == URL_KEYWORD_ID) {
+                        var searchFrom = 0
+                        for (link in LinkExtractor.extract(turnText)) {
+                            val idx = turnText.indexOf(link.displayText, searchFrom).takeIf { it >= 0 } ?: continue
+                            searchFrom = idx + link.displayText.length
+                            if (OfficialDomains.isOfficialUrl(link.url)) continue
+                            matches += RawMatch(
+                                entry = entry,
+                                turnIndex = turnIndex,
+                                startInFull = turnOffset + idx,
+                                endInFull = turnOffset + idx + link.displayText.length,
+                                matchedText = link.displayText
+                            )
+                        }
+                        continue
+                    }
                     val pattern = entry.pattern ?: continue
                     regexOf(pattern).findAll(turnText).forEach { m ->
                         matches += RawMatch(
@@ -399,6 +418,10 @@ class DetectionEngine(
                 if (i == j) continue
                 val b = rawMatches[j]
                 if (a.entry.id == b.entry.id) continue
+                // 점수가 없는 표시용 매칭(링크 자체 VP-1-6-004 등, weight 0)은 안에 든 다른 신호를 가리지 않는다.
+                // 링크 전체("hxxp://evil[.]top/k2")가 잡히면서 그 안의 "일부러 망가뜨린 링크" 신호(hxxp://, [.])가
+                // 짧다는 이유로 점수에서 빠져 스미싱 문자를 놓치던 문제.
+                if (b.entry.weight == 0 || b.entry.structuralOnly) continue
                 val aInB = a.startInFull >= b.startInFull && a.endInFull <= b.endInFull
                 if (!aInB) continue
                 val aLength = a.endInFull - a.startInFull

@@ -44,7 +44,9 @@ object LinkExtractor {
         "xyz", "top", "site", "online", "shop", "store", "click", "link", "live", "vip",
         "icu", "cyou", "sbs", "quest", "cfd", "bond", "rest", "fun", "life", "world",
         "today", "buzz", "digital", "email", "space", "tech", "art", "work", "app",
-        "dev", "page", "cloud", "host", "website", "one", "run", "help", "support"
+        "dev", "page", "cloud", "host", "website", "one", "run", "help", "support",
+        // 한글 최상위 도메인 — "택배조회.한국" 처럼 scheme 없이 오면 목록에 없어 링크로 인정하지 못했다
+        "한국", "닷컴", "닷넷"
     )
 
     /** `hxxp`, `h**p` 처럼 훼손된 scheme 까지 받아준다. */
@@ -60,14 +62,17 @@ object LinkExtractor {
     private val DOMAIN_CHARS = ('a'..'z') + ('A'..'Z') + ('0'..'9') + listOf('.', '-', '@', '_')
 
     /**
-     * 라벨 하나는 영문/숫자로만 이루어지거나(기존), 한글 음절로만 이루어진다(신규) — 둘을 한
-     * 문자 클래스로 합치지 않는다. "여기클릭bit.ly"처럼 한글이 링크에 그냥 붙어 온 경우까지
-     * 라벨에 같이 삼켜지면 "여기클릭bit.ly"가 호스트로 잘못 잡히기 때문이다. 별개 라벨로 두면
-     * dot 으로 분리된 순수 한글 구간(예: "대장방문")만 라벨로 인정되고, 앞에 붙은 한글 단어는
-     * (dot 으로 이어지지 않는 한) 절대 라벨에 섞이지 않는다.
+     * 라벨 하나는 둘 중 하나다.
+     * 1) 영문/숫자 라벨: `bit`, `cjlogistics`
+     * 2) 한글이 들어간 라벨: `대장방문`, `대한-통운`(하이픈), `대한통운24`(뒤에 숫자), `cj대한통운`(앞에 영문)
+     *
+     * 한글 라벨은 **한글이나 숫자로 끝나야 한다.** "여기클릭bit.ly"처럼 한글 단어 뒤에 영문 도메인이 dot 없이
+     * 붙어 온 경우, 한글 라벨이 영문까지 삼켜 "여기클릭bit.ly"를 호스트로 잡으면 안 되기 때문이다.
+     * 한글로 끝나야 하므로 "여기클릭"에서 라벨이 끊기고(뒤에 dot 이 없어 탈락), "bit.ly"만 링크가 된다.
+     * 반대로 "대한통운24"처럼 한글 뒤에 **숫자만** 붙은 건 도메인 이름의 일부로 본다(예전엔 "24.com"만 잡혔다).
      */
     private const val LABEL =
-        """(?:[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?|[가-힣]+)"""
+        """(?:[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?|[A-Za-z0-9]*[가-힣](?:[가-힣A-Za-z0-9\-]*[가-힣0-9])?)"""
 
     /** 링크 뒤에 딸려 온 문장부호 — 경로의 일부가 아니므로 잘라낸다. */
     private const val TRAILING = """.,;:!?"'”’)]}>·…。、"""
@@ -141,6 +146,21 @@ object LinkExtractor {
             displayText = matchedText,
             obfuscated = OBFUSCATION_MARK.containsMatchIn(matchedText)
         )
+    }
+
+    /**
+     * 한글 도메인을 검사 서버가 쓰는 ASCII(퓨니코드, `xn--...`) 형태로 바꾼다. 경로·쿼리는 그대로 둔다.
+     * 위험 주소 목록은 호스트를 ASCII 로 정규화해 대조하므로, 한글 그대로 넘기면 목록에 있는 주소도 못 찾거나
+     * "주소 형식을 확인할 수 없음"으로 끝날 수 있다. 영문 주소는 바뀌지 않는다. 변환에 실패하면 원래 주소를 돌려준다.
+     */
+    fun toAsciiUrl(url: String): String {
+        val schemeEnd = url.indexOf("://").takeIf { it >= 0 }?.plus(3) ?: 0
+        val rest = url.substring(schemeEnd)
+        val hostEnd = rest.indexOfFirst { it == '/' || it == '?' || it == '#' || it == ':' }.let { if (it < 0) rest.length else it }
+        val host = rest.substring(0, hostEnd)
+        if (host.all { it.code < 128 }) return url
+        val ascii = runCatching { java.net.IDN.toASCII(host, java.net.IDN.ALLOW_UNASSIGNED) }.getOrNull() ?: return url
+        return url.substring(0, schemeEnd) + ascii + rest.substring(hostEnd)
     }
 
     /** 뒤쪽 문장부호를 잘라낸 만큼 원문에서 잡아낼 길이도 줄인다. */

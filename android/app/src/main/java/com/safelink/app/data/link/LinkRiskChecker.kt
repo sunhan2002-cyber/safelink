@@ -78,7 +78,8 @@ class LinkRiskChecker(
 
         val response = try {
             withTimeoutOrNull(LOOKUP_TIMEOUT_MS) {
-                client.lookupUri(link.url, THREAT_TYPES, SafeBrowsing.Protocol.LOCAL_BLOCK_LIST).await()
+                // 한글 도메인은 ASCII(퓨니코드)로 바꿔 대조한다 — 위험 주소 목록이 ASCII 호스트 기준이다
+                client.lookupUri(LinkExtractor.toAsciiUrl(link.url), THREAT_TYPES, SafeBrowsing.Protocol.LOCAL_BLOCK_LIST).await()
             }
         } catch (e: CancellationException) {
             throw e
