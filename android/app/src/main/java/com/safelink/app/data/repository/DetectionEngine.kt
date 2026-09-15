@@ -236,7 +236,8 @@ class DetectionEngine(
         val directRules = evaluateDirectRiskRules(originalText)
         val directBonus = directRules.sumOf { it.bonus }
         val totalScore = min(baseScore + comboBonus + directBonus, 100.0)
-        val score = totalScore.toInt()
+        val cap = scoreCapOf(rawMatches, suppressed, originalText)
+        val score = cap?.let { min(totalScore.toInt(), it.maxScore) } ?: totalScore.toInt()
 
         val riskLevel = RiskLevel.fromScore(score)
         val category = rawMatches.groupBy { it.entry.category }
@@ -250,7 +251,8 @@ class DetectionEngine(
             .map { AnalysisEvidence(it.label, "${it.detail} (+${it.bonus}점)") }
         val situationalRuleEvidences = existingSituationalEvidences + directRules
             .filter { it.kind == DirectRuleKind.SITUATION }
-            .map { AnalysisEvidence(it.label, "${it.detail} (+${it.bonus}점)") }
+            .map { AnalysisEvidence(it.label, "${it.detail} (+${it.bonus}점)") } +
+            listOfNotNull(cap?.takeIf { totalScore.toInt() > it.maxScore }?.let { AnalysisEvidence(it.label, it.detail) })
 
         return DetectionResult(
             riskLevel = riskLevel,
@@ -264,6 +266,32 @@ class DetectionEngine(
             sentenceRuleEvidences = sentenceRuleEvidences,
             situationalRuleEvidences = situationalRuleEvidences
         )
+    }
+
+    private data class ScoreCap(val maxScore: Int, val label: String, val detail: String)
+
+    /**
+     * 점수를 올리지 않아야 하는 대화인지 본다. 해당하면 위험도를 "주의"(30점) 이하로 제한한다.
+     *
+     * 1) 사기를 **경고하는** 대화 — "대신 송금해달라는 사기 문자 온대, 절대 보내지 마"처럼 사기 수법을 인용하며 조심하라는 말.
+     *    수법 문구가 그대로 들어 있어 점수가 올라가지만 위험한 대화가 아니다.
+     *    단, "보이스피싱 주의! 안전계좌로 이체해 주세요"처럼 격식 있는 지시(하세요·해 주세요·바랍니다)가 함께 있으면
+     *    사기꾼이 경고를 미끼로 쓰는 경우라 제한하지 않는다.
+     * 2) 요구가 없는 가족사칭 — "폰 고장났어, 지금 전화 못 받아"처럼 가족사칭 표현만 있고 돈·인증번호·상품권 요구가
+     *    없으면 일상 대화와 구분되지 않는다(김선한 구현작업 v1 점수 정책: 기기 고장 + 통화 회피만으로 경고 금지).
+     */
+    private fun scoreCapOf(rawMatches: List<RawMatch>, suppressed: Set<RawMatch>, originalText: String): ScoreCap? {
+        if (SAFETY_WARNING.containsMatchIn(originalText) && !FORMAL_DIRECTIVE.containsMatchIn(originalText)) {
+            return ScoreCap(CAUTION_CAP, "사기를 조심하라는 대화로 보여요", "사기 수법을 인용하며 경고하는 말이 있어 위험도를 '주의'로 제한했습니다.")
+        }
+        val scored = rawMatches.filterNot { it in suppressed || it.entry.weight == 0 }
+        if (scored.isNotEmpty() &&
+            scored.all { it.entry.category == FAMILY_IMPERSONATION } &&
+            scored.none { it.entry.subcategoryId in FAMILY_DEMAND_SUBCATEGORIES }
+        ) {
+            return ScoreCap(CAUTION_CAP, "가족사칭 표현만 있고 요구는 없어요", "돈·인증번호·상품권 요구가 없어 위험도를 '주의'로 제한했습니다.")
+        }
+        return null
     }
 
     private fun evaluateDirectRiskRules(originalText: String): List<DirectRiskRule> =
@@ -494,8 +522,11 @@ class DetectionEngine(
         turnCount: Int,
         originalText: String
     ): List<String> {
-        val matchedIds = rawMatches.map { it.entry.id }.toSet()
-        val subcategoriesByCategory = rawMatches.groupBy { it.entry.category }
+        // 겹침 억제로 점수에서 빠진 매칭은 조합 판정에도 세지 않는다. 한 표현이 두 항목에 동시에 걸리면
+        // (예: "당신밖에 없어요" → 긴급성압박 + 급속 친밀감) 서로 다른 행동 2개로 오인해 조합 가산이 붙었다.
+        val scoring = rawMatches.filterNot { it in suppressed }
+        val matchedIds = scoring.map { it.entry.id }.toSet()
+        val subcategoriesByCategory = scoring.groupBy { it.entry.category }
             .mapValues { (_, list) -> list.map { it.entry.subcategoryId }.toSet() }
 
         val triggered = mutableListOf<String>()
@@ -513,14 +544,14 @@ class DetectionEngine(
             triggered += "COMBO-VP-PHONE-VERIFY"
         }
         if (URL_KEYWORD_ID in matchedIds &&
-            listOf("VP-1-6-001", "VP-1-6-002", "VP-1-6-003").any { it in matchedIds }
+            listOf("VP-1-6-001", "VP-1-6-002", "VP-1-6-003", "VP-1-6-101").any { it in matchedIds }
         ) {
             triggered += "COMBO-VP-SMISHING"
         }
 
         // related_subcategory_ids 기반 "전부 매칭 시 발동" 규칙 - 세션 전체 기준으로 자동 판정
         // (RS-SECRET-MONEY, GL-ISOLATION-GUILT 및 4주차에 추가된 5개 콤보 모두 이 형태라 하드코딩 대신 일반화)
-        val subcategoryIds = rawMatches.map { it.entry.subcategoryId }.toSet()
+        val subcategoryIds = scoring.map { it.entry.subcategoryId }.toSet()
         keywordData.comboBonusRules
             .filter { it.type == "specific" && it.relatedSubcategoryIds != null }
             .forEach { rule ->
@@ -564,8 +595,15 @@ class DetectionEngine(
                 }
             }
 
-        // 서로 다른 위험 행동 2개: 전용 조합 규칙(특정 두 행동의 조합)이 하나도 발동하지 않았을 때만 가산한다.
-        if (maxDistinct == 2 && triggered.isEmpty()) {
+        // 서로 다른 위험 행동 2개: 전용 조합 규칙이 하나도 발동하지 않았고, 두 행동 중 하나가 **요구·위협 행동**
+        // (돈·인증번호·상품권 요구, 링크·앱 설치, 유포 위협 등 — keyword.json 의 requires_any_subcategory_ids)일 때만 가산한다.
+        // "폰 고장 + 통화 회피"처럼 요구가 없는 두 행동은 일상 대화에도 흔해 경고로 올리지 않는다(김선한 구현작업 v1 점수 정책).
+        val twoCatRule = keywordData.comboBonusRules.firstOrNull { it.id == "COMBO-GENERAL-2CAT" }
+        val demandSubcategories = twoCatRule?.requiresAnySubcategoryIds.orEmpty().toSet()
+        val twoWithDemand = subcategoriesByCategory.values.any { subs ->
+            subs.size == 2 && (demandSubcategories.isEmpty() || subs.any { it in demandSubcategories })
+        }
+        if (maxDistinct == 2 && triggered.isEmpty() && twoWithDemand) {
             triggered += "COMBO-GENERAL-2CAT"
         }
 
@@ -674,6 +712,27 @@ class DetectionEngine(
          * 2글자 키워드(검사·즉시·압류·구속·옷 벗)는 "검사결과"·"즉시불" 처럼 다른 단어 안에서 우연히 잡히기 쉽다.
          */
         internal const val MIN_SPACE_INSENSITIVE_LENGTH = 3
+
+        /** 상한을 걸 때의 최고 점수 — "주의" 구간의 끝(31점부터 경고 알림). */
+        private const val CAUTION_CAP = 30
+
+        private const val FAMILY_IMPERSONATION = "가족사칭"
+
+        /** 가족사칭에서 실제 피해로 이어지는 요구 행동: 대리결제(4-3), 인증탈취(4-4), 사고합의금(4-5). */
+        private val FAMILY_DEMAND_SUBCATEGORIES = setOf("4-3", "4-4", "4-5")
+
+        /**
+         * 사기를 경고하는 말투 — 사기라는 말을 **남 얘기·조언**으로 쓸 때만. "사기 아니에요", "사기 예방을 위해"는 걸리지 않는다.
+         * "주의"는 넣지 않는다: "보이스피싱 주의!"는 사기 문자 첫머리에 흔히 쓰인다.
+         */
+        private val SAFETY_WARNING = Regex(
+            "(?:사기|피싱|스미싱)\\s*(?:문자|전화|메시지|카톡|번호|수법)?\\s*" +
+                "(?:래|라더라|라고\\s*(?:하더라|했어|하네|해)|라니까|온대|왔대|많대|많다더라|조심(?:해|하래|하라고|해야)|" +
+                "같아서\\s*신고|이니까\\s*(?:무시|신고|조심)|당할\\s*뻔|당했|신고(?:했|해))"
+        )
+
+        /** 사기 문자에 흔한 격식 있는 행동 지시 — 이게 있으면 경고 말투가 있어도 제한하지 않는다. */
+        private val FORMAL_DIRECTIVE = Regex("(?:하세요|해\\s*주세요|하십시오|바랍니다|주시기\\s*바|하시기\\s*바)")
 
         /** 원문 속 링크(https?://...)를 잡는 키워드 id. 스미싱 조합(COMBO-VP-SMISHING)의 링크 조건이다. */
         private const val URL_KEYWORD_ID = "VP-1-6-004"

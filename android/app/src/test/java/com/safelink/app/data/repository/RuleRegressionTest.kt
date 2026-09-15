@@ -87,6 +87,9 @@ class RuleRegressionTest {
             appendLine("| 위험 대화 탐지율 (경고 이상) | ${pct(recall)} (${danger.count { it.alerted }}/${danger.size}) | ${ratio(hDanger.count { it.alerted }, hDanger.size)} |")
             appendLine("| 일상 대화 오탐률 (경고 이상) | ${pct(falsePositive)} (${benign.count { it.alerted }}/${benign.size}) | ${ratio(hBenign.count { it.alerted }, hBenign.size)} |")
             appendLine()
+            val ambiguousCritical = dev.filter { it.case.kind == "ambiguous" && it.level == RiskLevel.CRITICAL }
+            appendLine("| 애매한 대화가 긴급으로 뜬 수 | ${ambiguousCritical.size}건${if (ambiguousCritical.isEmpty()) "" else " (" + ambiguousCritical.joinToString { it.case.id } + ")"} | |")
+            appendLine()
             appendLine("## 유형별 (개발용)")
             appendLine()
             appendLine("| 유형 | 위험 탐지 | 일상 오탐 | 애매(점수) |")
@@ -114,6 +117,9 @@ class RuleRegressionTest {
             missedRealFailures.isEmpty() || !ENFORCE
         )
         assertTrue("위험 대화 탐지율 ${pct(recall)} < 기준 ${pct(MIN_DANGER_RECALL)}", recall >= MIN_DANGER_RECALL || !ENFORCE)
+        // 신호가 일부만 있는 대화가 단독으로 긴급이 되면 안 된다 (김선한 구현작업 v1: ambiguous 단독 CRITICAL 방지)
+        val ambiguousCritical = outcomes.filter { it.case.kind == "ambiguous" && it.level == RiskLevel.CRITICAL }
+        assertTrue("애매한 대화가 긴급으로 판정됨: ${ambiguousCritical.joinToString { "${it.case.id}(${it.score}점)" }}", ambiguousCritical.isEmpty() || !ENFORCE)
         assertTrue("일상 대화 오탐률 ${pct(falsePositive)} > 기준 ${pct(MAX_BENIGN_FALSE_POSITIVE)}", falsePositive <= MAX_BENIGN_FALSE_POSITIVE || !ENFORCE)
     }
 
@@ -125,6 +131,7 @@ class RuleRegressionTest {
             val verdict = when (o.case.kind) {
                 "danger" -> if (o.alerted) "잡음" else "**놓침**"
                 "benign" -> if (o.alerted) "**오탐**" else "정상"
+                "ambiguous" -> if (o.level == RiskLevel.CRITICAL) "**애매→긴급**" else "-"
                 else -> "-"
             }
             val evidence = (o.matched + o.directRules + o.combos).joinToString(", ").replace("|", "/")

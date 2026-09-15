@@ -55,7 +55,9 @@ data class ComboBonusRule(
     // 세션 전체 원문(turns를 합친 텍스트) 기준으로 한 번만 평가 - 키워드별 매칭이 아니라
     // "문장 안의 두 숫자 관계"를 보는 규칙이라 combo_bonus_rules에 둔다.
     val pattern: String? = null,
-    @SerializedName("min_growth_rate_percent") val minGrowthRatePercent: Double? = null
+    @SerializedName("min_growth_rate_percent") val minGrowthRatePercent: Double? = null,
+    // general(2개) 전용: 서로 다른 중분류 2개 중 하나가 이 목록(요구·위협 행동)에 있어야 발동한다.
+    @SerializedName("requires_any_subcategory_ids") val requiresAnySubcategoryIds: List<String>? = null
 )
 
 data class RepeatDecayPolicy(

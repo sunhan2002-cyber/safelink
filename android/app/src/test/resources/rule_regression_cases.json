@@ -5,7 +5,8 @@
     "kinds": {
       "danger": "사기·위험 대화. 경고(31점) 이상이면 '잡음'",
       "benign": "위험 단어가 섞였지만 일상 대화. 경고 이상이면 '오탐'",
-      "ambiguous": "신호가 일부만 있는 대화. 통과/실패 없이 점수만 기록"
+      "ambiguous": "신호가 일부만 있는 대화. 통과/실패 없이 점수만 기록",
+      "baseline": "시연·판넬 기준 대화. 통과/실패 없이 점수 변화만 기록 (김선한 구현작업 v1 7단계)"
     },
     "authoring_rule": "규칙을 고치기 전에 쓴다. 규칙을 만든 사람이 쓴 문장(author=claude-draft)만으로는 과적합을 막을 수 없으므로, 팀원이 따로 쓴 문장(author=팀원이름)을 계속 추가한다. 실제로 놓친 대화는 source=real-failure 로 남긴다.",
     "turns": "text 안의 줄바꿈은 대화의 메시지 구분이다(ConversationTurns.split 과 같은 기준).",
@@ -1055,6 +1056,114 @@
       "source": "draft",
       "note": "scheme 없는 링크를 링크로 세게 되면서 생길 수 있는 오탐 확인",
       "text": "우리 동아리 홈페이지 한성코딩.kr 새로 만들었어\n공지 올려놨으니까 들어가 봐"
+    },
+    {
+      "id": "FM-D-07",
+      "category": "가족사칭",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "note": "김선한 구현작업 v1 2단계 통과 기준",
+      "text": "엄마인데 폰이 고장 났어\n통화가 안 되니 문자로만 해\n급한데 대신 송금해줄래?"
+    },
+    {
+      "id": "FM-D-08",
+      "category": "가족사칭",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "note": "김선한 구현작업 v1 2단계 통과 기준",
+      "text": "아빠 나 휴대폰 고장나서 임시폰이야\n전화 못 해\n수리비 먼저 입금해줘"
+    },
+    {
+      "id": "FM-D-09",
+      "category": "가족사칭",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "note": "신기훈 탐지보강 3장 판넬 대표 사례(전 38점)",
+      "text": "휴대폰이 고장 나서 새 번호로 연락해.\n지금은 통화 못 해.\n급한데 대신 송금해줄래?"
+    },
+    {
+      "id": "FM-D-10",
+      "category": "가족사칭",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "note": "신기훈 탐지보강 3장 붙여 쓴 판넬 사례",
+      "text": "폰이고장나서 새번호로연락해\n지금은통화가안돼\n급한데대신송금해줄래"
+    },
+    {
+      "id": "FM-B-05",
+      "category": "가족사칭",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "note": "김선한 구현작업 v1 2단계 통과 기준(안전)",
+      "text": "엄마 나 폰 고장나서 수리 맡겼어\n돈은 내가 냈어\n집에 가서 전화할게"
+    },
+    {
+      "id": "FM-B-06",
+      "category": "가족사칭",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "note": "김선한 구현작업 v1 점수 정책: 기기 고장 + 통화 회피만으로 경고 금지",
+      "text": "엄마 나 폰 고장나서 수리 맡겼어\n지금 전화 못 받아"
+    },
+    {
+      "id": "FM-B-07",
+      "category": "가족사칭",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "note": "김선한 구현작업 v1 점수 정책: 기기 고장 + 통화 회피만으로 경고 금지",
+      "text": "휴대폰 액정 깨져서 전화가 안 돼\n이따 집 전화로 할게"
+    },
+    {
+      "id": "FM-B-08",
+      "category": "가족사칭",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "note": "김선한 구현작업 v1 점수 정책: 안전 문맥은 위험도 상승 제한",
+      "text": "요즘 엄마 폰 고장났다고 대신 송금해달라는 사기 문자 온대\n절대 보내지 말고 조심해"
+    },
+    {
+      "id": "VP-B-07",
+      "category": "보이스피싱",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "note": "김선한 구현작업 v1 점수 정책: 안전 문맥은 위험도 상승 제한",
+      "text": "검찰이라면서 안전계좌로 옮기라는 전화는 보이스피싱이래\n엄마도 그런 전화 오면 바로 끊고 신고해"
+    },
+    {
+      "id": "VP-D-10",
+      "category": "보이스피싱",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "note": "안전 문맥 제한을 사기꾼이 미끼로 쓰는 경우 — 제한되면 안 됨",
+      "text": "[금융감독원] 보이스피싱 피해가 늘고 있어 조심하셔야 합니다\n고객님 계좌가 도용되어 안전계좌로 즉시 이체해 주시기 바랍니다"
+    },
+    {
+      "id": "VP-D-11",
+      "category": "보이스피싱",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "note": "신기훈 탐지보강 남은 과제: 택배 반송형(전 0점)",
+      "text": "[Web발신] 고객님 주소불일치로 택배가 반송되었습니다\n주소지 확인 dlvr-kr.top/r2 에서 수정 바랍니다"
+    },
+    {
+      "id": "RS-A-03",
+      "category": "로맨스스캠",
+      "kind": "ambiguous",
+      "author": "claude-draft",
+      "source": "draft",
+      "note": "한 표현이 두 행동으로 중복 계산되던 문제(조합 가산 금지)",
+      "text": "당신밖에 없어요"
     }
   ]
 }
