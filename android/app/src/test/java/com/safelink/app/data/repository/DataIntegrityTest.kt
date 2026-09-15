@@ -134,7 +134,9 @@ class DataIntegrityTest {
             .associate { it["id"].asString to it["sample"].asString }
         val failures = mutableListOf<String>()
         keywordData.keywords.forEach { entry ->
-            val sample = if (entry.matchType == "keyword") entry.keyword else regexSamples[entry.id] ?: jsonSamples[entry.id]
+            // 정규식 항목은 sample(검증 예문) → 코드에 둔 예문 → keyword(대표 문구) 순으로 쓴다.
+            // keyword 필드에 원래 문구를 남긴 전환 항목(신기훈 탐지보강 2-2)은 "원래 문장도 계속 잡는지"가 이걸로 확인된다.
+            val sample = if (entry.matchType == "keyword") entry.keyword else jsonSamples[entry.id] ?: regexSamples[entry.id] ?: entry.keyword
             if (sample == null) {
                 failures += "${entry.id}: 검증용 샘플 문자열이 없음 (regexSamples 등록 누락 가능성)"
                 return@forEach
@@ -144,4 +146,24 @@ class DataIntegrityTest {
         }
         assertTrue("매칭 실패 항목 ${failures.size}건:\n${failures.joinToString("\n")}", failures.isEmpty())
     }
+
+    @Test
+    fun `정규식 항목에 대표 문구(keyword)가 있으면 패턴이 그 문구도 잡아야 함`() {
+        val failures = keywordData.keywords
+            .filter { it.matchType == "regex-simple" && !it.keyword.isNullOrBlank() && it.pattern != null }
+            .filterNot { Regex(it.pattern!!).containsMatchIn(it.keyword!!) }
+            .map { "${it.id}: '${it.keyword}' 이(가) 패턴 ${it.pattern} 에 안 맞음" }
+        assertTrue(failures.joinToString("\n"), failures.isEmpty())
+    }
+
+    @Test
+    fun `keyword json 세 사본(data, assets, test resources)은 내용이 같아야 함`() {
+        // 테스트는 android/app 에서 실행된다. 셋 중 하나만 고치면 앱·테스트·원본 데이터가 서로 달라진다.
+        val paths = listOf("src/main/assets/keyword.json", "src/test/resources/keyword.json", "../../data/keyword.json")
+        val parsed = paths.map { com.google.gson.JsonParser.parseString(java.io.File(it).readText()) }
+        paths.zip(parsed).drop(1).forEach { (path, json) ->
+            assertTrue("$path 가 src/main/assets/keyword.json 과 다름", json == parsed.first())
+        }
+    }
+
 }
