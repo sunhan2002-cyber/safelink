@@ -1,6 +1,7 @@
 package com.safelink.app.data.repository
 
 import com.google.gson.Gson
+import com.safelink.app.data.link.OfficialDomains
 import com.safelink.app.data.model.AnalysisEvidence
 import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.model.MatchedKeyword
@@ -223,7 +224,9 @@ class DetectionEngine(
 
         val rawMatches = turns.flatMapIndexed { turnIndex, turnText ->
             matchKeywordsInTurn(turnText, turnIndex, turnOffsets[turnIndex])
-        }
+        }.filterNot { it.entry.id == URL_KEYWORD_ID && OfficialDomains.isOfficialUrl(it.matchedText) }
+        // ↑ 택배사·정부 공식 주소는 "의심 링크"로 세지 않는다 — 진짜 택배 안내가 스미싱 조합으로 경고가 뜨고,
+        //   결과 화면에서 정상 주소가 위험 표현으로 강조되던 문제. 흉내 낸 주소는 걸러지지 않는다(OfficialDomains).
 
         val suppressed = findSuppressedByOverlap(rawMatches)
         val (baseScore, matchedKeywords) = scoreMatches(rawMatches, suppressed)
@@ -465,7 +468,7 @@ class DetectionEngine(
         if ("VP-1-3-003" in matchedIds && ("VP-1-3-001" in matchedIds || "VP-1-3-002" in matchedIds)) {
             triggered += "COMBO-VP-PHONE-VERIFY"
         }
-        if ("VP-1-6-004" in matchedIds &&
+        if (URL_KEYWORD_ID in matchedIds &&
             listOf("VP-1-6-001", "VP-1-6-002", "VP-1-6-003").any { it in matchedIds }
         ) {
             triggered += "COMBO-VP-SMISHING"
@@ -622,6 +625,9 @@ class DetectionEngine(
     // ─────────────────────────────────────────────────────────────────
 
     companion object {
+        /** 원문 속 링크(https?://...)를 잡는 키워드 id. 스미싱 조합(COMBO-VP-SMISHING)의 링크 조건이다. */
+        private const val URL_KEYWORD_ID = "VP-1-6-004"
+
         /** 4주차에 신설된 중분류 - 실사용 검증 전까지 한시적으로 회색지대 무관 호출. */
         private val NEW_SUBCATEGORIES_2026_07 = setOf("2-6", "2-7", "2-8", "2-9", "2-10", "3-7", "3-8", "3-9")
 

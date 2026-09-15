@@ -1010,6 +1010,24 @@
       "source": "draft-2",
       "text": "당근 판매자가 택배로 보내준다길래 안전결제로 하자고 했어\n앱 안에서 결제하니까 마음 편하다",
       "note": "처음엔 확인용(holdout)으로 썼으나 규칙 수정 중 내용을 봤으므로 개발용으로 전환. 전환 전 측정: 원래 규칙 6%(1/18) → 1·2차 보강 후 22%(4/18), 오탐 1/18"
+    },
+    {
+      "id": "VP-B-05",
+      "category": "보이스피싱",
+      "kind": "benign",
+      "author": "claude-draft",
+      "source": "draft",
+      "note": "공식 택배사 링크가 스미싱 조합으로 경고(45점)가 뜨던 문제의 회귀 방지",
+      "text": "[CJ대한통운] 고객님의 택배가 오늘 배송 예정입니다\n택배 조회는 https://www.cjlogistics.com 에서 운송장 번호로 확인하세요"
+    },
+    {
+      "id": "VP-D-07",
+      "category": "보이스피싱",
+      "kind": "danger",
+      "author": "claude-draft",
+      "source": "draft",
+      "note": "공식 도메인을 흉내 낸 주소는 계속 잡아야 함",
+      "text": "[CJ대한통운] 택배 조회 결과 주소지 확인이 필요합니다\nhttps://cjlogistics.com.kr-track.top/a 에서 주소를 수정해 주세요"
     }
   ]
 }
