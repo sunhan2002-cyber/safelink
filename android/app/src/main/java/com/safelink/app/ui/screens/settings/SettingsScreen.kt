@@ -54,6 +54,9 @@ import androidx.navigation.NavHostController
 import com.safelink.app.BuildConfig
 import com.safelink.app.background.MessageDetectionService
 import com.safelink.app.settings.AiConsentStore
+import com.safelink.app.settings.BatteryProtection
+import com.safelink.app.ui.components.BatteryProtectionDialog
+import com.safelink.app.ui.components.BatteryProtectionWarning
 import com.safelink.app.settings.BackgroundDetectionAccess
 import com.safelink.app.settings.NotificationTextStore
 import com.safelink.app.security.AppLockManager
@@ -110,6 +113,10 @@ fun SettingsScreen(navController: NavHostController) {
     var backgroundDetection by remember { mutableStateOf(BackgroundDetectionAccess.syncAiConsent(context)) }
     // 백그라운드 감지 켜기 전 동의·권한 안내 다이얼로그 (최종 가이드 v1.0)
     var showBackgroundConsent by remember { mutableStateOf(false) }
+    // 절전 제한 — 홈과 같은 기준(BatteryProtection)
+    var batteryOk by remember { mutableStateOf(BatteryProtection.isUnrestricted(context)) }
+    var showBatteryDialog by remember { mutableStateOf(false) }
+    var askBatteryAfterEnable by remember { mutableStateOf(false) }
 
     // 백그라운드 AI 정밀 분석 동의 — 기본 꺼짐, 켤 때 무엇이 전송되는지 보여주고 동의를 받는다
     var aiConsent by remember { mutableStateOf(AiConsentStore.isEnabled(context)) }
@@ -123,6 +130,9 @@ fun SettingsScreen(navController: NavHostController) {
             if (event == Lifecycle.Event.ON_RESUME) {
                 backgroundDetection = BackgroundDetectionAccess.syncAiConsent(context)
                 aiConsent = AiConsentStore.isEnabled(context)
+                batteryOk = BatteryProtection.isUnrestricted(context)
+                if (askBatteryAfterEnable && backgroundDetection && !batteryOk) showBatteryDialog = true
+                askBatteryAfterEnable = false
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -140,7 +150,17 @@ fun SettingsScreen(navController: NavHostController) {
                 // 이 선택이 그 토글에도 바로 반영된다.
                 if (aiEnabled) AiConsentStore.agree(context) else AiConsentStore.revoke(context)
                 aiConsent = aiEnabled
+                askBatteryAfterEnable = true
                 BackgroundDetectionAccess.openAccessibilitySettings(context)
+            }
+        )
+    }
+    if (showBatteryDialog) {
+        BatteryProtectionDialog(
+            onDismiss = { showBatteryDialog = false },
+            onOpenSettings = {
+                showBatteryDialog = false
+                BatteryProtection.requestUnrestricted(context)
             }
         )
     }
@@ -359,6 +379,9 @@ fun SettingsScreen(navController: NavHostController) {
                         )
                     }
                 }
+            }
+            if (backgroundDetection && !batteryOk) {
+                BatteryProtectionWarning(onClick = { showBatteryDialog = true })
             }
 
             SectionLabel("보안")

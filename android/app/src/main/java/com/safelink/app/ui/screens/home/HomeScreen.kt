@@ -67,6 +67,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.safelink.app.data.model.RiskLevel
+import com.safelink.app.settings.BatteryProtection
+import com.safelink.app.ui.components.BatteryProtectionDialog
+import com.safelink.app.ui.components.BatteryProtectionWarning
 import com.safelink.app.ui.components.RiskBadge
 import com.safelink.app.ui.components.ActionHelpDialog
 import com.safelink.app.ui.components.ActionHelpTooltip
@@ -130,11 +133,19 @@ fun HomeScreen(
     var showBackgroundConsent by remember { mutableStateOf(false) }
     var showBackgroundDisable by remember { mutableStateOf(false) }
     var showAiConsent by remember { mutableStateOf(false) }
+    // 절전 제한 — 켜져 있으면 보호가 조용히 멈출 수 있다(BatteryProtection 참고)
+    var batteryOk by remember { mutableStateOf(BatteryProtection.isUnrestricted(context)) }
+    var showBatteryDialog by remember { mutableStateOf(false) }
+    // 실시간 보호를 켜러 접근성 설정에 다녀온 직후인지 — 돌아와서 보호가 켜졌으면 절전 해제를 이어서 묻는다
+    var askBatteryAfterEnable by remember { mutableStateOf(false) }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 protectionOn = BackgroundDetectionAccess.syncAiConsent(context)
                 aiOn = AiConsentStore.isEnabled(context)
+                batteryOk = BatteryProtection.isUnrestricted(context)
+                if (askBatteryAfterEnable && protectionOn && !batteryOk) showBatteryDialog = true
+                askBatteryAfterEnable = false
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -151,7 +162,17 @@ fun HomeScreen(
                 // 예전 동의가 남아 전송되면 "동의 안 했는데 왜 보내냐"가 되므로, 미체크는 명시적으로 철회한다.
                 if (aiEnabled) AiConsentStore.agree(context) else AiConsentStore.revoke(context)
                 aiOn = aiEnabled
+                askBatteryAfterEnable = true
                 BackgroundDetectionAccess.openAccessibilitySettings(context)
+            }
+        )
+    }
+    if (showBatteryDialog) {
+        BatteryProtectionDialog(
+            onDismiss = { showBatteryDialog = false },
+            onOpenSettings = {
+                showBatteryDialog = false
+                BatteryProtection.requestUnrestricted(context)
             }
         )
     }
@@ -405,6 +426,11 @@ fun HomeScreen(
                     }
                 }
             }
+        }
+
+        // 보호는 켜져 있는데 절전 제한이 걸려 있으면, "보호 중" 카드만 믿지 않도록 바로 아래에 경고를 둔다
+        if (protectionOn && !batteryOk) {
+            BatteryProtectionWarning(onClick = { showBatteryDialog = true })
         }
 
         // 퀵 액션 — Figma는 대화분석/링크검사/자가진단 3개.

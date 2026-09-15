@@ -7,6 +7,10 @@
     <!-- 2차 AI 보조 분석 API 호출용. 서버는 masked_text만 받고 원문/저장 없음(CLAUDE.md 원칙). -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- 휴대폰 절전 기능이 실시간 보호를 멈추지 못하게 하는 "배터리 제한 해제" 시스템 창을 띄우기 위한 권한.
+         이 창에서 사용자가 직접 허용해야만 적용된다(BatteryProtection 참고). -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
     <application
         android:name=".SafeLinkApplication"
         android:allowBackup="false"
