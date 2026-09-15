@@ -63,20 +63,28 @@ class PipelineDeviceTest {
     }
 
     @Test
-    fun screenshotPath() = runBlocking {
+    fun screenshotPath() = screenshots("screenshot.tsv") { ConversationTurns.split(it) }
+
+    /** 한 문장을 어절 2개씩 말풍선으로 나눠 보낸 대화의 스크린샷 */
+    @Test
+    fun screenshotSplitBubblesPath() = screenshots("screenshot_split.tsv") { text ->
+        text.split('\n').flatMap { line -> line.split(' ').filter { it.isNotBlank() }.chunked(2).map { it.joinToString(" ") } }
+    }
+
+    private fun screenshots(outName: String, bubbles: (String) -> List<String>) = runBlocking {
         val repo = DetectionRepository(context)
         val ocr = MlKitOcrService()
         val dir = File(context.cacheDir, "pipeline_shots").apply { mkdirs() }
         val out = StringBuilder("id\tkind\tsource\tlevel\tscore\tocr\n")
         cases().forEach { c ->
             val png = File(dir, "${c.id}.png")
-            renderChat(ConversationTurns.split(c.text), png)
+            renderChat(bubbles(c.text), png)
             val extracted = ScreenTextCleaner.clean(ocr.extractText(context, listOf(Uri.fromFile(png))))
             val r = repo.analyze(extracted)
             out.append("${c.id}\t${c.kind}\t${c.source}\t${if (extracted.isBlank()) "NO_TEXT" else r.riskLevel.name}\t${r.score}\t${extracted.replace("\n", " / ")}\n")
             png.delete()
         }
-        outFile("screenshot.tsv").writeText(out.toString())
+        outFile(outName).writeText(out.toString())
     }
 
     /** 메신저 대화 화면처럼 그린다: 상태표시줄, 상대 말풍선(왼쪽), 말풍선 옆 시각. */

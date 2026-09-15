@@ -45,7 +45,11 @@ class MlKitOcrService : OcrService {
         // ML Kit 의 text.text 는 말풍선 안에서 폭 때문에 접힌 줄까지 줄바꿈으로 나눈다("전부 뿌 / 린다").
         // 탐지 규칙은 한 메시지(한 줄) 안에서 표현을 찾으므로, 접힌 줄이 끊기면 텍스트로는 잡히는 대화를 놓쳤다.
         // 블록(대개 말풍선 하나) 단위로 줄을 다시 이어 붙인다.
-        return text.textBlocks.joinToString("\n") { block -> OcrLineJoiner.join(block.lines.map { it.text }) }
+        // 블록 순서는 화면 위→아래가 보장되지 않는다. 짧은 말풍선이 여러 개면 순서가 뒤섞여("얘기하자" / "여기선 텔레그램으로만")
+        // 나눠 보낸 문장을 잇지 못했다(기기 측정 70/106). 화면 위치(위, 왼쪽) 순으로 정렬한다.
+        return text.textBlocks
+            .sortedWith(compareBy({ it.boundingBox?.top ?: 0 }, { it.boundingBox?.left ?: 0 }))
+            .joinToString("\n") { block -> OcrLineJoiner.join(block.lines.map { it.text }) }
     }
 
     /** ML Kit Task 를 코루틴 suspend 로 변환 */

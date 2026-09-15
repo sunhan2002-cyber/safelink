@@ -68,8 +68,15 @@ class KeywordSpacingTest {
     }
 
     @Test
-    fun `줄바꿈을 넘어서 두 메시지의 글자가 이어져 잡히지 않는다`() {
-        // 한 턴 안의 줄바꿈은 메시지 경계라 공백으로 보지 않는다 (keyword 타입 기준)
-        assertFalse("VP-1-5-002" in matchedIds("안전계좌로\n이체"))
+    fun `한 문장을 말풍선 여러 개로 나눠 보내도 잡는다`() {
+        // 메신저에서 흔한 "안전계좌로" / "이체" 식 나눠 보내기 — 예전에는 줄 경계를 넘지 않아 놓쳤다
+        fun turnIds(text: String) = engine.analyze(ConversationTurns.split(text)).matchedKeywords.map { it.keywordId }
+        assertTrue("VP-1-5-002" in turnIds("안전계좌로\n이체"))
+        assertTrue("정규식도 경계를 넘는다", "VP-1-5-104" in turnIds("인증번호 오면\n바로 알려줘"))
+        assertEquals("같은 표현을 두 번 세지 않는다", 1, turnIds("안전계좌로\n이체해").count { it == "VP-1-5-002" })
+        assertFalse(
+            "앞 말풍선이 문장으로 끝났으면 잇지 않는다",
+            "FM-4-3-101" in turnIds("할머니 문화상품권 생일선물로 보내드렸어요\n문자로 온 번호 입력하시면 돼요")
+        )
     }
 }

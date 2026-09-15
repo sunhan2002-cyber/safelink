@@ -225,9 +225,10 @@ class DetectionEngine(
         val originalText = turns.joinToString("\n")
         val turnOffsets = turnOffsets(turns)
 
-        val rawMatches = turns.flatMapIndexed { turnIndex, turnText ->
+        val perTurn = turns.flatMapIndexed { turnIndex, turnText ->
             matchKeywordsInTurn(turnText, turnIndex, turnOffsets[turnIndex])
         }
+        val rawMatches = perTurn + crossTurnMatches(turns, turnOffsets, perTurn)
 
         val suppressed = findSuppressedByOverlap(rawMatches)
         val (baseScore, matchedKeywords) = scoreMatches(rawMatches, suppressed)
@@ -308,6 +309,46 @@ class DetectionEngine(
         val endInFull: Int,
         val matchedText: String
     )
+
+    /**
+     * 말풍선(턴) 경계를 넘어 이어지는 표현을 찾는다.
+     *
+     * 메신저에서는 한 문장을 여러 말풍선으로 나눠 보내는 일이 흔하다("인증번호 오면" / "바로 알려줘").
+     * 턴 안에서만 찾으면 이런 대화를 통째로 놓쳤다(어절 2~3개씩 나눈 위험 대화 142건 중 37~63건만 잡힘).
+     * 턴을 공백 한 칸으로 이어 붙인 문자열에서 한 번 더 찾고, **실제로 경계를 넘는 매칭만** 더한다.
+     * 구분자가 줄바꿈과 같은 한 글자라 위치는 원문 기준 그대로다.
+     *
+     * 한 턴 안에서 이미 잡힌 같은 규칙과 겹치는 매칭은 버린다 — 같은 표현을 두 번 세지 않도록.
+     */
+    private fun crossTurnMatches(turns: List<String>, turnOffsets: List<Int>, perTurn: List<RawMatch>): List<RawMatch> {
+        if (turns.size < 2) return emptyList()
+        val joined = turns.joinToString(" ")
+        fun turnOf(pos: Int): Int = turnOffsets.indexOfLast { it <= pos }.coerceAtLeast(0)
+        return matchKeywordsInTurn(joined, 0, 0).mapNotNull { m ->
+            var s = m.startInFull
+            var e = m.endInFull
+            while (s < e && joined[s].isWhitespace()) s++
+            while (e > s && joined[e - 1].isWhitespace()) e--
+            val startTurn = turnOf(s)
+            val endTurn = if (s < e) turnOf(e - 1) else startTurn
+            if (startTurn == endTurn) return@mapNotNull null
+            // 앞 말풍선이 문장으로 끝났으면 나눠 보낸 한 문장이 아니라 서로 다른 문장이다 — 잇지 않는다.
+            // ("상품권 생일선물로 보내드렸어요" / "문자로 온 번호 입력하시면 돼요"가 상품권 번호 요구로 잡히던 문제)
+            if ((startTurn until endTurn).any { endsSentence(turns[it]) }) return@mapNotNull null
+            val overlapsSame = perTurn.any { p -> p.entry.id == m.entry.id && p.startInFull < e && p.endInFull > s }
+            if (overlapsSame) null else m.copy(turnIndex = startTurn)
+        }
+    }
+
+    /** 말풍선이 완결된 문장으로 끝났는지 — 문장 부호나 흔한 종결 어미("~요", "~다", "~어", "~줘")로 판단한다. */
+    private fun endsSentence(turn: String): Boolean {
+        val t = turn.trimEnd()
+        val last = t.lastOrNull() ?: return true
+        if (last in SENTENCE_END_MARKS) return true
+        // 어미는 단어 끝에 붙어 있을 때만 본다 — "연락처 다" / "가지고 있다"의 "다"(부사)는 문장 끝이 아니다
+        val beforeLast = t.getOrNull(t.length - 2)
+        return last in SENTENCE_END_SYLLABLES && beforeLast != null && beforeLast in '가'..'힣'
+    }
 
     private fun turnOffsets(turns: List<String>): List<Int> {
         val offsets = mutableListOf<Int>()
@@ -716,6 +757,10 @@ class DetectionEngine(
          */
         internal const val MIN_SPACE_INSENSITIVE_LENGTH = 3
 
+        /** 말풍선 경계 잇기에서 "문장이 끝났다"고 보는 마지막 글자 */
+        private const val SENTENCE_END_MARKS = ".?!~…ㅋㅎㅠㅜ^)"
+        private const val SENTENCE_END_SYLLABLES = "요다죠까니어아야지네래줘해음함게걸데"
+
         /** 상한을 걸 때의 최고 점수 — "주의" 구간의 끝(31점부터 경고 알림). */
         private const val CAUTION_CAP = 30
 
@@ -729,7 +774,8 @@ class DetectionEngine(
          * "주의"는 넣지 않는다: "보이스피싱 주의!"는 사기 문자 첫머리에 흔히 쓰인다.
          */
         private val SAFETY_WARNING = Regex(
-            "(?:사기|피싱|스미싱)\\s*(?:문자|전화|메시지|카톡|번호|수법)?\\s*" +
+            // 말풍선을 나눠 보낸 경우 사이에 문장 부호가 끼어도("사기 문자." / "온대") 같은 경고로 본다
+            "(?:사기|피싱|스미싱)\\s*(?:문자|전화|메시지|카톡|번호|수법)?[.,!]?\\s*" +
                 "(?:래|라더라|라고\\s*(?:하더라|했어|하네|해)|라니까|온대|왔대|많대|많다더라|조심(?:해|하래|하라고|해야)|" +
                 "같아서\\s*신고|이니까\\s*(?:무시|신고|조심)|당할\\s*뻔|당했|신고(?:했|해))"
         )
