@@ -53,7 +53,12 @@ android {
         buildConfigField("String", "SAFE_BROWSING_API_KEY", "\"$safeBrowsingApiKey\"")
         buildConfigField("String", "AI_BASE_URL", "\"$aiBaseUrl\"")
         buildConfigField("String", "ANTHROPIC_API_KEY", "\"$anthropicApiKey\"")
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+
+    // 기기 테스트(PipelineDeviceTest)는 JVM 회귀 테스트와 같은 문장 묶음을 쓴다
+    sourceSets["androidTest"].assets.srcDirs("src/test/resources")
 
     buildTypes {
         release {
@@ -115,4 +120,7 @@ dependencies {
     // AI 문맥 분석 — 발표용으로 앱이 Claude 를 직접 호출 (공식 Java SDK, Kotlin 에서 사용)
     implementation(libs.anthropic.java)
     testImplementation(libs.junit)
+    // 실제 기기(에뮬레이터)에서 분석 경로 전체를 확인하는 테스트 — 안드로이드 정규식·ML Kit 인식까지 포함
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 }

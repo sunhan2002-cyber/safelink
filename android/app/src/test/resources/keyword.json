@@ -1458,7 +1458,7 @@
       "subcategory_id": "3-4",
       "subcategory": "죄책감 유도",
       "match_type": "regex-simple",
-      "pattern": "다\\s*(너|널|니)\\s*(잘되라고|위해서|생각해서|손해\\s*볼까\\s*봐)|(너|널)\\s*사랑하니까\\s*(이러|그러)",
+      "pattern": "다\\s*(너|널|니)\\s*(잘\\s*되라고|위해서|생각해서|손해\\s*볼까\\s*봐)|(너|널)\\s*사랑하니까\\s*(이러|그러)",
       "weight": 12,
       "repeat_decay": true,
       "description": "다 너를 위해서라며 통제를 정당화",
@@ -4192,6 +4192,19 @@
       "sample": "나 믿지? 우리 곧 만나잖아"
     },
     {
+      "id": "RS-2-2-103",
+      "category": "로맨스스캠",
+      "subcategory_id": "2-2",
+      "subcategory": "급속 친밀감 형성",
+      "match_type": "regex-simple",
+      "pattern": "프로필\\s*사진[^\\n]{0,10}(잘생|예쁘|멋지|반했)",
+      "weight": 10,
+      "repeat_decay": true,
+      "description": "프로필 사진 외모 칭찬으로 접근",
+      "source": "9주차 실기기 카톡 시연 보강",
+      "sample": "기훈오빠 프로필사진이 너무 잘생기셨어요"
+    },
+    {
       "id": "RS-2-3-101",
       "category": "로맨스스캠",
       "subcategory_id": "2-3",
@@ -4327,12 +4340,25 @@
       "subcategory_id": "3-2",
       "subcategory": "현실 왜곡",
       "match_type": "regex-simple",
-      "pattern": "건망증|기억력\\s*(이|도)?\\s*(나빠|안\\s*좋|이상)|(네가|니가|너가)\\s*(분명\\s*)?(그\\s*말|그렇게)\\s*(했잖아|말했잖아|해\\s*놓고)",
+      "pattern": "건망증|기억력\\s*(이|도)?\\s*(좀\\s*)?(나빠|안\\s*좋|이상|떨어)|(네가|니가|너가)\\s*(분명\\s*)?(그\\s*말|그렇게)\\s*(했잖아|말했잖아|해\\s*놓고)|(네가|니가|너가)\\s*듣고\\s*싶은\\s*대로",
       "weight": 15,
       "repeat_decay": true,
       "description": "기억력을 문제 삼거나 네가 그 말을 했다고 우김",
       "source": "9주차 시연 피드백 보강",
       "sample": "너 요즘 건망증 심하잖아."
+    },
+    {
+      "id": "GL-3-2-104",
+      "category": "가스라이팅",
+      "subcategory_id": "3-2",
+      "subcategory": "현실 왜곡",
+      "match_type": "regex-simple",
+      "pattern": "내가\\s*언제\\s*[^\\n]{0,12}(했어|말했어|그랬어|했냐|했다고)",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "자기가 한 말을 부정",
+      "source": "9주차 실기기 카톡 시연 보강",
+      "sample": "내가 언제 A안이라 했어?"
     },
     {
       "id": "GL-3-3-101",
@@ -4398,6 +4424,19 @@
       "description": "나 없이는 못 한다거나 잘한 걸 깎아내림",
       "source": "9주차 시연 피드백 보강",
       "sample": "이 문제는 내가 아니면 네가 절대 해결 못 해"
+    },
+    {
+      "id": "GL-3-5-104",
+      "category": "가스라이팅",
+      "subcategory_id": "3-5",
+      "subcategory": "자존감 저하/의존성 강화",
+      "match_type": "regex-simple",
+      "pattern": "(여자|남자)\\s*(\\([^)]*\\))?\\s*(라서|여서|이라서|니까)[^\\n]{0,10}(모르|못)|내\\s*말이\\s*틀린\\s*적|다른\\s*사람들?은\\s*(알아서|다\\s*잘|잘만)",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "성별을 이유로 무시하거나 남과 비교해 깎아내림",
+      "source": "9주차 실기기 카톡 시연 보강",
+      "sample": "너가 여자(남자)여서 잘 모르나본데"
     },
     {
       "id": "GL-3-6-101",
@@ -4476,6 +4515,19 @@
       "description": "주변 사람도 너를 이상하게 본다고 말함",
       "source": "9주차 행동 패턴 보강(회귀 테스트 기반)",
       "sample": "너희 엄마도 너 이상하다고 했잖아"
+    },
+    {
+      "id": "GL-3-8-102",
+      "category": "가스라이팅",
+      "subcategory_id": "3-8",
+      "subcategory": "주변인 신뢰 훼손",
+      "match_type": "regex-simple",
+      "pattern": "뒤에서\\s*(뭐라고|욕|험담|흉)|너\\s*편\\s*들어\\s*주느라",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "주변 사람들이 뒤에서 욕한다며 신뢰를 깎음",
+      "source": "9주차 실기기 카톡 시연 보강",
+      "sample": "다들 너 편들어주느라 그러는 거야."
     },
     {
       "id": "IV-5-1-101",

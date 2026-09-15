@@ -42,7 +42,10 @@ class MlKitOcrService : OcrService {
     private suspend fun recognizeFromUri(context: Context, uri: Uri): String {
         val image = InputImage.fromFilePath(context, uri)
         val text: Text = recognizer.process(image).await()
-        return text.text
+        // ML Kit 의 text.text 는 말풍선 안에서 폭 때문에 접힌 줄까지 줄바꿈으로 나눈다("전부 뿌 / 린다").
+        // 탐지 규칙은 한 메시지(한 줄) 안에서 표현을 찾으므로, 접힌 줄이 끊기면 텍스트로는 잡히는 대화를 놓쳤다.
+        // 블록(대개 말풍선 하나) 단위로 줄을 다시 이어 붙인다.
+        return text.textBlocks.joinToString("\n") { block -> OcrLineJoiner.join(block.lines.map { it.text }) }
     }
 
     /** ML Kit Task 를 코루틴 suspend 로 변환 */
