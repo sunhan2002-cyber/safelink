@@ -12,6 +12,8 @@ import com.safelink.app.data.model.DetectionResult
 import com.safelink.app.data.model.RiskLevel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.Calendar
 import java.util.UUID
 
@@ -52,6 +54,14 @@ data class RecordItem(
  * 저장은 기기 내 Room DB 한 곳에서만 이뤄지며, 사용자가 설정에서 [deleteAll]로 전부 지울 수 있다.
  */
 class RecordRepository(context: Context) {
+
+    private companion object {
+        /** 이 시간 안에 같은 대화가 다시 감지되면 기록을 이어서 갱신한다 */
+        const val MERGE_WINDOW_MS = 10 * 60 * 1000L
+
+        /** 감지가 몇 초 사이에 겹쳐 들어와도 "기존 기록 찾기 → 저장"이 한 번에 하나씩 되도록 */
+        val backgroundSaveLock = Mutex()
+    }
 
     private val db = SafeLinkDatabase.get(context)
     private val detectionDao = db.detectionRecordDao()
@@ -124,6 +134,41 @@ class RecordRepository(context: Context) {
             )
         )
         return id
+    }
+
+    /**
+     * 백그라운드 감지 저장 — 몇 분 안에 같은 대화가 다시 감지되면 새 기록을 만들지 않고 기존 기록을 이어서 갱신한다.
+     *
+     * 메시지가 하나 올 때마다 기록이 새로 쌓여 기록 탭이 같은 대화로 채워지던 문제([ConversationMerge] 참고).
+     * - 새 판정 점수가 같거나 높으면: 원문·판정·시각을 새 것으로 바꾼다(메모·피드백은 유지, AI 설명은 새 판정에 맞지 않아 비운다).
+     * - 새 판정 점수가 낮으면(스크롤로 위험 문장이 화면 밖으로 나간 경우 등): 더 위험했던 기존 기록을 그대로 둔다.
+     * 어느 경우든 같은 기록 id 를 돌려줘 알림을 누르면 그 기록이 열린다.
+     */
+    suspend fun saveBackgroundDetection(result: DetectionResult, linkResults: List<LinkRiskResult> = emptyList()): String =
+        backgroundSaveLock.withLock { mergeOrInsertBackground(result, linkResults) }
+
+    private suspend fun mergeOrInsertBackground(result: DetectionResult, linkResults: List<LinkRiskResult>): String {
+        val now = System.currentTimeMillis()
+        val latest = detectionDao.latestBackgroundSince(now - MERGE_WINDOW_MS)
+        if (latest == null || !ConversationMerge.isSameConversation(latest.originalText, result.originalText)) {
+            return saveDetection(result, RecordSource.BACKGROUND, linkResults)
+        }
+        if (result.score < latest.score) return latest.id
+        detectionDao.insert(
+            latest.copy(
+                timestamp = now,
+                riskLevel = result.riskLevel,
+                score = result.score,
+                category = result.category,
+                originalText = result.originalText,
+                matchedSubcategories = result.matchedKeywords.map { it.subcategoryName }.distinct().joinToString(","),
+                matchedKeywordCount = result.matchedKeywords.distinctBy { it.keywordId }.size,
+                aiSummary = null,
+                aiDetectedPattern = null,
+                linkResultsJson = LinkResultCodec.encode(linkResults) ?: latest.linkResultsJson
+            )
+        )
+        return latest.id
     }
 
     /** 링크 검사 판정을 기록에 남긴다. 남길 판정이 없으면(전부 검사 실패) 기존 값을 건드리지 않는다. */

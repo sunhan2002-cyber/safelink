@@ -20,6 +20,10 @@ interface DetectionRecordDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(record: DetectionRecordEntity)
 
+    /** 가장 최근 백그라운드 기록(시각 이후) — 같은 대화면 새로 만들지 않고 이어서 갱신하기 위해 */
+    @Query("SELECT * FROM detection_records WHERE sourceType = 'BACKGROUND' AND timestamp >= :since ORDER BY timestamp DESC LIMIT 1")
+    suspend fun latestBackgroundSince(since: Long): DetectionRecordEntity?
+
     @Query("UPDATE detection_records SET memo = :memo WHERE id = :id")
     suspend fun updateMemo(id: String, memo: String?)
 

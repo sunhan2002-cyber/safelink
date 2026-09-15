@@ -177,7 +177,7 @@ class MessageDetectionService : AccessibilityService() {
             // 기록을 먼저 저장하고 그 id 로 알림을 띄운다 — 알림을 누르면 이 기록의 분석 결과 화면이 열리게 하기
             // 위해서다. 기기 내 DB 한 줄 쓰기라 알림이 체감될 만큼 늦어지지 않는다. 저장에 실패해도 알림은 띄운다.
             run {
-                val recordId = runCatching { recordRepository.saveDetection(result, RecordSource.BACKGROUND) }.getOrNull()
+                val recordId = runCatching { recordRepository.saveBackgroundDetection(result) }.getOrNull()
                 notifier.notifyRisk(
                     result.riskLevel,
                     result.category,
@@ -367,7 +367,7 @@ class MessageDetectionService : AccessibilityService() {
 
         BackgroundDetectionState.update(verdict, sourceApp = pkg)
         val recordId = runCatching {
-            recordRepository.saveDetection(verdict, RecordSource.BACKGROUND, linkResults = links)
+            recordRepository.saveBackgroundDetection(verdict, linkResults = links)
         }.getOrNull()
         notifier.notifyRisk(
             verdict.riskLevel,
