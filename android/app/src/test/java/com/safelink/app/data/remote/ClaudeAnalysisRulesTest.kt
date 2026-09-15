@@ -58,6 +58,16 @@ class ClaudeAnalysisRulesTest {
     }
 
     @Test
+    fun `화면에 보인 여러 줄은 전부 분석할 대화로 보내고 이전 대화로 쪼개지 않는다`() {
+        val turns = listOf("엄마 나 폰 고장났어", "이 계좌로 50만원만 보내줘", "이따 연락할게")
+        val text = com.safelink.app.data.repository.ConversationTurns.aiConversation(turns)
+        val msg = message(maskedText = text, recentTurns = listOf(text))
+        assertFalse(msg.contains("<earlier_turns>"))
+        val body = msg.substringAfter("<conversation>").substringBefore("</conversation>")
+        turns.forEach { assertTrue("분석 대상에 빠진 줄: $it", body.contains(it)) }
+    }
+
+    @Test
     fun `다른 이전 턴이 있으면 따로 보낸다`() {
         val msg = message(recentTurns = listOf("어제 연락드린 사람입니다", conversation))
         assertTrue(msg.contains("<earlier_turns>"))

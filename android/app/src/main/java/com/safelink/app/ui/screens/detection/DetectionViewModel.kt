@@ -363,7 +363,7 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
                 val refined = repository.escalateToAI(
                     result = onDeviceResult,
                     sessionId = sessionId,
-                    // 대화 흐름을 함께 넘긴다 — 예전에는 전체를 한 덩어리로 1건만 넘겼다
+                    // 최근 턴을 넘긴다 — 전부 이어 붙여 "분석할 대화"로 보낸다([ConversationTurns.aiConversation])
                     recentTurns = turnsForAi
                 )
                 if (refined !== onDeviceResult) {

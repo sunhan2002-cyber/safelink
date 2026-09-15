@@ -40,7 +40,7 @@ import java.util.UUID
  *   2. extractVisibleText()  : 화면 노드 트리에서 대화 텍스트 추출
  *   3. DetectionRepository.analyze(text) : 온디바이스 위험 분석 (기존 엔진 재사용)
  *   4. RiskNotifier.notifyRisk()         : 경고 이상이면 배너 알림
- *      (주의 단계는 AI 동의가 있을 때 AI 로 한 번 더 확인해, 뚜렷하게 위험하다고 보면 알림 — [escalateCautionIfConsented])
+ *      (경고 미만이라도 10점 이상이면 AI 동의가 있을 때 AI 로 한 번 더 확인해, 뚜렷하게 위험하다고 보면 알림 — [escalateCautionIfConsented])
  *   5. (알림 탭) → 저장된 기록의 분석 결과 화면 딥링크 ([RiskNotifier] + MainActivity)
  *
  * ── 성능/중복 억제 ──────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ class MessageDetectionService : AccessibilityService() {
     private val recheckHandler = Handler(Looper.getMainLooper())
     private val notifier by lazy { RiskNotifier(applicationContext) }
 
-    /** 주의 단계 대화를 AI 로 보낼지 거르는 문지기 — 같은 대화 반복 전송·호출 수 제한 */
+    /** 경고 미만(10~30점) 대화를 AI 로 보낼지 거르는 문지기 — 같은 대화 반복 전송·호출 수 제한 */
     private val cautionAiGate = CautionAiGate()
 
     /**
@@ -205,9 +205,9 @@ class MessageDetectionService : AccessibilityService() {
             return
         }
 
-        // 주의 단계는 알림 없이 끝나던 구간이다. AI 동의가 있으면 한 번 더 확인해서, 규칙이 처음 보는
+        // 경고 미만(10~30점)은 알림 없이 끝나던 구간이다. AI 동의가 있으면 한 번 더 확인해서, 규칙이 처음 보는
         // 표현이라 점수가 낮게 나온 사기를 AI 가 위험하다고 보면 그때 알린다.
-        if (result.riskLevel == RiskLevel.CAUTION) {
+        if (CautionAiGate.isCandidate(result.score)) {
             serviceScope.launch { escalateCautionIfConsented(result, text, pkg, windowId) }
         }
 
@@ -329,7 +329,7 @@ class MessageDetectionService : AccessibilityService() {
     }
 
     /**
-     * 규칙으로는 "주의"(알림 없음)였던 대화를 AI 로 한 번 더 확인하고, AI 보정 후 경고 이상이면 알린다.
+     * 규칙으로는 경고 미만(알림 없음)이었던 대화를 AI 로 한 번 더 확인하고, AI 보정 후 경고 이상이면 알린다.
      *
      * 경고 이상 경로와 달리 여기서는 AI 판정이 나온 뒤에야 알림·기록을 만든다 — 규칙만으로는 알릴 근거가
      * 없으므로, AI 가 위험하다고 보지 않으면 아무것도 남기지 않는다(일상 대화가 기록에 쌓이지 않도록).

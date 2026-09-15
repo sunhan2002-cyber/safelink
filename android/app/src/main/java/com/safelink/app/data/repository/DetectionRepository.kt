@@ -114,12 +114,13 @@ class DetectionRepository @Inject constructor(
         recentTurns: List<String>
     ): DetectionResult {
         return try {
-            val maskedTurns = recentTurns.map { PrivacyMasker.mask(it) }
-            val maskedText = maskedTurns.lastOrNull() ?: PrivacyMasker.mask(result.originalText)
+            val maskedText = ConversationTurns.aiConversation(recentTurns.map { PrivacyMasker.mask(it) })
+                .ifBlank { PrivacyMasker.mask(result.originalText) }
             val request = AnalyzeRequestDto(
                 sessionId = sessionId,
                 maskedText = maskedText,
-                recentTurns = maskedTurns,
+                // 분석 대상이 곧 최근 대화 전체라 따로 넘길 "이전 대화"가 없다 — 같은 한 건을 넣으면 요청 구성에서 걸러진다.
+                recentTurns = listOf(maskedText),
                 deviceBaseScore = result.score.toDouble(),
                 // 겹쳐 잡힌 같은 키워드를 여러 번 보내지 않는다 — 모델에 "여러 번 걸렸다"는 잘못된 신호가 된다
                 deviceMatchedIds = result.matchedKeywords.map { it.keywordId }.distinct(),

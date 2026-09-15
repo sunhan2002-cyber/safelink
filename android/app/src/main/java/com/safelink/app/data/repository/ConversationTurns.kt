@@ -36,4 +36,15 @@ object ConversationTurns {
 
     /** AI 에 보낼 최근 턴만 추린다. */
     fun recentForAi(turns: List<String>): List<String> = turns.takeLast(AI_RECENT_TURNS)
+
+    /**
+     * AI 에 "분석할 대화"로 보낼 본문. 최근 턴 전체를 줄바꿈으로 이어 붙인다.
+     *
+     * 예전에는 마지막 한 줄만 분석 대상으로, 나머지 줄은 "이전 대화"로 나눠 보냈다. 그러면 AI 가
+     * "이전 대화에서는 ~ 이번 대화는 일상적"처럼 마지막 줄 위주로 판단해, 사기 요구가 중간 줄에 있고
+     * 마지막 줄이 평범한 대화("…송금해줘 / 이따 연락할게")를 낮게 볼 수 있었다.
+     * 화면에 함께 보인 메시지들은 모두 지금 판단할 대화다.
+     */
+    fun aiConversation(maskedTurns: List<String>): String =
+        maskedTurns.filter { it.isNotBlank() }.joinToString("\n")
 }
