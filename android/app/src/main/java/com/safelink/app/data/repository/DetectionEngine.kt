@@ -350,21 +350,34 @@ class DetectionEngine(
      */
     private fun crossTurnMatches(turns: List<String>, turnOffsets: List<Int>, perTurn: List<RawMatch>): List<RawMatch> {
         if (turns.size < 2) return emptyList()
-        val joined = turns.joinToString(" ")
         fun turnOf(pos: Int): Int = turnOffsets.indexOfLast { it <= pos }.coerceAtLeast(0)
-        return matchKeywordsInTurn(joined, 0, 0).mapNotNull { m ->
-            var s = m.startInFull
-            var e = m.endInFull
-            while (s < e && joined[s].isWhitespace()) s++
-            while (e > s && joined[e - 1].isWhitespace()) e--
-            val startTurn = turnOf(s)
-            val endTurn = if (s < e) turnOf(e - 1) else startTurn
-            if (startTurn == endTurn) return@mapNotNull null
-            // 앞 말풍선이 문장으로 끝났으면 나눠 보낸 한 문장이 아니라 서로 다른 문장이다 — 잇지 않는다.
-            // ("상품권 생일선물로 보내드렸어요" / "문자로 온 번호 입력하시면 돼요"가 상품권 번호 요구로 잡히던 문제)
-            if ((startTurn until endTurn).any { endsSentence(turns[it]) }) return@mapNotNull null
-            val overlapsSame = perTurn.any { p -> p.entry.id == m.entry.id && p.startInFull < e && p.endInFull > s }
-            if (overlapsSame) null else m.copy(turnIndex = startTurn)
+        // 앞 말풍선이 문장으로 끝났으면 나눠 보낸 한 문장이 아니라 서로 다른 문장이다 — 잇지 않는다.
+        // ("상품권 생일선물로 보내드렸어요" / "문자로 온 번호 입력하시면 돼요"가 상품권 번호 요구로 잡히던 문제)
+        // 문장이 끝난 말풍선에서 먼저 끊어 묶음별로 찾는다. 대화 전체를 한 번에 이어 찾으면, 문장 끝을 넘는 긴 매칭이
+        // 앞에서 자리를 차지한 뒤 버려져 그 안의 짧은 매칭("얼굴 안 / 나와도 되니까 / 옷 조금만 / 내리고 찍어봐"의 뒷부분)까지 놓쳤다.
+        val segments = mutableListOf<IntRange>()
+        var segStart = 0
+        turns.indices.forEach { i ->
+            if (i == turns.lastIndex || endsSentence(turns[i])) {
+                segments += segStart..i
+                segStart = i + 1
+            }
+        }
+        return segments.filter { it.last > it.first }.flatMap { seg ->
+            val base = turnOffsets[seg.first]
+            val joined = turns.subList(seg.first, seg.last + 1).joinToString(" ")
+            // 구분자가 줄바꿈과 같은 한 글자라, 묶음 안 위치에 묶음 시작 위치만 더하면 원문 위치가 된다
+            matchKeywordsInTurn(joined, 0, base).mapNotNull { m ->
+                var s = m.startInFull
+                var e = m.endInFull
+                while (s < e && joined[s - base].isWhitespace()) s++
+                while (e > s && joined[e - 1 - base].isWhitespace()) e--
+                val startTurn = turnOf(s)
+                val endTurn = if (s < e) turnOf(e - 1) else startTurn
+                if (startTurn == endTurn) return@mapNotNull null
+                val overlapsSame = perTurn.any { p -> p.entry.id == m.entry.id && p.startInFull < e && p.endInFull > s }
+                if (overlapsSame) null else m.copy(turnIndex = startTurn)
+            }
         }
     }
 
