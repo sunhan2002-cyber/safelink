@@ -616,9 +616,22 @@ class DetectionEngine(
             triggered += "COMBO-VP-PHONE-VERIFY"
         }
         if (URL_KEYWORD_ID in matchedIds &&
-            listOf("VP-1-6-001", "VP-1-6-002", "VP-1-6-003", "VP-1-6-101", "VP-1-6-104").any { it in matchedIds }
+            listOf("VP-1-6-001", "VP-1-6-002", "VP-1-6-003", "VP-1-6-101", "VP-1-6-104", "VP-1-6-111", "VP-1-6-112").any { it in matchedIds }
         ) {
             triggered += "COMBO-VP-SMISHING"
+        }
+
+        // 정부지원·저금리 대출 미끼 + 연락처(전화번호·링크) — 불법 대출 광고 문자(신복위·금감원 안내).
+        // 미끼 문구(6-1)만으로는 일상 대화에도 나와 약하게 두고, 연락처가 함께 올 때만 더한다.
+        if ((URL_KEYWORD_ID in matchedIds || PHONE_KEYWORD_ID in matchedIds) &&
+            scoring.any { it.entry.subcategoryId == "6-1" && it.entry.category == LOAN_SCAM }
+        ) {
+            triggered += "COMBO-LN-AD-CONTACT"
+        }
+
+        // 안전결제·안전거래를 하자며 링크를 보냄 — 진짜 안전결제는 앱 안에서 하지 링크로 오지 않는다(경찰청 직거래 사기 안내).
+        if (URL_KEYWORD_ID in matchedIds && scoring.any { it.entry.subcategoryId == "9-1" }) {
+            triggered += "COMBO-UD-SAFEPAY-LINK"
         }
 
         // 낯선 앱을 설치하라는 말 + 설치 주소가 한 대화에 함께 오는 흐름(몸캠피싱·원격제어 사기 공통).
@@ -822,6 +835,11 @@ class DetectionEngine(
 
         /** 원문 속 링크(https?://...)를 잡는 키워드 id. 스미싱 조합(COMBO-VP-SMISHING)의 링크 조건이다. */
         private const val URL_KEYWORD_ID = "VP-1-6-004"
+
+        /** 전화번호 형식(02-1234-5678) 키워드 id. */
+        private const val PHONE_KEYWORD_ID = "VP-1-3-003"
+
+        private const val LOAN_SCAM = "대출사기"
 
         /** 4주차에 신설된 중분류 - 실사용 검증 전까지 한시적으로 회색지대 무관 호출. */
         private val NEW_SUBCATEGORIES_2026_07 = setOf("2-6", "2-7", "2-8", "2-9", "2-10", "3-7", "3-8", "3-9")

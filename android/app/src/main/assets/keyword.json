@@ -1466,6 +1466,19 @@
       "sample": "내가 다 너 잘되라고 하는거잖아"
     },
     {
+      "id": "GL-3-4-102",
+      "category": "가스라이팅",
+      "subcategory_id": "3-4",
+      "subcategory": "죄책감 유도",
+      "match_type": "regex-simple",
+      "pattern": "죽어\\s*버릴\\s*(거야|거다|꺼야)|(나|내가)\\s*죽으면[^\\n]{0,10}(너\\s*때문|네\\s*탓)",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "자해·자살을 암시해 죄책감을 줌",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "너 나 떠나면 나 죽어버릴 거야"
+    },
+    {
       "id": "GL-3-5-001",
       "category": "가스라이팅",
       "subcategory_id": "3-5",
@@ -2799,6 +2812,19 @@
       "sample": "경찰청 확인 절차야"
     },
     {
+      "id": "VP-1-1-103",
+      "category": "보이스피싱",
+      "subcategory_id": "1-1",
+      "subcategory": "기관사칭",
+      "match_type": "regex-simple",
+      "pattern": "(사단|대대|연대|부대|군부대)\\s*[^\\n]{0,6}(행정보급관|보급관|간부|중사|상사|소령|대위)|(시청|구청|군청|도청|주민센터|교육청)\\s*[^\\n]{0,6}(주무관|총무과|담당\\s*공무원)",
+      "weight": 12,
+      "repeat_decay": true,
+      "description": "군부대·관공서 담당자라고 소개(노쇼 사기 진입)",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "안녕하세요 ○○사단 행정보급관입니다"
+    },
+    {
       "id": "VP-1-4-091",
       "category": "보이스피싱",
       "subcategory_id": "1-4",
@@ -3867,6 +3893,19 @@
       "sample": "아 화질이 별로 안좋아서 안보여요"
     },
     {
+      "id": "TH-7-5-023",
+      "category": "협박·갈취",
+      "subcategory_id": "7-5",
+      "subcategory": "영상통화유도",
+      "match_type": "regex-simple",
+      "pattern": "옷\\s*(을)?\\s*(좀|조금만?|살짝)?\\s*(내리|벗)[^\\n]{0,10}(찍|보내|보여)|얼굴\\s*(은)?\\s*안\\s*나와도\\s*(되니까|돼|괜찮)[^\\n]{0,15}(찍|보내)",
+      "weight": 32,
+      "repeat_decay": true,
+      "description": "신체 노출 사진을 찍어 보내라고 요구(온라인 그루밍·성착취)",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "얼굴 안 나와도 되니까 옷 조금만 내리고 찍어봐"
+    },
+    {
       "id": "FM-4-1-101",
       "category": "가족사칭",
       "subcategory_id": "4-1",
@@ -3917,6 +3956,19 @@
       "description": "친척 호칭으로 자신을 소개",
       "source": "9주차 처음 보는 문장 측정 후 보강",
       "sample": "이모 나 조카 현우야"
+    },
+    {
+      "id": "FM-4-1-105",
+      "category": "가족사칭",
+      "subcategory_id": "4-1",
+      "subcategory": "사칭진입",
+      "match_type": "regex-simple",
+      "pattern": "(엄마|아빠|이모|삼촌|고모|숙모|할머니|할아버지|누나|언니|형|오빠)\\s*(나|저)\\s*(지금\\s*)?(급한데|급해서|급해)",
+      "weight": 12,
+      "repeat_decay": true,
+      "description": "가족이라며 급한 상황부터 꺼냄",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "이모 나 지금 급한데 부탁 하나만"
     },
     {
       "id": "FM-4-2-101",
@@ -4088,6 +4140,19 @@
       "sample": "고객님 명의로 신용카드가 신청되었습니다"
     },
     {
+      "id": "VP-1-2-104",
+      "category": "보이스피싱",
+      "subcategory_id": "1-2",
+      "subcategory": "명의도용/사건연루 경고",
+      "match_type": "regex-simple",
+      "pattern": "(자산|예금|돈)\\s*(을|를)?\\s*(보호|안전하게\\s*지키)\\s*(를|하기)?\\s*(위해|하려면)",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "자산을 보호해 준다는 명목(안전계좌 사기 앞말)",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "고객님 자산 보호를 위해 옮겨두셔야 합니다"
+    },
+    {
       "id": "VP-1-3-101",
       "category": "보이스피싱",
       "subcategory_id": "1-3",
@@ -4166,6 +4231,19 @@
       "sample": "지금 안 하면 큰일 나"
     },
     {
+      "id": "VP-1-4-105",
+      "category": "보이스피싱",
+      "subcategory_id": "1-4",
+      "subcategory": "긴급성 압박/법적 위협",
+      "match_type": "regex-simple",
+      "pattern": "(조사|수사|확인\\s*절차)\\s*(가|이)?\\s*(끝나면|완료되면|마무리되면)[^\\n]{0,10}(돌려|반환|환급)",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "조사가 끝나면 돌려준다며 돈을 옮기게 함",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "조사 끝나면 바로 돌려드립니다"
+    },
+    {
       "id": "VP-1-5-101",
       "category": "보이스피싱",
       "subcategory_id": "1-5",
@@ -4218,6 +4296,19 @@
       "sample": "인증번호 오면 바로 알려줘"
     },
     {
+      "id": "VP-1-5-105",
+      "category": "보이스피싱",
+      "subcategory_id": "1-5",
+      "subcategory": "금전이체/개인정보 요구",
+      "match_type": "regex-simple",
+      "pattern": "(사장님|업주)[^\\n]{0,10}(먼저|대신)\\s*[^\\n]{0,6}(구매|구입|결제|입금)[^\\n]{0,25}(정산|같이\\s*드|돌려\\s*드|입금해\\s*드|처리해\\s*드)|(선결제|선입금|대리\\s*구매)[^\\n]{0,20}(예산|정산|돌려\\s*드|같이\\s*드)",
+      "weight": 25,
+      "repeat_decay": true,
+      "description": "가게 사장님에게 물품을 먼저 대신 사 달라고 하고 나중에 정산하겠다고 함(노쇼 사기)",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "사장님이 먼저 대신 구매해 주시면 회식비랑 같이 정산해 드릴게요"
+    },
+    {
       "id": "VP-1-6-101",
       "category": "보이스피싱",
       "subcategory_id": "1-6",
@@ -4262,7 +4353,7 @@
       "subcategory_id": "1-6",
       "subcategory": "악성링크/스미싱",
       "match_type": "regex-simple",
-      "pattern": "(환급금|지원금|미환급|과태료|범칙금|벌점|장려금|보상금|미납\\s*(요금|세금)?)[^\\n]{0,20}(조회|신청|대상|납부|소멸)",
+      "pattern": "(환급금|지원금|미환급|과태료|범칙금|벌점|장려금|보상금|미납\\s*(요금|세금)?)[^\\n]{0,20}(조회|신청|대상|납부|소멸|미납|고지|부과|가산금)",
       "weight": 18,
       "repeat_decay": true,
       "description": "환급금·과태료 핑계로 조회·신청하게 함",
@@ -4335,6 +4426,32 @@
       "sample": "한국전력 전기요금 미납 안내. 오늘까지 미납 시 공급 중단"
     },
     {
+      "id": "VP-1-6-111",
+      "category": "보이스피싱",
+      "subcategory_id": "1-6",
+      "subcategory": "악성링크/스미싱",
+      "match_type": "regex-simple",
+      "pattern": "\\[\\s*부고\\s*\\]|삼가\\s*고인의|장례식장\\s*(안내|위치|정보)|모바일\\s*(청첩장|부고|초대장)",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "부고·모바일 초대장 문자(링크와 함께면 스미싱)",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "[부고] 삼가 고인의 명복을 빕니다 장례식장 안내"
+    },
+    {
+      "id": "VP-1-6-112",
+      "category": "보이스피싱",
+      "subcategory_id": "1-6",
+      "subcategory": "악성링크/스미싱",
+      "match_type": "regex-simple",
+      "pattern": "(비정상|해외|새로운\\s*기기|의심)\\s*(적인\\s*)?(로그인|접속)[^\\n]{0,10}(감지|시도|확인|발생)|(계정|로그인)\\s*(보호\\s*조치|잠금|이용\\s*정지)",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "계정 보호조치·비정상 로그인 안내(가짜 로그인 페이지 유도)",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "카카오 계정 보호조치 안내입니다 비정상 로그인이 감지되었습니다"
+    },
+    {
       "id": "RS-2-1-101",
       "category": "로맨스스캠",
       "subcategory_id": "2-1",
@@ -4400,6 +4517,19 @@
       "sample": "난 너랑 평생 함께하고 싶어"
     },
     {
+      "id": "RS-2-2-105",
+      "category": "로맨스스캠",
+      "subcategory_id": "2-2",
+      "subcategory": "급속 친밀감 형성",
+      "match_type": "regex-simple",
+      "pattern": "(아이템|기프티콘|현질|문상|문화상품권|캐시|스킨)[^\\n]{0,8}(선물|사\\s*줄|보내\\s*줄|쏴\\s*줄|충전해\\s*줄)",
+      "weight": 10,
+      "repeat_decay": true,
+      "description": "게임 아이템·기프티콘 선물로 환심을 삼(온라인 그루밍 접근)",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "너 게임 잘하더라 아이템 선물로 보내줄게"
+    },
+    {
       "id": "RS-2-3-101",
       "category": "로맨스스캠",
       "subcategory_id": "2-3",
@@ -4418,7 +4548,7 @@
       "subcategory_id": "2-4",
       "subcategory": "금전요구명목",
       "match_type": "regex-simple",
-      "pattern": "(통관|세관|관세|짐|소포|금괴|상자|휴가|비행기\\s*표|항공권|수술비|병원비|벌금|장비|교체비|운송비|치료비)[^\\n]{0,15}(수수료|비용|막혀|필요|모자라|내야|보내|급해|내면|걸렸|묶였|잡혔|선납|납부)",
+      "pattern": "(통관|상속세|유산|구권|환전|세관|관세|짐|소포|금괴|상자|휴가|비행기\\s*표|항공권|수술비|병원비|벌금|장비|교체비|운송비|치료비)[^\\n]{0,15}(수수료|비용|막혀|필요|모자라|내야|보내|급해|내면|걸렸|묶였|잡혔|선납|납부)",
       "weight": 18,
       "repeat_decay": true,
       "description": "통관비·수술비 등 명목의 돈 요구",
@@ -4712,6 +4842,71 @@
       "sample": "어디 갈 때마다 나한테 먼저 허락 받아"
     },
     {
+      "id": "GL-3-6-105",
+      "category": "가스라이팅",
+      "subcategory_id": "3-6",
+      "subcategory": "통제 및 관계 협박",
+      "match_type": "regex-simple",
+      "pattern": "(누구|누구랑|누구와)\\s*(있는지|만나는지|같이\\s*있는지)[^\\n]{0,10}(사진|영상|인증)[^\\n]{0,6}(찍어|보내)|위치\\s*(공유|추적)\\s*(켜|해\\s*놔|앱\\s*깔)",
+      "weight": 20,
+      "repeat_decay": true,
+      "description": "누구와 있는지 사진으로 인증시키거나 위치 공유를 강요",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "지금 어디야 위치 공유 켜놔 누구랑 있는지 사진 찍어 보내"
+    },
+    {
+      "id": "GL-3-6-106",
+      "category": "가스라이팅",
+      "subcategory_id": "3-6",
+      "subcategory": "통제 및 관계 협박",
+      "match_type": "regex-simple",
+      "pattern": "(떠나면|헤어지면|헤어지자고\\s*하면)[^\\n]{0,15}(죽어|죽을|죽겠|자살|뛰어내|무슨\\s*일|가만\\s*안|후회)",
+      "weight": 22,
+      "repeat_decay": true,
+      "description": "떠나거나 연락을 끊으면 해치겠다·폭로하겠다고 위협",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "헤어지자고 하면 무슨 일 생길지 몰라"
+    },
+    {
+      "id": "GL-3-6-107",
+      "category": "가스라이팅",
+      "subcategory_id": "3-6",
+      "subcategory": "통제 및 관계 협박",
+      "match_type": "regex-simple",
+      "pattern": "차단\\s*(해도|한다고)[^\\n]{0,10}(소용|못\\s*피|다른)|번호\\s*(를)?\\s*바꿔도\\s*(소용\\s*없|다\\s*알아|찾아)",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "차단·번호 변경을 해도 계속 연락하겠다는 집착",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "번호 바꿔도 소용없어"
+    },
+    {
+      "id": "GL-3-6-108",
+      "category": "가스라이팅",
+      "subcategory_id": "3-6",
+      "subcategory": "통제 및 관계 협박",
+      "match_type": "regex-simple",
+      "pattern": "나만\\s*(봐|보고\\s*살아|만나)",
+      "weight": 12,
+      "repeat_decay": true,
+      "description": "자기만 보라며 대인관계를 통제",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "친구들 만나지 말고 나만 봐"
+    },
+    {
+      "id": "GL-3-6-109",
+      "category": "가스라이팅",
+      "subcategory_id": "3-6",
+      "subcategory": "통제 및 관계 협박",
+      "match_type": "regex-simple",
+      "pattern": "(나를?\\s*)?(계속\\s*)?(무시하면|안\\s*만나\\s*주면|연락\\s*안\\s*받으면|답장\\s*안\\s*하면)",
+      "weight": 12,
+      "repeat_decay": true,
+      "description": "연락을 안 받거나 무시하면 어떻게 하겠다는 조건부 압박",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "너 계속 나 무시하면"
+    },
+    {
       "id": "GL-3-7-101",
       "category": "가스라이팅",
       "subcategory_id": "3-7",
@@ -4790,6 +4985,32 @@
       "sample": "유료 회원 전환 시 월 수익 500만원 보장"
     },
     {
+      "id": "IV-5-1-104",
+      "category": "투자사기",
+      "subcategory_id": "5-1",
+      "subcategory": "수익보장",
+      "match_type": "regex-simple",
+      "pattern": "(여기서|이걸로|거기서)\\s*(많이|꽤|엄청|크게)?\\s*(벌었|수익\\s*(냈|봤|났))",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "자기도 여기서 벌었다며 수익을 내세움",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "나도 여기서 많이 벌었어"
+    },
+    {
+      "id": "IV-5-1-105",
+      "category": "투자사기",
+      "subcategory_id": "5-1",
+      "subcategory": "수익보장",
+      "match_type": "regex-simple",
+      "pattern": "시세\\s*(의)?\\s*(절반|반값|\\d+\\s*%)|(상장된|유명한?|대형)[^\\n]{0,15}코인[^\\n]{0,10}(싸게|저렴|반값|절반)",
+      "weight": 20,
+      "repeat_decay": true,
+      "description": "유명 코인을 시세보다 싸게 넘기겠다는 미끼",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "대형 거래소에 상장된 코인을 시세의 절반에 넘겨드립니다"
+    },
+    {
       "id": "IV-5-2-101",
       "category": "투자사기",
       "subcategory_id": "5-2",
@@ -4827,6 +5048,19 @@
       "description": "밴드·단톡방으로 오라고 함",
       "source": "9주차 0점 구간 보강(확인용 측정 후)",
       "sample": "매수 타이밍 알려드릴테니 밴드 들어오세요"
+    },
+    {
+      "id": "IV-5-3-103",
+      "category": "투자사기",
+      "subcategory_id": "5-3",
+      "subcategory": "채널유인",
+      "match_type": "regex-simple",
+      "pattern": "(거래소|사이트|플랫폼)\\s*(로|으로|에)?\\s*(가입|들어와|접속)\\s*(해|해봐|해\\s*봐|하고)",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "특정 거래소·사이트로 가입시키려 함",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "이 사이트로 가입해"
     },
     {
       "id": "IV-5-4-101",
@@ -4879,6 +5113,19 @@
       "description": "자리가 얼마 안 남았다는 압박",
       "source": "9주차 행동 패턴 보강(회귀 테스트 기반)",
       "sample": "자리 3개 남았습니다 오늘 마감"
+    },
+    {
+      "id": "IV-5-5-102",
+      "category": "투자사기",
+      "subcategory_id": "5-5",
+      "subcategory": "FOMO",
+      "match_type": "regex-simple",
+      "pattern": "(오늘|지금)\\s*(입금|신청)\\s*하시는\\s*분\\s*(만|께만)|선착순[^\\n]{0,15}(입금|배정|마감)",
+      "weight": 12,
+      "repeat_decay": true,
+      "description": "오늘 입금하는 사람만 준다며 서두르게 함",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "오늘 입금하시는 분만 물량 배정합니다"
     },
     {
       "id": "LN-6-2-101",
@@ -4951,7 +5198,7 @@
       "subcategory_id": "7-1",
       "subcategory": "영상유포",
       "match_type": "regex-simple",
-      "pattern": "(학교|회사|직장|단톡|가족|부모님|여자\\s*친구|여친|남자\\s*친구|남친|지인|동료|부대|군대)\\s*(에|에게|한테)?\\s*(다\\s*)?(소문\\s*(낸|낼|내)|알린다|알릴|퍼뜨|보낸다|보낼)",
+      "pattern": "(학교|회사|직장|단톡|가족|부모님|여자\\s*친구|여친|남자\\s*친구|남친|지인|동료|부대|군대)\\s*(들)?\\s*(에|에게|한테)?\\s*(다\\s*)?(소문\\s*(낸|낼|내)|알린다|알릴|퍼뜨|보낸다|보낼)",
       "weight": 20,
       "repeat_decay": true,
       "description": "학교·회사에 소문내겠다고 위협",
@@ -4985,6 +5232,19 @@
       "sample": "너네 회사 사람들 다 보게 된다"
     },
     {
+      "id": "TH-7-1-106",
+      "category": "협박·갈취",
+      "subcategory_id": "7-1",
+      "subcategory": "영상유포",
+      "match_type": "regex-simple",
+      "pattern": "(사생활|비밀|과거|약점)[^\\n]{0,15}(폭로|퍼뜨|까발|소문\\s*낼)",
+      "weight": 25,
+      "repeat_decay": true,
+      "description": "사생활·약점을 폭로하겠다고 위협",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "네 사생활 회사에 다 폭로할 거야"
+    },
+    {
       "id": "TH-7-3-101",
       "category": "협박·갈취",
       "subcategory_id": "7-3",
@@ -5003,7 +5263,7 @@
       "subcategory_id": "7-3",
       "subcategory": "입금유도",
       "match_type": "regex-simple",
-      "pattern": "(안\\s*(보내|넣|주|갚|가져오)(으)?|준비\\s*안\\s*(되|돼))면[^\\n]{0,20}(뿌린|뿌림|뿌릴|퍼뜨|유포|올린|올림|올릴|신고|가만|찾아|소문|다\\s*보게|다\\s*알게|보자|각오|어떻게\\s*되는지|알지)|(조용히|없던\\s*일)[^\\n]{0,15}(돈|입금|넣으면|보내면)",
+      "pattern": "(안\\s*(보내|넣|주|갚|가져오)(으)?|준비\\s*안\\s*(되|돼))면[^\\n]{0,20}(뿌린|뿌림|뿌릴|퍼뜨|유포|올린|올림|올릴|신고|가만|찾아|연락할|연락한다|연락\\s*돌|알린|알릴|소문|다\\s*보게|다\\s*알게|보자|각오|어떻게\\s*되는지|알지)|(조용히|없던\\s*일)[^\\n]{0,15}(돈|입금|넣으면|보내면)",
       "weight": 22,
       "repeat_decay": true,
       "description": "돈을 안 주면 해를 끼치겠다는 조건",
@@ -5037,6 +5297,32 @@
       "sample": "내일까지 5만원 가져와"
     },
     {
+      "id": "TH-7-3-105",
+      "category": "협박·갈취",
+      "subcategory_id": "7-3",
+      "subcategory": "입금유도",
+      "match_type": "regex-simple",
+      "pattern": "시키는\\s*대로\\s*(하면|안\\s*하면)[^\\n]{0,10}(안\\s*뿌|안\\s*올|지워|삭제|뿌린|올린)|(말\\s*들으면|하라는\\s*대로\\s*하면)[^\\n]{0,10}(안\\s*뿌|안\\s*올|지워)",
+      "weight": 20,
+      "repeat_decay": true,
+      "description": "시키는 대로 하면 유포하지 않겠다며 요구를 강요",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "시키는 대로 하면 안 뿌릴게"
+    },
+    {
+      "id": "TH-7-3-106",
+      "category": "협박·갈취",
+      "subcategory_id": "7-3",
+      "subcategory": "입금유도",
+      "match_type": "regex-simple",
+      "pattern": "(오늘|내일|이번\\s*주)\\s*까지\\s*(다\\s*)?(갚아|갚아라|입금해|보내|넣어)",
+      "weight": 18,
+      "repeat_decay": true,
+      "description": "기한을 정해 돈을 갚으라고 압박",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "오늘까지 갚아"
+    },
+    {
       "id": "TH-7-4-101",
       "category": "협박·갈취",
       "subcategory_id": "7-4",
@@ -5048,6 +5334,19 @@
       "description": "사는 곳·학교를 알아냈다는 위협",
       "source": "9주차 행동 패턴 보강(회귀 테스트 기반)",
       "sample": "네가 사는 동네 학교 다 알아냈어"
+    },
+    {
+      "id": "TH-7-4-102",
+      "category": "협박·갈취",
+      "subcategory_id": "7-4",
+      "subcategory": "신상특정",
+      "match_type": "regex-simple",
+      "pattern": "(답장|연락|전화)\\s*(안\\s*하면|안\\s*받으면|씹으면)[^\\n]{0,20}(찾아간|찾아갈|집\\s*앞|학교\\s*앞|회사\\s*앞)|(집|학교|회사)\\s*앞\\s*(으로|에서)?\\s*(찾아간|찾아갈|기다릴|기다린다)",
+      "weight": 25,
+      "repeat_decay": true,
+      "description": "연락을 안 받으면 집·학교로 찾아가겠다는 스토킹 위협",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "답장 안 하면 너희 집 앞으로 찾아간다"
     },
     {
       "id": "JB-8-1-101",
@@ -5074,6 +5373,19 @@
       "description": "구매대행·재택 부업 미끼",
       "source": "9주차 처음 보는 문장 측정 후 보강",
       "sample": "쇼핑몰 구매대행 알바입니다"
+    },
+    {
+      "id": "JB-8-1-103",
+      "category": "부업사기",
+      "subcategory_id": "8-1",
+      "subcategory": "미끼",
+      "match_type": "regex-simple",
+      "pattern": "(단순|간단한|쉬운)\\s*(심부름|업무|알바)[^\\n]{0,15}(일당|건당|하루)\\s*\\d+\\s*만|(일당|건당)\\s*\\d{2,}\\s*만\\s*원?[^\\n]{0,10}(심부름|전달|수거|회수)|(대출금|채권|대금|판매\\s*대금)\\s*(회수|수거|추심)\\s*(업무|알바|일)",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "단순 심부름·대금 회수 고액 알바(현금 수거책 모집)",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "단순 심부름 알바인데 일당 30만원이에요"
     },
     {
       "id": "JB-8-2-101",
@@ -5141,6 +5453,19 @@
       "sample": "후기 쓰면 결제금액의 130% 환급"
     },
     {
+      "id": "JB-8-2-106",
+      "category": "부업사기",
+      "subcategory_id": "8-2",
+      "subcategory": "미션선입금",
+      "match_type": "regex-simple",
+      "pattern": "(계좌|출금|정산)[^\\n]{0,12}(막혀|묶여|동결|정지)[^\\n]{0,15}(해제|풀려면|풀리려면)[^\\n]{0,8}(수수료|비용|보증금|입금)",
+      "weight": 20,
+      "repeat_decay": true,
+      "description": "계좌가 막혔다며 해제 수수료를 또 요구",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "회원님 계좌가 금융권에서 막혀서 해제 수수료도 필요합니다"
+    },
+    {
       "id": "JB-8-3-101",
       "category": "부업사기",
       "subcategory_id": "8-3",
@@ -5165,6 +5490,19 @@
       "description": "내 계좌로 들어온 돈을 다른 계좌로 옮기게 함(대포통장)",
       "source": "9주차 처음 보는 문장 측정 후 보강",
       "sample": "본인 계좌로 들어온 돈을 저희가 알려주는 계좌로 옮기기만 하면"
+    },
+    {
+      "id": "JB-8-3-103",
+      "category": "부업사기",
+      "subcategory_id": "8-3",
+      "subcategory": "계좌대여",
+      "match_type": "regex-simple",
+      "pattern": "(고객|사람|분)[^\\n]{0,8}(현금|돈)\\s*(을)?\\s*(받아|수거|회수)[^\\n]{0,20}(입금|전달|송금|보내|갖다)",
+      "weight": 25,
+      "repeat_decay": true,
+      "description": "남에게서 받은 현금을 전달·입금하게 함(보이스피싱 현금 수거책)",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "고객님께 현금 받아서 저희가 알려주는 계좌에 입금만 하시면 됩니다"
     },
     {
       "id": "UD-9-1-101",
@@ -5271,6 +5609,45 @@
       "sample": "무직자 주부 대학생 누구나 300 즉시 가능"
     },
     {
+      "id": "LN-6-1-105",
+      "category": "대출사기",
+      "subcategory_id": "6-1",
+      "subcategory": "사칭미끼",
+      "match_type": "regex-simple",
+      "pattern": "저금리\\s*(로|대출로)?\\s*(갈아타|전환|대환)",
+      "weight": 12,
+      "repeat_decay": true,
+      "description": "저금리 대출로 갈아타게 해 준다는 미끼",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "저금리로 갈아타시려면 기존 대출을 먼저 갚으셔야 합니다"
+    },
+    {
+      "id": "LN-6-1-106",
+      "category": "대출사기",
+      "subcategory_id": "6-1",
+      "subcategory": "사칭미끼",
+      "match_type": "regex-simple",
+      "pattern": "(대출|자금)[^\\n]{0,20}사업자\\s*등록|사업자\\s*등록[^\\n]{0,15}(내시|하시|만\\s*하면)[^\\n]{0,15}(대출|가능|승인)|(휴대폰|폰|노트북)\\s*렌탈[^\\n]{0,15}(대출|자금|현금)",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "대출 조건으로 사업자등록·휴대폰 렌탈을 요구(렌탈 악용 불법대출)",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "대출 가능하세요 대신 배달대행 사업자등록 하나 내시고"
+    },
+    {
+      "id": "LN-6-1-107",
+      "category": "대출사기",
+      "subcategory_id": "6-1",
+      "subcategory": "사칭미끼",
+      "match_type": "regex-simple",
+      "pattern": "대리\\s*입금|수고비\\s*(붙여|포함|얹어)",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "청소년 대상 대리입금(고금리 소액 사채)",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "대리입금 해드려요 일주일 뒤에 수고비 붙여서 갚으면 됨"
+    },
+    {
       "id": "LN-6-2-104",
       "category": "대출사기",
       "subcategory_id": "6-2",
@@ -5297,17 +5674,56 @@
       "sample": "대출 받으시려면 기존 저축은행 대출 먼저 갚으셔야 해요"
     },
     {
+      "id": "LN-6-2-106",
+      "category": "대출사기",
+      "subcategory_id": "6-2",
+      "subcategory": "선입금요구",
+      "match_type": "regex-simple",
+      "pattern": "(학생증|신분증)\\s*(사진)?[^\\n]{0,12}(부모님|보호자|가족|지인)\\s*(번호|연락처)|(부모님|보호자|가족|지인)\\s*(들)?\\s*(번호|연락처)[^\\n]{0,10}(필요|보내|줘|담보|적어)",
+      "weight": 20,
+      "repeat_decay": true,
+      "description": "돈을 빌려주는 조건으로 신분증·가족 연락처 요구(불법추심 담보)",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "학생증 사진이랑 부모님 번호 필요해"
+    },
+    {
+      "id": "LN-6-2-107",
+      "category": "대출사기",
+      "subcategory_id": "6-2",
+      "subcategory": "선입금요구",
+      "match_type": "regex-simple",
+      "pattern": "렌탈\\s*계약서?\\s*(에)?\\s*서명|기기\\s*(는)?\\s*안\\s*받(으셔도|아도)",
+      "weight": 22,
+      "repeat_decay": true,
+      "description": "쓰지도 않을 휴대폰 렌탈 계약에 서명시켜 대출 담보로 삼음",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "휴대폰 렌탈 계약서에 서명만 해주시면 기기 안 받으셔도 바로 입금됩니다"
+    },
+    {
       "id": "LN-6-3-101",
       "category": "대출사기",
       "subcategory_id": "6-3",
       "subcategory": "압박",
       "match_type": "regex-simple",
-      "pattern": "오늘\\s*(오후\\s*|오전\\s*)?\\d{1,2}\\s*시\\s*까지|기한\\s*(넘기면|지나면)|마지막\\s*접수",
+      "pattern": "오늘\\s*(오후\\s*|오전\\s*)?\\d{1,2}\\s*시\\s*까지|기한\\s*(넘기면|지나면)|마지막\\s*접수|오늘\\s*까지\\s*(만\\s*)?(신청|접수)",
       "weight": 12,
       "repeat_decay": true,
       "description": "시간 제한을 걸어 압박",
       "source": "9주차 행동 패턴 보강(회귀 테스트 기반)",
       "sample": "오늘 오후 3시까지만 가능해요"
+    },
+    {
+      "id": "LN-6-3-102",
+      "category": "대출사기",
+      "subcategory_id": "6-3",
+      "subcategory": "압박",
+      "match_type": "regex-simple",
+      "pattern": "지각비|연체\\s*(비|료)\\s*(하루|매일)",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "연체 하루마다 지각비를 붙이는 불법 사채",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "약속한 날 지났으니까 하루에 지각비 1만원씩 붙는다"
     },
     {
       "id": "UD-9-2-104",
@@ -5401,6 +5817,19 @@
       "sample": "카톡 아이디 알려드릴테니 거기서 링크로 결제 부탁드려요"
     },
     {
+      "id": "UD-9-2-112",
+      "category": "중고거래사기",
+      "subcategory_id": "9-2",
+      "subcategory": "선입금압박",
+      "match_type": "regex-simple",
+      "pattern": "카드\\s*(결제)?\\s*(는|가)?\\s*(안\\s*되고|불가|안\\s*돼서)[^\\n]{0,12}(계좌\\s*이체|입금|현금)|계좌\\s*이체\\s*만\\s*(가능|돼)",
+      "weight": 18,
+      "repeat_decay": true,
+      "description": "카드 결제를 막고 계좌이체만 받음(환불이 어려운 결제로 유도)",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "카드 결제는 안 되고 계좌이체만 가능해요"
+    },
+    {
       "id": "UD-9-3-101",
       "category": "중고거래사기",
       "subcategory_id": "9-3",
@@ -5412,6 +5841,19 @@
       "description": "시세보다 지나치게 싸게 판다고 함",
       "source": "9주차 처음 보는 문장 측정 후 보강",
       "sample": "아이폰 새상품 반값에 드려요"
+    },
+    {
+      "id": "UD-9-3-102",
+      "category": "중고거래사기",
+      "subcategory_id": "9-3",
+      "subcategory": "시세미끼",
+      "match_type": "regex-simple",
+      "pattern": "\\d{2}\\s*%\\s*(할인|세일)[^\\n]{0,15}(한정|오늘만|선착순)|(오늘만|한정)[^\\n]{0,15}\\d{2}\\s*%\\s*(할인|세일)|(명품|정품)[^\\n]{0,10}(\\d{2}\\s*%|반값|초특가)",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "SNS 초특가·한정 할인 미끼",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "오늘만 명품 가방 90% 할인 한정 5개"
     },
     {
       "id": "RS-2-1-102",
@@ -5466,6 +5908,19 @@
       "sample": "너무 제 스타일이셔서 연락했어요"
     },
     {
+      "id": "RS-2-1-106",
+      "category": "로맨스스캠",
+      "subcategory_id": "2-1",
+      "subcategory": "신원 설정",
+      "match_type": "regex-simple",
+      "pattern": "(미국|해외|외국|영국|호주|두바이|캐나다)\\s*(에서)?\\s*[^\\n]{0,8}(교포|병원\\s*하|의사|파병|유전|석유)",
+      "weight": 10,
+      "repeat_decay": true,
+      "description": "해외에 사는 전문직·교포라고 신분을 꾸밈",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "나 미국에서 병원 하는 교포야"
+    },
+    {
       "id": "RS-2-3-102",
       "category": "로맨스스캠",
       "subcategory_id": "2-3",
@@ -5490,6 +5945,19 @@
       "description": "너한테만 말한다며 둘만의 일로 만듦",
       "source": "9주차 처음 보는 문장 측정 후 보강",
       "sample": "오빠한테만 말하는거야"
+    },
+    {
+      "id": "RS-2-3-104",
+      "category": "로맨스스캠",
+      "subcategory_id": "2-3",
+      "subcategory": "비밀유지요구/고립유도",
+      "match_type": "regex-simple",
+      "pattern": "(부모님|엄마|아빠|선생님|담임)\\s*(한테|에게|께)?\\s*(는|도)?\\s*(절대\\s*)?(말하지|얘기하지|알리지)\\s*(마|말아)",
+      "weight": 18,
+      "repeat_decay": true,
+      "description": "부모님·선생님에게 알리지 말라고 함(그루밍·사칭의 고립)",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "우리 친해진 거 부모님한테는 말하지 마"
     },
     {
       "id": "IV-5-2-102",
@@ -5529,6 +5997,19 @@
       "description": "세력주·프리세일 같은 미끼 상품",
       "source": "9주차 0점 구간 보강(확인용 측정 후)",
       "sample": "세력주 정보 무료로 드리고 있어요"
+    },
+    {
+      "id": "IV-5-2-105",
+      "category": "투자사기",
+      "subcategory_id": "5-2",
+      "subcategory": "상품기법",
+      "match_type": "regex-simple",
+      "pattern": "장외\\s*(공급)?\\s*계약|지급\\s*보증서|물량\\s*(을)?\\s*배정",
+      "weight": 15,
+      "repeat_decay": true,
+      "description": "장외계약·지급보증서를 내세운 투자 권유",
+      "source": "9주차 공식 사례 대조 보강(금감원·경찰청·KISA·여성인권진흥원)",
+      "sample": "장외 공급계약서랑 은행 지급보증서도 있어요"
     }
   ],
   "combo_bonus_rules": [
@@ -5924,6 +6405,29 @@
       ],
       "window_turns": 0,
       "bonus": 20
+    },
+    {
+      "id": "COMBO-LN-AD-CONTACT",
+      "type": "specific",
+      "category": "대출사기",
+      "condition": "정부지원·저금리 대출 미끼와 연락처(전화번호)나 링크가 같은 대화에 함께 등장 (대출 광고 문자)",
+      "related_keyword_ids": [
+        "VP-1-3-003",
+        "VP-1-6-004"
+      ],
+      "window_turns": 0,
+      "bonus": 12
+    },
+    {
+      "id": "COMBO-UD-SAFEPAY-LINK",
+      "type": "specific",
+      "category": "중고거래사기",
+      "condition": "안전결제·안전거래 사칭 표현과 링크가 같은 대화에 함께 등장 (가짜 안전결제 사이트)",
+      "related_keyword_ids": [
+        "VP-1-6-004"
+      ],
+      "window_turns": 0,
+      "bonus": 15
     }
   ],
   "repeat_decay_policy": {
