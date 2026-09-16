@@ -2190,6 +2190,411 @@
       "source": "draft",
       "note": "2026-09-16 몸캠피싱 흐름 점검",
       "text": "영상통화 하자\n이 앱 깔고 다시 걸어줘"
+    },
+    {
+      "id": "FM-P-01",
+      "category": "가족사칭",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "엄마 나 지원이\n폰이 물에 빠져서 지금 언니 폰 빌렸어\n통화는 힘들고 톡으로만 얘기하자\n편의점에서 컬쳐랜드 5만원짜리 세 장만 사서 뒷면 사진 찍어 보내줄래"
+    },
+    {
+      "id": "FM-P-02",
+      "category": "가족사칭",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "아빠 저예요\n액정 나가서 서비스센터 맡기고 회사 컴퓨터로 보내요\n지금 급하게 결제할 게 있는데 아빠 체크카드 앞뒷면 찍어서 보내주세요\n비밀번호도 같이요"
+    },
+    {
+      "id": "FM-P-03",
+      "category": "가족사칭",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "엄마 나야\n번호 바뀌었어 이걸로 저장해둬\n보험 하나 들려는데 본인확인이 필요하대\n문자로 여섯 자리 오면 그대로 불러줘"
+    },
+    {
+      "id": "FM-P-04",
+      "category": "가족사칭",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "엄마 사고가 났어\n상대방이 합의 안 해주면 경찰서 간대\n일단 이백만 먼저 넣어줘 아빠한테는 비밀\n국민 6110293847123"
+    },
+    {
+      "id": "VP-P-01",
+      "category": "보이스피싱",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "서울남부지검 금융수사팀 조사관입니다\n귀하 계좌가 대포통장으로 확인되어 연락드립니다\n수사 중이니 가족분들께도 말씀하시면 안 됩니다\n자산 보호를 위해 안전한 계좌로 옮기셔야 합니다"
+    },
+    {
+      "id": "VP-P-02",
+      "category": "보이스피싱",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "[Web발신] 한국전력 전기요금 미납 안내. 오늘까지 미납 시 공급 중단. 확인 kepco-bill.top/pay"
+    },
+    {
+      "id": "VP-P-03",
+      "category": "보이스피싱",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "고객님 명의로 인터넷 가입 신청이 접수되었습니다\n신청하지 않으셨다면 아래 번호로 바로 알려주세요 070-8842-1123"
+    },
+    {
+      "id": "VP-P-04",
+      "category": "보이스피싱",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "택배 주소가 확인되지 않아 물건이 창고에 묶여 있습니다\n주소 다시 입력해 주세요 cj-parcel.click/r"
+    },
+    {
+      "id": "RS-P-01",
+      "category": "로맨스스캠",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "여보 나 지금 이스탄불 공항이야\n짐에 현금이 들어있다고 세관에서 잡아뒀대\n보증금만 내면 바로 나온다는데 내 카드는 해외라 안 먹혀\n한국 도착하면 두 배로 갚을게"
+    },
+    {
+      "id": "RS-P-02",
+      "category": "로맨스스캠",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "실수로 번호가 잘못 저장돼서 연락드렸네요 ㅎㅎ\n저는 카타르에서 근무하는 간호사예요\n여기선 카톡이 잘 안 돼서 왓츠앱으로 얘기할까요?"
+    },
+    {
+      "id": "RS-P-03",
+      "category": "로맨스스캠",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "자기밖에 없어 진짜\n엄마 수술 날짜가 잡혔는데 돈이 모자라\n이번만 삼백만 도와줄 수 있을까? 자기한테만 말하는 거야"
+    },
+    {
+      "id": "RS-P-04",
+      "category": "로맨스스캠",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "휴가 나가려면 부대에 비용을 미리 내야 한대\n내 통장은 해외라 묶여 있어서 못 써\n대신 좀 내주면 만나서 바로 돌려줄게"
+    },
+    {
+      "id": "GL-P-01",
+      "category": "가스라이팅",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "내가 그런 말을 했다고? 또 지어내네\n요즘 너 기억이 자꾸 왔다갔다 하잖아\n걔네는 너 생각해서 그러는 거 아니야 그만 만나"
+    },
+    {
+      "id": "GL-P-02",
+      "category": "가스라이팅",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "넌 나 없으면 아무것도 못 하잖아\n엄마랑은 당분간 통화하지 마 갔다 오면 또 이상해지더라\n월급 들어오면 카드 나한테 맡겨"
+    },
+    {
+      "id": "GL-P-03",
+      "category": "가스라이팅",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "먼저 화나게 한 건 너잖아 내 탓 하지 마\n네가 좀 예민한 거야 농담인데 왜 정색해\n다 너 생각해서 하는 소리야"
+    },
+    {
+      "id": "GL-P-04",
+      "category": "가스라이팅",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "단톡방 캡처해서 보여줘\n안 보여주면 뭔가 있는 거지?\n남자 선배들이랑은 말 섞지 마"
+    },
+    {
+      "id": "IV-P-01",
+      "category": "투자사기",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "회원님만 모시는 단기 급등주 정보방입니다\n지난달 적중률 92% 인증 올려놨어요\n오늘 입장하시면 손실은 저희가 전액 책임집니다"
+    },
+    {
+      "id": "IV-P-02",
+      "category": "투자사기",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "거래소 계정에 수익 1억 2천 찍혔는데 인출이 막혀 있어요\n등급 올리는 인증비 800만원 넣으시면 바로 풀립니다"
+    },
+    {
+      "id": "IV-P-03",
+      "category": "투자사기",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "상장 전 물량 사전 판매 들어갑니다\n지금 들어오면 상장가 대비 10배는 기본이에요 원금은 무조건 지켜드려요"
+    },
+    {
+      "id": "LN-P-01",
+      "category": "대출사기",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "신용 안 보고 당일에 삼천까지 나갑니다\n전산 처리비 40만원만 먼저 넣어주시면 바로 승인돼요"
+    },
+    {
+      "id": "LN-P-02",
+      "category": "대출사기",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "대출 나가려면 실적이 있어야 해서요\n저희가 보내드린 금액 찾아서 직원 만나 현금으로 주시면 됩니다"
+    },
+    {
+      "id": "LN-P-03",
+      "category": "대출사기",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "정부 지원 저금리 상품 대상자로 뽑히셨어요\n보증 보험료부터 납부하셔야 대출금이 나갑니다 신청서는 링크에서"
+    },
+    {
+      "id": "TH-P-01",
+      "category": "협박·갈취",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "통화하는 거 화면 녹화해뒀다\n네 카톡 친구들 명단도 이미 빼놨어\n오늘 밤까지 이백 안 넣으면 전부 뿌릴 거야"
+    },
+    {
+      "id": "TH-P-02",
+      "category": "협박·갈취",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "내일 매점 앞으로 와라 만원만 챙겨오고\n안 가져오면 어떻게 되는지 알지?\n쌤한테 말하면 더 심해진다"
+    },
+    {
+      "id": "TH-P-03",
+      "category": "협박·갈취",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "니 사진 지워주길 원하면 문화상품권 삼십만원어치 보내\n안 보내면 인스타 스토리에 올릴 거임"
+    },
+    {
+      "id": "JB-P-01",
+      "category": "부업사기",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "집에서 하루 삼십 분 쇼핑몰 후기만 올리면 일당 십오만원\n시작하려면 교육 자료비 9만원 입금하고 카톡 주세요"
+    },
+    {
+      "id": "JB-P-02",
+      "category": "부업사기",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "구매대행 도와주실 분 구합니다\n본인 카드로 먼저 주문 결제하시면 수수료 얹어서 바로 돌려드려요\n오늘은 네 건입니다"
+    },
+    {
+      "id": "JB-P-03",
+      "category": "부업사기",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "계좌만 하나 빌려주시면 월 이백 드립니다\n체크카드랑 비번은 퀵으로 보내주세요 합법입니다"
+    },
+    {
+      "id": "UD-P-01",
+      "category": "중고거래사기",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "제가 지방이라 직거래가 안 돼요\n안전결제 주소 보내드릴 테니 거기서 결제 부탁드려요 npay-safe.shop/o/771"
+    },
+    {
+      "id": "UD-P-02",
+      "category": "중고거래사기",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "보내신 금액이 확인이 안 돼요\n수수료 포함해서 한 번만 더 넣어주시면 먼저 보낸 것까지 합쳐서 환불돼요"
+    },
+    {
+      "id": "UD-P-03",
+      "category": "중고거래사기",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "닌텐도 미개봉 반값에 넘겨요 오늘까지만\n예약금 십만원 먼저 넣어주시면 바로 택배 보낼게요"
+    },
+    {
+      "id": "TH-P-04",
+      "category": "협박·갈취",
+      "kind": "danger",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "오빠 혼자 계세요? 얼굴 보고 얘기해요\n화상 연결할게요\n소리가 안 들리네요 이 어플 깔고 다시 걸어주실래요?\n방금 통화 다 저장했어요 연락처도 다 빼놨고\n삼십 분 안에 백만원 안 넣으면 지인들한테 돌립니다"
+    },
+    {
+      "id": "FM-PB-01",
+      "category": "가족사칭",
+      "kind": "benign",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "엄마 나 폰 액정 깨져서 수리 맡겼어\n내일 찾으러 가\n오늘은 톡만 될 것 같아"
+    },
+    {
+      "id": "FM-PB-02",
+      "category": "가족사칭",
+      "kind": "benign",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "아빠 이번 달 관리비 냈어?\n내가 이체해 둘까 계좌 알려줘"
+    },
+    {
+      "id": "VP-PB-01",
+      "category": "보이스피싱",
+      "kind": "benign",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "[국민은행] 김*겸님 09/16 13:22 체크카드 12,300원 승인"
+    },
+    {
+      "id": "VP-PB-02",
+      "category": "보이스피싱",
+      "kind": "benign",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "경찰서에서 참고인 조사 받고 왔어\n별거 아니었고 금방 끝났어"
+    },
+    {
+      "id": "RS-PB-01",
+      "category": "로맨스스캠",
+      "kind": "benign",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "자기 오늘 늦게 끝나?\n끝나면 전화해 데리러 갈게"
+    },
+    {
+      "id": "RS-PB-02",
+      "category": "로맨스스캠",
+      "kind": "benign",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "해외 출장이라 시차 때문에 영상통화는 어렵겠다\n도착하면 연락할게"
+    },
+    {
+      "id": "GL-PB-01",
+      "category": "가스라이팅",
+      "kind": "benign",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "어제 내가 말 세게 한 거 미안해\n내가 예민했던 것 같아"
+    },
+    {
+      "id": "IV-PB-01",
+      "category": "투자사기",
+      "kind": "benign",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "적금 만기돼서 인덱스 펀드 알아보는 중이야\n수익 보장은 없다니까 소액만 넣으려고"
+    },
+    {
+      "id": "LN-PB-01",
+      "category": "대출사기",
+      "kind": "benign",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "은행에서 전세자금 대출 상담받고 왔어\n서류만 준비하면 될 것 같아"
+    },
+    {
+      "id": "TH-PB-01",
+      "category": "협박·갈취",
+      "kind": "benign",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "너 내일 늦으면 진짜 죽는다 ㅋㅋ\n발표 순서 우리 먼저래"
+    },
+    {
+      "id": "JB-PB-01",
+      "category": "부업사기",
+      "kind": "benign",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "주말 카페 알바 구했어 시급 만 천원이래\n다음 주부터 나가"
+    },
+    {
+      "id": "UD-PB-01",
+      "category": "중고거래사기",
+      "kind": "benign",
+      "author": "claude-paraphrase",
+      "source": "draft-2",
+      "note": "2026-09-16 같은 상황을 다른 말투로 바꿔 쓴 문장 (규칙만 56% → AI 포함 91% 측정에 사용)",
+      "text": "책상 당근에 올렸는데 바로 팔렸어\n직거래로 현금 받고 넘겼어"
+    },
+    {
+      "id": "TH-D-07",
+      "category": "협박·갈취",
+      "kind": "danger",
+      "author": "재겸",
+      "source": "real-failure",
+      "note": "2026-09-16 실기기 인스타 몸캠피싱 유도 — 규칙 69점 + AI 몸캠피싱 판정",
+      "text": "요즘 외로워서 더 그런거같아요\n저랑 영상섹스 하실래요?\n화질이 안좋아서\n영상통화 앱 링크에요\n영상통화.com\n몸 보여주세요"
     }
   ]
 }

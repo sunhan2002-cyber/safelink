@@ -593,6 +593,15 @@ class DetectionEngine(
             triggered += "COMBO-VP-SMISHING"
         }
 
+        // 낯선 앱을 설치하라는 말 + 설치 주소가 한 대화에 함께 오는 흐름(몸캠피싱·원격제어 사기 공통).
+        // 링크와 앱 설치 유도가 같은 중분류(1-6)라 중분류 조합으로는 잡히지 않아 여기서 따로 본다.
+        if (URL_KEYWORD_ID in matchedIds &&
+            listOf("VP-1-6-005", "VP-1-6-103", "VP-1-6-108", "TH-7-5-008", "TH-7-5-013", "TH-7-5-015", "TH-7-5-018")
+                .any { it in matchedIds }
+        ) {
+            triggered += "COMBO-APP-INSTALL-LINK"
+        }
+
         // related_subcategory_ids 기반 "전부 매칭 시 발동" 규칙 - 세션 전체 기준으로 자동 판정
         // (RS-SECRET-MONEY, GL-ISOLATION-GUILT 및 4주차에 추가된 5개 콤보 모두 이 형태라 하드코딩 대신 일반화)
         val subcategoryIds = scoring.map { it.entry.subcategoryId }.toSet()

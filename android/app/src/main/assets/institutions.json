@@ -120,6 +120,14 @@
       "contact": "지역 사회복지관 연계"
     },
     {
+      "id": "PUB-D-SEXCRIME",
+      "name": "디지털성범죄피해자지원센터",
+      "tier": "공공기관",
+      "group": "긴급대응",
+      "role": "몸캠피싱·불법촬영물 유포 피해 상담과 영상 삭제 지원(24시간). 한국여성인권진흥원 운영",
+      "contact": "02-735-8994"
+    },
+    {
       "id": "PUB-WOMEN1366",
       "name": "여성가족부·한국여성인권진흥원",
       "tier": "공공기관",
@@ -283,13 +291,18 @@
         "reason": "협박·공갈 범죄 즉시 신고 및 수사"
       },
       {
-        "institution_id": "PUB-LEGALAID",
+        "institution_id": "PUB-D-SEXCRIME",
         "rank": 2,
+        "reason": "영상·사진 유포 협박은 삭제 지원과 24시간 상담이 함께 필요"
+      },
+      {
+        "institution_id": "PUB-LEGALAID",
+        "rank": 3,
         "reason": "법률적 대응 절차 무료 상담"
       },
       {
         "institution_id": "GOV-PROSECUTION",
-        "rank": 3,
+        "rank": 4,
         "reason": "중대 협박은 기소 절차로 연결"
       }
     ],
@@ -322,8 +335,13 @@
         "reason": "피해자 보호 및 쉼터 연계"
       },
       {
-        "institution_id": "PUB-MENTALHEALTH",
+        "institution_id": "PUB-D-SEXCRIME",
         "rank": 3,
+        "reason": "촬영물 유포가 얽힌 경우 삭제 지원 연계"
+      },
+      {
+        "institution_id": "PUB-MENTALHEALTH",
+        "rank": 4,
         "reason": "장기 스토킹 피해에 따른 심리 지원"
       }
     ],

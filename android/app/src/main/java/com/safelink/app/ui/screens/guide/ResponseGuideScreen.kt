@@ -153,6 +153,21 @@ fun ResponseGuideScreen(
                 )
             )
 
+            // 몸캠피싱은 대응 순서가 다르다 — 돈을 보내지 않는 것, 차단 전에 증거를 남기는 것,
+            // 경찰 신고와 별개로 영상 삭제 지원을 바로 요청하는 것이 핵심이라 유형별 안내를 따로 둔다.
+            if (isSextortion(detectionViewModel)) {
+                Text(text = "영상·사진 유포 협박이라면", style = MaterialTheme.typography.titleMedium)
+                GuideStepList(
+                    steps = listOf(
+                        "돈을 보내지 마세요" to "한 번 보내면 더 많이 요구합니다. 대화를 이어가지 말고 요구에 응하지 마세요.",
+                        "차단하기 전에 증거부터" to "대화 내용, 상대 계정 이름, 요구한 계좌를 화면 캡처로 남겨 두세요. 차단은 그다음에 하세요.",
+                        "퍼지는 것을 막으세요" to "SNS 친구·팔로워 목록을 비공개로 바꾸고, 상대가 설치하라고 한 앱은 지우세요.",
+                        "삭제 지원을 요청하세요" to "디지털성범죄피해자지원센터(02-735-8994)는 24시간 상담과 영상 삭제를 도와줍니다. 경찰 신고(112)와 따로, 지금 바로 요청할 수 있어요.",
+                        "혼자 있지 마세요" to "청소년이라면 1388, 성인은 1366으로도 상담할 수 있습니다. 가족이나 믿을 만한 사람에게 알려 주세요."
+                    )
+                )
+            }
+
             Text(
                 text = "분석 결과는 참고 정보이며, 최종 판단은 사용자에게 있습니다.",
                 style = MaterialTheme.typography.bodyMedium,
@@ -225,6 +240,15 @@ private fun GuideStepList(steps: List<Pair<String, String>>) {
             }
         }
     }
+}
+
+/**
+ * 몸캠피싱(영상통화 유도 → 촬영물 유포 협박)인지. 영상통화 유도(7-5)나 영상 유포 위협(7-1)이
+ * 실제로 걸린 경우에만 전용 안내를 보여준다 — 일반 협박까지 같은 안내를 띄우지 않기 위해서다.
+ */
+private fun isSextortion(viewModel: DetectionViewModel): Boolean {
+    val subcategories = viewModel.result?.matchedKeywords?.map { it.subcategoryId }?.toSet() ?: return false
+    return "7-5" in subcategories || "7-1" in subcategories
 }
 
 @Composable

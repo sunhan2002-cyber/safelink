@@ -49,8 +49,8 @@ android {
         targetSdk = 35
         // 설정 화면 맨 아래 "SafeLink vX.Y.Z"와 공유하는 APK 파일 이름(SafeLink_vX.Y.Z_...apk)을 같은 번호로 맞춘다.
         // versionCode 는 X*100 + Y*10 + Z (0.5.0 → 50). 새 APK 를 나눠줄 때마다 올려야 덮어 설치가 된다.
-        versionCode = 51
-        versionName = "0.5.1"
+        versionCode = 52
+        versionName = "0.5.2"
 
         buildConfigField("String", "SAFE_BROWSING_API_KEY", "\"$safeBrowsingApiKey\"")
         buildConfigField("String", "AI_BASE_URL", "\"$aiBaseUrl\"")
