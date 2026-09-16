@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- 경고 알림 본문 배경 — 긴급(빨강)과 구분되는 주황 -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#E65100" />
-    <corners android:radius="12dp" />
-</shape>
