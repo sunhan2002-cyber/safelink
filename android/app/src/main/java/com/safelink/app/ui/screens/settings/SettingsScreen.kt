@@ -62,7 +62,6 @@ import com.safelink.app.settings.NotificationTextStore
 import com.safelink.app.security.AppLockManager
 import com.safelink.app.security.BiometricAuth
 import com.safelink.app.settings.EmergencyContactStore
-import com.safelink.app.settings.FeatureToggleState
 import com.safelink.app.data.repository.RecordRepository
 import com.safelink.app.ui.components.BackgroundDetectionConsentDialog
 import com.safelink.app.ui.components.SafeLinkCard
@@ -107,9 +106,7 @@ fun SettingsScreen(navController: NavHostController) {
     var contactNameInput by remember { mutableStateOf("") }
     var contactPhoneInput by remember { mutableStateOf("") }
     var messageInput by remember { mutableStateOf("") }
-    // 스크린샷 분석 사용 — 앱 레벨 토글(FeatureToggleState)에 연결해 실제 기능(스크린샷 탭)을 제어
-    val screenshotAnalysis by FeatureToggleState.screenshotAnalysisEnabled.collectAsState()
-    // 보호가 꺼져 있으면 AI 동의도 함께 푼다(BackgroundDetectionAccess.syncAiConsent) — 그래서 aiConsent 보다 먼저 읽는다
+    // 켜져 있던 보호가 꺼졌으면 AI 동의도 함께 푼다(BackgroundDetectionAccess.syncAiConsent) — 그래서 aiConsent 보다 먼저 읽는다
     var backgroundDetection by remember { mutableStateOf(BackgroundDetectionAccess.syncAiConsent(context)) }
     // 백그라운드 감지 켜기 전 동의·권한 안내 다이얼로그 (최종 가이드 v1.0)
     var showBackgroundConsent by remember { mutableStateOf(false) }
@@ -118,12 +115,9 @@ fun SettingsScreen(navController: NavHostController) {
     var showBatteryDialog by remember { mutableStateOf(false) }
     var askBatteryAfterEnable by remember { mutableStateOf(false) }
 
-    // 백그라운드 AI 정밀 분석 동의 — 기본 꺼짐, 켤 때 무엇이 전송되는지 보여주고 동의를 받는다
+    // AI 보조분석 동의(실시간 보호·직접 분석 공통) — 기본 꺼짐, 켤 때 무엇이 전송되는지 보여주고 동의를 받는다
     var aiConsent by remember { mutableStateOf(AiConsentStore.isEnabled(context)) }
     var showAiConsentDialog by remember { mutableStateOf(false) }
-    // 직접 분석(붙여넣기·스크린샷)에서 AI 를 자동으로 부를지 — 기본 꺼짐, 켤 때 동의를 받는다
-    var manualAiConsent by remember { mutableStateOf(AiConsentStore.isManualEnabled(context)) }
-    var showManualAiDialog by remember { mutableStateOf(false) }
 
     DisposableEffect(context, lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -146,7 +140,7 @@ fun SettingsScreen(navController: NavHostController) {
             onDecide = { aiEnabled ->
                 showBackgroundConsent = false
                 // [허용]을 눌렀을 때만 온다([거부]는 onDismiss — 창만 닫는다).
-                // AI 동의는 창 안의 체크박스 값을 그대로 따른다. 아래 "백그라운드 AI 보조분석" 토글과 같은 값이라
+                // AI 동의는 창 안의 체크박스 값을 그대로 따른다. 아래 "AI 보조분석" 토글과 같은 값이라
                 // 이 선택이 그 토글에도 바로 반영된다.
                 if (aiEnabled) AiConsentStore.agree(context) else AiConsentStore.revoke(context)
                 aiConsent = aiEnabled
@@ -293,23 +287,6 @@ fun SettingsScreen(navController: NavHostController) {
         )
     }
 
-    if (showManualAiDialog) {
-        AlertDialog(
-            onDismissRequest = { showManualAiDialog = false },
-            title = { Text(AiConsentStore.MANUAL_CONSENT_TITLE) },
-            text = { Text(AiConsentStore.MANUAL_CONSENT_BODY) },
-            confirmButton = {
-                TextButton(onClick = {
-                    AiConsentStore.agreeManual(context)
-                    manualAiConsent = true
-                    showManualAiDialog = false
-                }) { Text("동의하고 사용") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showManualAiDialog = false }) { Text("사용 안 함") }
-            }
-        )
-    }
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
         SafeLinkTopBar(title = "설정", collapseFraction = topBarCollapse)
@@ -458,12 +435,6 @@ fun SettingsScreen(navController: NavHostController) {
             SectionLabel("기능 확장")
             SafeLinkCard {
                 ToggleRow(
-                    label = "스크린샷 분석 사용",
-                    caption = "끄면 대화 분석에서 스크린샷 탭이 숨겨지고 텍스트 입력만 사용합니다.",
-                    checked = screenshotAnalysis,
-                    onChange = { FeatureToggleState.setScreenshotAnalysisEnabled(context, it) }
-                )
-                ToggleRow(
                     label = "백그라운드 감지 설정",
                     caption = "휴대폰 설정의 '접근성'에서 SafeLink를 켜면, 대화 화면에 위험한 표현이 보일 때 알림으로 알려드려요.",
                     checked = backgroundDetection,
@@ -481,16 +452,12 @@ fun SettingsScreen(navController: NavHostController) {
                     }
                 )
                 ToggleRow(
-                    label = "백그라운드 AI 보조분석",
-                    caption = if (backgroundDetection) {
-                        "켜면 판단이 애매한 경우 대화 내용이 AI 제공사(Anthropic)로 전송됩니다. 끄면 기기 안에서만 판단합니다."
-                    } else {
-                        "실시간 보호(백그라운드 감지)를 켜야 사용할 수 있어요."
-                    },
+                    // 실시간 보호와 직접 분석에 함께 쓰는 하나의 스위치(예전에는 둘로 나뉘어 있었다).
+                    // 직접 분석에도 쓰이므로 보호가 꺼져 있어도 켤 수 있다.
+                    label = "AI 보조분석",
+                    caption = "켜면 실시간 보호와 직접 분석에서 판단이 애매한 경우 대화 내용이 AI 제공사(Anthropic)로 전송됩니다. " +
+                        "끄면 기기 안에서만 판단하고, 필요할 때 결과 화면에서 한 건씩 요청할 수 있어요.",
                     checked = aiConsent,
-                    // 보호가 꺼져 있으면 동작할 곳이 없는 설정이라 켤 수 없게 둔다.
-                    // 켜게 두면 보호를 켜기도 전에 동의만 남는다.
-                    enabled = backgroundDetection,
                     onChange = { on ->
                         // 켤 때만 동의 화면을 띄운다. 끄는 건 즉시 반영(동의 철회에 확인을 요구하지 않는다).
                         if (on) {
@@ -498,19 +465,6 @@ fun SettingsScreen(navController: NavHostController) {
                         } else {
                             AiConsentStore.revoke(context)
                             aiConsent = false
-                        }
-                    }
-                )
-                ToggleRow(
-                    label = "직접 분석 AI 보조분석",
-                    caption = "켜면 붙여넣은 대화도 판단이 애매할 때 AI 제공사(Anthropic)로 전송됩니다. 꺼도 결과 화면에서 직접 요청할 수 있어요.",
-                    checked = manualAiConsent,
-                    onChange = { on ->
-                        if (on) {
-                            showManualAiDialog = true
-                        } else {
-                            AiConsentStore.revokeManual(context)
-                            manualAiConsent = false
                         }
                     }
                 )

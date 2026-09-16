@@ -23,7 +23,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.safelink.app.settings.FeatureToggleState
 import com.safelink.app.share.SharedImageImporter
 import com.safelink.app.ui.screens.detection.DetectionViewModel
 import kotlinx.coroutines.Dispatchers
@@ -92,12 +91,6 @@ class MainActivity : FragmentActivity() {
             }
             pendingSharedImages.value = copied
         }
-    }
-
-    override fun onStop() {
-        super.onStop()
-        // 설정에서 끈 공유 입구는 화면을 벗어난 뒤에 실제로 끈다 (FeatureToggleState.setScreenshotAnalysisEnabled 참고)
-        if (!isChangingConfigurations) FeatureToggleState.syncShareTarget(applicationContext)
     }
 
     /** Android 13+ 배너 알림 표시를 위한 런타임 권한 요청 (한 번) */

@@ -345,7 +345,7 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         // 자동 호출은 사용자가 동의한 경우에만 한다 — 예전에는 회색지대 점수면 안내 없이 전송됐다.
         // 동의 전이라도 결과 화면의 "AI 보조분석 요청"으로 한 건씩 직접 받을 수 있다([requestManualAi]).
         val shouldEscalate = repository.shouldEscalateToAI(onDeviceResult) &&
-            AiConsentStore.isManualEnabled(getApplication())
+            AiConsentStore.isEnabled(getApplication())
         isEscalatingToAI = shouldEscalate
 
         // 링크 안전성 검사 — 기기 안의 차단 목록과 대조해 대개 금방 끝난다. 위험한 링크가 있으면 판정이 긴급으로

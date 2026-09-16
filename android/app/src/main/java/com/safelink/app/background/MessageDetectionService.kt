@@ -56,7 +56,7 @@ import java.util.UUID
  *
  * ── 개인정보: 기본은 기기 안, 동의한 경우에만 AI 전송 ─────────────────────
  *   판정([DetectionRepository.analyze])은 항상 기기 안에서 끝난다. 여기서 읽은 화면 텍스트가
- *   밖으로 나가는 경로는 **사용자가 설정에서 "백그라운드 AI 정밀 분석"에 동의한 경우** 하나뿐이며
+ *   밖으로 나가는 경로는 **사용자가 설정에서 "AI 보조분석"에 동의한 경우** 하나뿐이며
  *   ([AiConsentStore], [escalateToAiIfConsented]), 그때도 개인정보를 가린 사본만 보낸다
  *   ([com.safelink.app.data.privacy.PrivacyMasker] — 전화번호·계좌번호·주민등록번호·카드번호·이메일·링크 경로).
  *   동의 전에는 전송 자체가 일어나지 않는다.

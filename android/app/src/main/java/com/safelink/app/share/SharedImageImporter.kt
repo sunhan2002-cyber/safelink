@@ -112,8 +112,8 @@ object SharedImageImporter {
 
     /**
      * 공유받기 입구(activity-alias)를 켜고 끈다.
-     * 설정의 "스크린샷 분석 사용"을 끄면 공유 목록에서도 SafeLink 가 사라지게 한다 —
-     * 공유 목록에는 보이는데 눌러 보면 꺼져 있는 기능이면 설정으로서 성립하지 않는다.
+     * 지금은 스크린샷 분석이 항상 켜져 있어 앱 시작 시 켜 두는 데만 쓴다([com.safelink.app.settings.FeatureToggleState]).
+     * 예전 "스크린샷 분석 사용" 스위치로 꺼 둔 입구를 되살리기 위해서다.
      */
     fun setShareTargetEnabled(context: Context, enabled: Boolean) {
         val component = ComponentName(context, "${context.packageName}.ShareScreenshotAlias")
