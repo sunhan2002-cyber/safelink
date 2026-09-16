@@ -86,6 +86,19 @@ class ScreenTextCleanerTest {
     }
 
     @Test
+    fun `디스코드 DM 첫 화면 버튼과 보낸 사람 이름 줄을 뺀다`() {
+        // 실기기 디스코드 DM 백그라운드 기록(2026-09-16)
+        val screen = listOf(
+            "신기훈", "음성 통화 시작하기", "영상 통화 시작하기", "신기훈", "siningihun",
+            "신기훈님과의 전설적인 대화가 지금 막 시작되었어요.", "같이 있는 서버 1개", "친구 삭제하기", "차단하기",
+            "신기훈", "재겸 오빠 나 사랑하면 돈 좀 보내줘 빨리 보내줘야돼", "siningihun",
+            "500만원만 보내줘 안주면 헤어질거야", "신기훈에게 손 흔들기"
+        ).joinToString("\n")
+        assertEquals("재겸 오빠 나 사랑하면 돈 좀 보내줘 빨리 보내줘야돼\n500만원만 보내줘 안주면 헤어질거야", ScreenTextCleaner.clean(screen))
+        assertEquals("한 번만 나온 영어 한 단어는 메시지일 수 있어 남긴다", "hello", ScreenTextCleaner.clean("hello"))
+    }
+
+    @Test
     fun `같은 창을 두 번 훑어 생긴 바로 앞 줄 중복은 한 번만 남긴다`() {
         assertEquals("엄마 나 폰 고장났어\n대신 송금해줘\n엄마 나 폰 고장났어",
             ScreenTextCleaner.clean("엄마 나 폰 고장났어\n엄마 나 폰 고장났어\n대신 송금해줘\n엄마 나 폰 고장났어"))

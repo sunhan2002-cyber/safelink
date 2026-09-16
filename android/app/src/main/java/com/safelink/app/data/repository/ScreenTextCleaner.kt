@@ -50,6 +50,10 @@ object ScreenTextCleaner {
         Regex("(채팅|음성|포럼|공지|스테이지) 채널"),
         Regex("#.{1,40}에 오신 걸 환영합니다!?"),
         Regex(".{1,40}, 멤버 목록"),
+        // 디스코드 DM 첫 화면: 대화 시작 안내, 같이 있는 서버 수, 손 흔들기
+        Regex(".{1,30}님과의 .{0,10}대화가 지금 막 시작되었어요\\.?"),
+        Regex("같이 있는 서버 \\d+개"),
+        Regex(".{1,30}에게 손 흔들기"),
         // 인스타그램 DM: 스토리 버튼, 활동 상태, 사진 전송 안내, 입력창 도움말
         Regex(".{1,40}님 스토리 열기"),
         Regex("(최근 활동:?\\s*.{1,20}|현재 활동 중|활동 중)"),
@@ -86,6 +90,7 @@ object ScreenTextCleaner {
         "message...", "message…", "like", "reply", "gallery", "voice clip", "sticker",
         // 디스코드
         "미디어 키보드 전환", "이모지 키보드 전환", "선물 보내기", "음성 메시지 녹음", "검색하기", "멤버 목록",
+        "음성 통화 시작하기", "영상 통화 시작하기", "친구 삭제하기", "친구 추가하기", "차단하기", "차단 해제하기", "신고하기",
         "bottom sheet backdrop", "bottom sheet", "사진 찾아보기", "투표", "스레드", "앱", "파일", "온라인", "오프라인",
         "찾던 사진이 아닌가 보죠? 사진 라이브러리에서 완벽한 사진을 찾아보세요.",
     )
@@ -93,8 +98,10 @@ object ScreenTextCleaner {
     fun clean(text: String): String {
         val kept = mutableListOf<String>()
         var channelName: String? = null
-        for (raw in text.split('\n')) {
-            val line = raw.trim()
+        val lines = text.split('\n').map { it.trim() }
+        val senderNames = senderNamesOf(lines)
+        for (line in lines) {
+            if (line in senderNames) continue
             if (line == channelName) { channelName = null; continue }
             channelName = CHANNEL_ENTRY.matchEntire(line)?.groupValues?.get(2)
             if (line.isEmpty() || isScreenElement(line)) continue
@@ -103,6 +110,29 @@ object ScreenTextCleaner {
         }
         return kept.joinToString("\n")
     }
+
+    /**
+     * 말풍선 사이사이에 끼는 보낸 사람 이름 줄.
+     * - 디스코드 DM 은 "신기훈님과의 전설적인 대화가…", "신기훈에게 손 흔들기" 안내에 상대 이름이 들어 있다.
+     * - 영문 아이디(한글 없이 한 단어)가 화면에 두 번 이상 나오면 메시지가 아니라 보낸 사람 표시다("siningihun").
+     * 메시지 내용과 같은 줄을 지우면 안 되므로, 이렇게 이름이라고 확인된 줄만 뺀다.
+     */
+    private fun senderNamesOf(lines: List<String>): Set<String> {
+        val names = mutableSetOf<String>()
+        lines.forEach { line ->
+            DM_PARTNER_PATTERNS.forEach { p -> p.matchEntire(line)?.groupValues?.get(1)?.trim()?.let { names += it } }
+        }
+        lines.filter { HANDLE.matches(it) }.groupingBy { it }.eachCount()
+            .filter { it.value >= 2 }.keys.let { names += it }
+        return names
+    }
+
+    private val DM_PARTNER_PATTERNS = listOf(
+        Regex("(.{1,30})님과의 .{0,10}대화가 지금 막 시작되었어요\\.?"),
+        Regex("(.{1,30})에게 손 흔들기"),
+    )
+
+    private val HANDLE = Regex("[A-Za-z][A-Za-z0-9_.]{2,31}")
 
     fun isScreenElement(line: String): Boolean {
         val t = line.trim()
