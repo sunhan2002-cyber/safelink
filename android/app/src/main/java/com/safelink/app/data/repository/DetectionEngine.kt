@@ -218,8 +218,36 @@ class DetectionEngine(
     /** 원문 텍스트 1건을 분석해서 [DetectionResult]로 변환. 화면/ViewModel에서 사용하는 기본 진입점. */
     fun analyze(originalText: String): DetectionResult = analyze(listOf(originalText))
 
-    /** 여러 턴(대화)을 이어서 분석. 콤보 판정 등 세션 단위 로직 검증에 사용. */
+    /**
+     * 여러 턴(대화)을 이어서 분석. 콤보 판정 등 세션 단위 로직 검증에 사용.
+     *
+     * "송.금", "입*금"처럼 글자 사이에 기호를 끼워 피하는 표현은 기호를 지운 사본으로 판정하고([TextDeobfuscator]),
+     * 결과의 원문과 밑줄 위치는 사용자가 받은 원문 기준으로 되돌린다.
+     */
     fun analyze(turns: List<String>): DetectionResult {
+        val cleaned = turns.map(TextDeobfuscator::clean)
+        if (cleaned.none { it.changed }) return analyzeCleanTurns(turns)
+
+        val result = analyzeCleanTurns(cleaned.map { it.text })
+        val originalText = turns.joinToString("\n")
+        // 지운 사본의 위치 → 원문 위치. 턴 사이 줄바꿈 한 글자도 함께 옮긴다.
+        val toOriginal = ArrayList<Int>(originalText.length)
+        var offset = 0
+        cleaned.forEachIndexed { i, c ->
+            c.originalIndex.forEach { toOriginal += offset + it }
+            offset += turns[i].length
+            if (i < turns.size - 1) toOriginal += offset++
+        }
+        val remapped = result.matchedKeywords.map { k ->
+            if (k.endIndex <= k.startIndex || k.endIndex > toOriginal.size) return@map k
+            val start = toOriginal[k.startIndex]
+            val end = toOriginal[k.endIndex - 1] + 1
+            k.copy(startIndex = start, endIndex = end, matchedText = originalText.substring(start, end))
+        }
+        return result.copy(originalText = originalText, matchedKeywords = remapped)
+    }
+
+    private fun analyzeCleanTurns(turns: List<String>): DetectionResult {
         // 줄바꿈으로 합친다 — 붙여넣은 대화의 줄 구분이 화면에서도 그대로 보이고,
         // 구분자가 한 글자라 매칭 위치(startIndex/endIndex) 계산은 공백일 때와 같다.
         val originalText = turns.joinToString("\n")
