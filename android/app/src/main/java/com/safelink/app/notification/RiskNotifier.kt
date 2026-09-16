@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import com.safelink.app.MainActivity
 import com.safelink.app.R
@@ -61,18 +62,29 @@ class RiskNotifier(private val context: Context) {
             ?.let { "감지된 표현: \"$it\"" }
             ?: "확인이 필요한 표현이 감지되었습니다. 내용을 확인해 보세요."
 
-        val notification = NotificationCompat.Builder(context, channelIdOf(level))
+        val title = neutralTitle(level, category)
+        val builder = NotificationCompat.Builder(context, channelIdOf(level))
             // 앱 아이콘 대신 경고 삼각형(느낌표) — 상태바/알림에서 "경고"임이 바로 보이도록
             .setSmallIcon(R.drawable.ic_stat_warning)
             // 위험도별 강조색: 알림 서랍에서 아이콘 배경이 빨강(치명)·주황(경고)으로 물듦
             .setColor(accentColorOf(level))
-            .setContentTitle(neutralTitle(level, category))
+            .setContentTitle(title)
             .setContentText(contentText)
             .setPriority(priorityOf(level))
             .setCategory(NotificationCompat.CATEGORY_ERROR)
             .setAutoCancel(true)
             .setContentIntent(pending)
-            .build()
+
+        // 경고 이상은 본문을 위험도 색 바탕(빨강·주황)에 흰 글씨로 그린다.
+        // 시스템 기본 알림은 회색 바탕이라 팝업으로 떠도 일반 알림과 구분이 잘 안 됐다.
+        // 앱 이름·아이콘 줄은 시스템이 그리고(DecoratedCustomViewStyle), 그 아래 본문만 색을 입힌다.
+        coloredBody(level, title, contentText)?.let { body ->
+            builder.setStyle(NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomContentView(body)
+                .setCustomHeadsUpContentView(body)
+                .setCustomBigContentView(body)
+        }
+        val notification = builder.build()
 
         runCatching { manager().notify(NOTIF_ID, notification) }
     }
@@ -98,6 +110,23 @@ class RiskNotifier(private val context: Context) {
         RiskLevel.CRITICAL -> "지금 바로 확인해 보세요"
         RiskLevel.WARNING -> "확인이 필요한 표현이 감지되었어요"
         else -> if (category.isBlank()) "SafeLink 알림" else "$category 관련 표현이 감지되었어요"
+    }
+
+    /**
+     * 위험도 색 바탕 본문. 경고 미만은 색을 입히지 않는다(null) — 주의 단계까지 빨갛게 띄우면 오히려 무뎌진다.
+     * 중립 문구 모드에서는 여기까지 오지 않는다(색 자체가 위험 알림임을 드러내므로).
+     */
+    private fun coloredBody(level: RiskLevel, title: String, body: String): RemoteViews? {
+        val background = when (level) {
+            RiskLevel.CRITICAL -> R.drawable.bg_notif_critical
+            RiskLevel.WARNING -> R.drawable.bg_notif_warning
+            else -> return null
+        }
+        return RemoteViews(context.packageName, R.layout.notification_risk).apply {
+            setInt(R.id.notif_root, "setBackgroundResource", background)
+            setTextViewText(R.id.notif_title, title)
+            setTextViewText(R.id.notif_body, body)
+        }
     }
 
     /** 알림 강조색 — 치명(빨강)·경고(주황)·그 외(브랜드 블루). ARGB. */
