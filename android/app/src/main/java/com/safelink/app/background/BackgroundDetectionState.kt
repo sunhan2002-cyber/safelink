@@ -42,6 +42,12 @@ object BackgroundDetectionState {
         _latestResult.value = result
     }
 
+    /** 데이터를 모두 삭제하면 홈의 "위험 신호 감지됨" 상태도 지워 기본 홈 화면으로 돌아가게 한다. */
+    fun clear() {
+        _latestSnapshot.value = null
+        _latestResult.value = null
+    }
+
     private fun snapshotOf(result: DetectionResult, sourceApp: String) = BackgroundDetectionSnapshot(
         riskLevel = result.riskLevel,
         category = result.category,
