@@ -104,6 +104,9 @@ class MessageDetectionService : AccessibilityService() {
     private var lastLinkAlertUrl: String? = null
     private var lastLinkAlertAt: Long = 0L
 
+    /** 마지막으로 반영한 "데이터 모두 삭제" 번호 ([AlertHistoryReset]) */
+    private var seenResetGeneration: Long = AlertHistoryReset.generation
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
         val pkg = event.packageName?.toString() ?: return
@@ -128,6 +131,12 @@ class MessageDetectionService : AccessibilityService() {
      */
     private fun analyze(pkg: String, windowId: Int, force: Boolean = false) {
         // 디바운스: 같은 화면 이벤트가 연속으로 오므로 일정 간격으로만 분석
+        // 데이터를 모두 삭제했으면 "이미 본 화면·이미 알린 대화" 기억을 비운다 — 같은 대화방의 같은 대화도 다시 알린다
+        if (AlertHistoryReset.generation != seenResetGeneration) {
+            seenResetGeneration = AlertHistoryReset.generation
+            forgetAlertHistory()
+        }
+
         val now = SystemClock.elapsedRealtime()
         if (!force && now - lastAnalyzedAt < MIN_INTERVAL_MS) return
 
@@ -491,6 +500,11 @@ class MessageDetectionService : AccessibilityService() {
 
     override fun onInterrupt() {
         // 서비스 중단 시 상태 초기화 (다음 세션에서 이전 텍스트·알림 이력이 남지 않도록)
+        forgetAlertHistory()
+    }
+
+    /** 직전 화면·알림·링크 알림·AI 전송 기억을 모두 비운다. */
+    private fun forgetAlertHistory() {
         lastText = ""
         lastAnalyzedAt = 0L
         lastAlertPkg = null
@@ -498,6 +512,9 @@ class MessageDetectionService : AccessibilityService() {
         lastAlertPhrases = null
         lastAlertAt = 0L
         lastAlertWindowId = -1
+        lastLinkAlertUrl = null
+        lastLinkAlertAt = 0L
+        cautionAiGate.forgetConversations()
     }
 
     companion object {

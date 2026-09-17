@@ -1,6 +1,7 @@
 package com.safelink.app.data.repository
 
 import android.content.Context
+import com.safelink.app.background.AlertHistoryReset
 import com.safelink.app.data.link.LinkResultCodec
 import com.safelink.app.data.link.LinkRiskResult
 import com.safelink.app.data.local.DetectionRecordEntity
@@ -231,6 +232,8 @@ class RecordRepository(context: Context) {
     suspend fun deleteAll() {
         detectionDao.deleteAll()
         diagnosisDao.deleteAll()
+        // 지운 뒤에는 같은 대화방의 같은 대화도 처음 보는 것처럼 다시 알린다
+        AlertHistoryReset.request()
     }
 
     /** 기록 한 건 삭제 — 어느 테이블인지 모르므로 양쪽에 시도한다(존재하는 쪽만 삭제됨). */

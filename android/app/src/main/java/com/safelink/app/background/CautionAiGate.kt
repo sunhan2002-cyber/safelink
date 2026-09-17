@@ -48,6 +48,12 @@ class CautionAiGate(
         return true
     }
 
+    /** 같은 대화 전송 이력을 지운다(데이터 모두 삭제). 시간당 호출 수 제한은 비용 보호라 그대로 둔다. */
+    @Synchronized
+    fun forgetConversations() {
+        lastSentAt.clear()
+    }
+
     companion object {
         /** 이 점수 이상이면서 경고 미만인 대화를 AI 로 한 번 더 확인한다. */
         const val MIN_RULE_SCORE = 10
